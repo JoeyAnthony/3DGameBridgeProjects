@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.23)
+project (srReshade VERSION 0.1)
+
+set (CMAKE_CXX_STANDARD 17)
+
+add_library(srReshade SHARED src/dllmain.cpp src/framework.h src/pch.h src/pch.cpp)
+
+find_package(simulatedreality REQUIRED)
+find_package(srDirectX REQUIRED)
+
+#if(DEFINED ${RESHADE_INCLUDE} AND DEFINED ${IMGUI_INCLUDE})
+    include_directories(${RESHADE_INCLUDE})
+    include_directories(srReshade ${IMGUI_INCLUDE})
+#endif()
+
+#option(<COPY_DLL_TO_RESHADE_DIR> "Should the dll be copied automatically to the game directory set with RESHADE_DIR"> OFF)
+
+# Rename dll with extension .addon
+add_custom_command(TARGET srReshade POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE:srReshade> $<TARGET_FILE_DIR:srReshade>/${PROJECT_NAME}.addon
+)
+
+# Copy dll to reshade directory
+# if(${COPY_DLL_TO_RESHADE_DIR} AND NOT ${RESHADE_DIR} STREQUAL "")
+
+# endif()
+
+target_link_libraries(srReshade PRIVATE
+    simulatedreality
+    srDirectX::srDirectX
+)
