@@ -7,9 +7,13 @@
 #ifndef PCH_H
 #define PCH_H
 
+#define IMGUI_DISABLE_INCLUDE_IMCONFIG_H
+#define ImTextureID unsigned long long // Change ImGui texture ID type to that of a 'reshade::api::resource_view' handle
+
+#include <imgui.h>
+#include <reshade.hpp>
+
 // add headers that you want to pre-compile here
 #include "framework.h"
-#include <reshade.hpp>
-#include <imgui.h>
 
 #endif //PCH_H
