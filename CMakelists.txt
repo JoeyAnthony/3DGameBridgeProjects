@@ -5,6 +5,9 @@ set (CMAKE_CXX_STANDARD 17)
 
 add_library(srReshade SHARED src/dllmain.cpp src/framework.h src/pch.h src/pch.cpp)
 
+find_package(simulatedreality REQUIRED)
+find_package(srDirectX REQUIRED)
+
 #if(DEFINED ${RESHADE_INCLUDE} AND DEFINED ${IMGUI_INCLUDE})
     include_directories(${RESHADE_INCLUDE})
     include_directories(srReshade ${IMGUI_INCLUDE})
@@ -20,3 +23,8 @@ add_custom_command(TARGET srReshade POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E 
 # if(${COPY_DLL_TO_RESHADE_DIR} AND NOT ${RESHADE_DIR} STREQUAL "")
 
 # endif()
+
+target_link_libraries(srReshade PRIVATE
+    simulatedreality
+    srDirectX::srDirectX
+)
