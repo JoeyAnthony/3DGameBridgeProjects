@@ -45,34 +45,37 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime)
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* command_list, reshade::api::resource_view rtv, reshade::api::resource_view rv) {
-    reshade::api::device* const device = runtime->get_device();
+    //reshade::api::device* const device = runtime->get_device();
 
-    weaver->setInputFrameBuffer((ID3D12Resource*)device->get_resource_from_view(rtv).handle);
-    weaver->setCommandList((ID3D12GraphicsCommandList*)command_list->get_native());
-    weaver->weave(1920, 1080);
+    //weaver->setInputFrameBuffer((ID3D12Resource*)device->get_resource_from_view(rtv).handle);
+    //weaver->setCommandList((ID3D12GraphicsCommandList*)command_list->get_native());
+    //weaver->weave(1920, 1080);
 }
 
 static void on_init(reshade::api::swapchain* swapchain) {
-    reshade::api::device* const device = swapchain->get_device();
+	reshade::api::device* const device = swapchain->get_device();
 
-    ID3D12CommandAllocator* CommandAllocator;
-    ((ID3D12Device*) device->get_native())->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
+	//ID3D12CommandAllocator* CommandAllocator;
+    //((ID3D12Device*)device->get_native())->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
 
-    // Describe and create the command queue.
-    ID3D12CommandQueue* CommandQueue;
-    D3D12_COMMAND_QUEUE_DESC QueueDesc = {};
-    QueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+	// Describe and create the command queue.
+	ID3D12CommandQueue* CommandQueue;
+	D3D12_COMMAND_QUEUE_DESC QueueDesc = {};
+	QueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+	QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-    ((ID3D12Device*)device->get_native())->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&CommandQueue));
+	((ID3D12Device*)device->get_native())->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&CommandQueue));
 
-    if (CommandQueue == nullptr)
-    {
-        return;
+	if (CommandQueue == nullptr)
+	{
+		return;
+	}
+
+    if (!srContext) {
+        srContext = new SR::SRContext;
+        //weaver = new SR::PredictingDX12Weaver(*srContext, ((ID3D12Device*)device->get_native()), CommandAllocator, CommandQueue, nullptr, (ID3D12Resource*)(swapchain->get_current_back_buffer().handle));
+        srContext->initialize();
     }
-
-    srContext = new SR::SRContext;
-    weaver = new SR::PredictingDX12Weaver(*srContext, ((ID3D12Device*)device->get_native()), CommandAllocator, CommandQueue, nullptr, (ID3D12Resource*)(swapchain->get_current_back_buffer().handle));
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
