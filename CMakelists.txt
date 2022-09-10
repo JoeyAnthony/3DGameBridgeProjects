@@ -9,8 +9,9 @@ find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 
 #if(DEFINED ${RESHADE_INCLUDE} AND DEFINED ${IMGUI_INCLUDE})
-    include_directories(${RESHADE_INCLUDE})
-    include_directories(srReshade ${IMGUI_INCLUDE})
+    target_include_directories(srReshade PRIVATE ${RESHADE_INCLUDE})
+    target_include_directories(srReshade PRIVATE ${IMGUI_INCLUDE})
+    target_include_directories(srReshade PRIVATE ${DX12_INCLUDE})
 #endif()
 
 #option(<COPY_DLL_TO_RESHADE_DIR> "Should the dll be copied automatically to the game directory set with RESHADE_DIR"> OFF)
