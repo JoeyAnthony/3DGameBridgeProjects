@@ -18,6 +18,10 @@
 #include <combaseapi.h>
 #include "sr/weaver/dx12weaver.h"
 
+#include "sr/sense/eyetracker/eyetracker.h"
+#include "sr/sense/core/inputstream.h"
+#include <DirectXMath.h>
+
 #include "sr/types.h"
 
 // add headers that you want to pre-compile here

@@ -1,16 +1,37 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "pch.h"
 
-bool srContextInitialized = false;
-bool weaverInitialized = false;
+static bool srContextInitialized = false;
+static bool weaverInitialized = false;
 SR::PredictingDX12Weaver* weaver = nullptr;
 SR::SRContext* srContext = nullptr;
 reshade::api::device* d3d12device = nullptr;
+
+// My SR::EyePairListener that stores the last tracked eye positions
+class MyEyes : public SR::EyePairListener {
+private:
+    SR::InputStream<SR::EyePairStream> stream;
+public:
+    DirectX::XMFLOAT3 left, right;
+    MyEyes(SR::EyeTracker* tracker) : left(-30, 0, 600), right(30, 0, 600) {
+        // Open a stream between tracker and this class
+        stream.set(tracker->openEyePairStream(this));
+    }
+    // Called by the tracker for each tracked eye pair
+    virtual void accept(const SR_eyePair& eyePair) override
+    {
+        // Remember the eye positions
+        left = DirectX::XMFLOAT3(eyePair.left.x, eyePair.left.y, eyePair.left.z);
+        right = DirectX::XMFLOAT3(eyePair.right.x, eyePair.right.y, eyePair.right.z);
+    }
+};
+MyEyes* eyes = nullptr;
 
 void init_sr_context(reshade::api::effect_runtime* runtime) {
     // Just in case it's being called multiple times
     if (!srContextInitialized) {
         srContext = new SR::SRContext;
+        eyes = new MyEyes(SR::EyeTracker::create(*srContext));
         srContext->initialize();
         srContextInitialized = true;
     }
@@ -53,22 +74,20 @@ ID3D12DescriptorHeap* CreateRTVTestHeap(ID3D12Device* device, UINT& heapSize) {
     return Heap;
 }
 
-void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource_view rtv) {
+void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
     if (weaverInitialized) {
         return;
     }
-
-    d3d12device = runtime->get_device();
 
     ID3D12CommandAllocator* CommandAllocator;
     ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
     dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
 
     if (d3d12device) {
-        reshade::log_message(4, "Can cast a device! to native Dx12 Device!!!!");
+        reshade::log_message(3, "Can cast a device! to native Dx12 Device!!!!");
     }
     else {
-        reshade::log_message(4, "Could not cast device!!!!");
+        reshade::log_message(3, "Could not cast device!!!!");
         return;
     }
 
@@ -85,41 +104,39 @@ void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource_v
         return;
     }
 
-    //uint32_t back_buffer_index = runtime->get_current_back_buffer_index();
-    //char buffer[1000];
-    //sprintf(buffer, "backbuffer num: %i", back_buffer_index);
-    //reshade::api::resource res = runtime->get_current_back_buffer();
-    //uint64_t handle = res.handle;
+    uint64_t back_buffer_index = runtime->get_current_back_buffer_index();
+    char buffer[1000];
+    sprintf(buffer, "backbuffer num: %l", back_buffer_index);
+    reshade::api::resource res = runtime->get_current_back_buffer();
+    uint64_t handle = res.handle;
 
-    //sprintf(buffer, "resource value: %i", handle);
-    //reshade::log_message(4, buffer);
-    //ID3D12Resource* back_buffer = reinterpret_cast<ID3D12Resource*>(handle);
+    sprintf(buffer, "resource value: %l", handle);
+    reshade::log_message(4, buffer);
 
-    //[Create Test RTV]
+    
 
-    // Create texture
-    //const reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
-    //reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
-    ID3D12Resource* testFramebufferResource = CreateTestResourceTexture(dev, 3840, 2160);
-
-    // Create heap
-    UINT TestRTVHeapSize = 0;
-    ID3D12DescriptorHeap* TestRTVHeap = CreateRTVTestHeap(dev, TestRTVHeapSize);
-    // Create framebuffer RTV at slot 0
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(TestRTVHeap->GetCPUDescriptorHandleForHeapStart());
-    dev->CreateRenderTargetView(testFramebufferResource, nullptr, rtvHandle);
+    ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
+    ID3D12Resource* native_back_buffer = (ID3D12Resource*)back_buffer.handle;
 
     //[Create Test RTV]
 
     if (runtime->get_current_back_buffer().handle == (uint64_t)INVALID_HANDLE_VALUE) {
-
+        reshade::log_message(3, "backbuffer handle is invalid");
     }
 
-    ID3D12Resource* framebuffer = (ID3D12Resource*)d3d12device->get_resource_from_view(rtv).handle;
-    weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, framebuffer, testFramebufferResource);
+    //ID3D12Resource* framebuffer = (ID3D12Resource*)d3d12device->get_resource_from_view(rtv).handle;
+    try {
+        weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        reshade::log_message(3, "Initialized weaver");
+    }
+    catch (std::exception e) {
+        reshade::log_message(3, e.what());
+    }
+    catch (...) {
+        reshade::log_message(3, "Couldn't initialize weaver");
+    }
 
     weaverInitialized = true;
-    reshade::log_message(4, "Initialized weaver");
 }
 
 bool g_popup_window_visible = false;
@@ -152,16 +169,37 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime)
 {
 }
 
-static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list*, reshade::api::resource_view rtv, reshade::api::resource_view) {
-    reshade::api::resource res = runtime->get_current_back_buffer();
-    init_weaver(runtime, rtv);
+reshade::api::command_list* command_list;
+reshade::api::resource_view game_frame_buffer;
+static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
 
-    //weaver->setInputFrameBuffer((ID3D12Resource*)d3d12device->get_resource_from_view(rtv).handle);
-    //weaver->setCommandList((ID3D12GraphicsCommandList*)command_list->get_native());
-    //weaver->weave(1920, 1080);
+
+    if (!weaverInitialized) {
+        init_weaver(runtime, d3d12device->get_resource_from_view(rtv), runtime->get_current_back_buffer());
+    }
+
+    //const float color[] = {1.f, 0.3f, 0.5f, 1.f};
+    //cmd_list->clear_render_target_view(rtv, color);
+    //const float color2[] = { 0.0f, 0.5f, 0.2f, 1.f };
+    //cmd_list->clear_render_target_view(rsv, color2);
+
+    if (weaverInitialized) {
+        reshade::api::resource_view view;
+        d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &view);
+
+        const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
+        cmd_list->clear_render_target_view(view, color);
+        cmd_list->bind_render_targets_and_depth_stencil(1, &view);
+
+        weaver->setInputFrameBuffer((ID3D12Resource*)d3d12device->get_resource_from_view(rtv).handle);
+        ID3D12GraphicsCommandList* native_cmd_list = (ID3D12GraphicsCommandList*)cmd_list->get_native();
+        weaver->setCommandList(native_cmd_list);
+        weaver->weave(3820, 2160);
+    }
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
+    d3d12device = runtime->get_device();
     init_sr_context(runtime);
 }
 
