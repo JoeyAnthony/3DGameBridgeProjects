@@ -6,6 +6,7 @@ static bool weaverInitialized = false;
 SR::PredictingDX12Weaver* weaver = nullptr;
 SR::SRContext* srContext = nullptr;
 reshade::api::device* d3d12device = nullptr;
+reshade::api::resource effect_frame_copy;
 
 // My SR::EyePairListener that stores the last tracked eye positions
 class MyEyes : public SR::EyePairListener {
@@ -172,10 +173,15 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime)
 reshade::api::command_list* command_list;
 reshade::api::resource_view game_frame_buffer;
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
-
+    reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
 
     if (!weaverInitialized) {
-        init_weaver(runtime, d3d12device->get_resource_from_view(rtv), runtime->get_current_back_buffer());
+        init_weaver(runtime, rtv_resource, runtime->get_current_back_buffer());
+
+        reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
+        desc.type = reshade::api::resource_type::texture_2d;
+        desc.usage = reshade::api::resource_usage::copy_dest;
+        d3d12device->create_resource(desc, nullptr, reshade::api::resource_usage::unordered_access, &effect_frame_copy);
     }
 
     //const float color[] = {1.f, 0.3f, 0.5f, 1.f};
@@ -187,11 +193,18 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         reshade::api::resource_view view;
         d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &view);
 
-        const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
-        cmd_list->clear_render_target_view(view, color);
+        reshade::api::command_list* const cmd_list = runtime->get_command_queue()->get_immediate_command_list();
+        cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_dest);
+        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
+        cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+        cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
+        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
+
+        //const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
+        //cmd_list->clear_render_target_view(view, color);
         cmd_list->bind_render_targets_and_depth_stencil(1, &view);
 
-        weaver->setInputFrameBuffer((ID3D12Resource*)d3d12device->get_resource_from_view(rtv).handle);
+        weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
         ID3D12GraphicsCommandList* native_cmd_list = (ID3D12GraphicsCommandList*)cmd_list->get_native();
         weaver->setCommandList(native_cmd_list);
         weaver->weave(3820, 2160);
