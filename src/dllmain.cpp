@@ -6,7 +6,6 @@ static bool weaverInitialized = false;
 SR::PredictingDX12Weaver* weaver = nullptr;
 SR::SRContext* srContext = nullptr;
 reshade::api::device* d3d12device = nullptr;
-reshade::api::resource effect_frame_copy;
 
 // My SR::EyePairListener that stores the last tracked eye positions
 class MyEyes : public SR::EyePairListener {
@@ -114,20 +113,15 @@ void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource r
     sprintf(buffer, "resource value: %l", handle);
     reshade::log_message(4, buffer);
 
-    
-
     ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
     ID3D12Resource* native_back_buffer = (ID3D12Resource*)back_buffer.handle;
-
-    //[Create Test RTV]
 
     if (runtime->get_current_back_buffer().handle == (uint64_t)INVALID_HANDLE_VALUE) {
         reshade::log_message(3, "backbuffer handle is invalid");
     }
 
-    //ID3D12Resource* framebuffer = (ID3D12Resource*)d3d12device->get_resource_from_view(rtv).handle;
     try {
-        weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue/**(ID3D12CommandQueue*)runtime->get_command_queue()->get_native()**/, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
         reshade::log_message(3, "Initialized weaver");
     }
     catch (std::exception e) {
@@ -172,32 +166,38 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime)
 
 reshade::api::command_list* command_list;
 reshade::api::resource_view game_frame_buffer;
+reshade::api::resource effect_frame_copy;
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
     reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
+    reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
     if (!weaverInitialized) {
-        init_weaver(runtime, rtv_resource, runtime->get_current_back_buffer());
-
-        reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
+        reshade::log_message(3, "init effect buffer copy");
         desc.type = reshade::api::resource_type::texture_2d;
+        desc.heap = reshade::api::memory_heap::gpu_only;
         desc.usage = reshade::api::resource_usage::copy_dest;
-        d3d12device->create_resource(desc, nullptr, reshade::api::resource_usage::unordered_access, &effect_frame_copy);
-    }
 
-    //const float color[] = {1.f, 0.3f, 0.5f, 1.f};
-    //cmd_list->clear_render_target_view(rtv, color);
-    //const float color2[] = { 0.0f, 0.5f, 0.2f, 1.f };
-    //cmd_list->clear_render_target_view(rsv, color2);
+        if (d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, 1, 1, reshade::api::format::r8g8b8a8_unorm, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
+            nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
+            reshade::log_message(3, "Created resource");
+        }
+        else {
+            reshade::log_message(3, "Failed creating resource");
+            return;
+        }
+
+        init_weaver(runtime, effect_frame_copy, d3d12device->get_resource_from_view(rtv));
+    }
 
     if (weaverInitialized) {
         reshade::api::resource_view view;
         d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &view);
 
-        reshade::api::command_list* const cmd_list = runtime->get_command_queue()->get_immediate_command_list();
-        cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_dest);
+        //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::cpu_access, reshade::api::resource_usage::copy_dest);
         cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
         cmd_list->copy_resource(rtv_resource, effect_frame_copy);
-        cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
+        //reshade::log_message(3, "Got a copy!");
+        //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::cpu_access);
         cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
 
         //const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
@@ -207,7 +207,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
         ID3D12GraphicsCommandList* native_cmd_list = (ID3D12GraphicsCommandList*)cmd_list->get_native();
         weaver->setCommandList(native_cmd_list);
-        weaver->weave(3820, 2160);
+        weaver->weave(desc.texture.width, desc.texture.height);
     }
 }
 
