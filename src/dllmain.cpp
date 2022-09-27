@@ -23,6 +23,10 @@ public:
         // Remember the eye positions
         left = DirectX::XMFLOAT3(eyePair.left.x, eyePair.left.y, eyePair.left.z);
         right = DirectX::XMFLOAT3(eyePair.right.x, eyePair.right.y, eyePair.right.z);
+
+        std::stringstream ss;
+        ss << "left: " << left.x << " right: " << right.x;
+        reshade::log_message(3, ss.str().c_str());
     }
 };
 MyEyes* eyes = nullptr;
@@ -177,7 +181,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         desc.heap = reshade::api::memory_heap::gpu_only;
         desc.usage = reshade::api::resource_usage::copy_dest;
 
-        if (d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, 1, 1, reshade::api::format::r8g8b8a8_unorm, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
+        if (d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
             nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
             reshade::log_message(3, "Created resource");
         }
