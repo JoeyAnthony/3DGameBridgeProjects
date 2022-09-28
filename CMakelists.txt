@@ -3,7 +3,18 @@ project (srReshade VERSION 0.1)
 
 set (CMAKE_CXX_STANDARD 17)
 
-add_library(srReshade SHARED src/dllmain.cpp src/framework.h src/pch.h src/pch.cpp)
+add_library(srReshade SHARED
+    src/dllmain.cpp
+    src/framework.h
+    src/pch.h
+    src/pch.cpp
+    src/directx11weaver.h
+    src/directx11weaver.cpp
+    src/directx12weaver.h
+    src/directx12weaver.cpp
+    src/igraphicsapi.h
+    src/igraphicsapi.cpp
+)
 
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
