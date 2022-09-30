@@ -22,6 +22,11 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
+    if (weaverImplementation == nullptr) {
+        //weaverImplementation = new DirectX12Weaver;
+        weaverImplementation = new DirectX11Weaver;
+    }
+
     weaverImplementation->on_init_effect_runtime(runtime);
 }
 
@@ -30,9 +35,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
                        LPVOID lpReserved
                      )
 {
-    weaverImplementation = new DirectX12Weaver;
-    //weaverImplementation = new DirectX11Weaver;
-
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:

@@ -13,11 +13,32 @@
 // srReshade
 #include "igraphicsapi.h"
 
-class MyEyes;
+// My SR::EyePairListener that stores the last tracked eye positions
+//class MyEyes : public SR::EyePairListener {
+//private:
+//    SR::InputStream<SR::EyePairStream> stream;
+//public:
+//    DirectX::XMFLOAT3 left, right;
+//    MyEyes(SR::EyeTracker* tracker) : left(-30, 0, 600), right(30, 0, 600) {
+//        // Open a stream between tracker and this class
+//        stream.set(tracker->openEyePairStream(this));
+//    }
+//    // Called by the tracker for each tracked eye pair
+//    virtual void accept(const SR_eyePair& eyePair) override
+//    {
+//        // Remember the eye positions
+//        left = DirectX::XMFLOAT3(eyePair.left.x, eyePair.left.y, eyePair.left.z);
+//        right = DirectX::XMFLOAT3(eyePair.right.x, eyePair.right.y, eyePair.right.z);
+//
+//        std::stringstream ss;
+//        ss << "left: " << left.x << " right: " << right.x;
+//        reshade::log_message(3, ss.str().c_str());
+//    }
+//};
 
 class DirectX12Weaver: public IGraphicsApi {
 
-    MyEyes* eyes = nullptr;
+    //MyEyes* eyes = nullptr;
     bool g_popup_window_visible = false;
     float view_separation = 0.f;
     float vertical_shift = 0.f;
@@ -36,4 +57,7 @@ public:
     virtual void draw_settings_overlay(reshade::api::effect_runtime* runtime) override;
     virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) override;
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
+
+    // Inherited via IGraphicsApi
+    virtual bool is_initialized() override;
 };

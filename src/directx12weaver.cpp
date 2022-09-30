@@ -6,34 +6,11 @@ SR::PredictingDX12Weaver* weaver = nullptr;
 SR::SRContext* srContext = nullptr;
 reshade::api::device* d3d12device = nullptr;
 
-// My SR::EyePairListener that stores the last tracked eye positions
-class MyEyes : public SR::EyePairListener {
-private:
-    SR::InputStream<SR::EyePairStream> stream;
-public:
-    DirectX::XMFLOAT3 left, right;
-    MyEyes(SR::EyeTracker* tracker) : left(-30, 0, 600), right(30, 0, 600) {
-        // Open a stream between tracker and this class
-        stream.set(tracker->openEyePairStream(this));
-    }
-    // Called by the tracker for each tracked eye pair
-    virtual void accept(const SR_eyePair& eyePair) override
-    {
-        // Remember the eye positions
-        left = DirectX::XMFLOAT3(eyePair.left.x, eyePair.left.y, eyePair.left.z);
-        right = DirectX::XMFLOAT3(eyePair.right.x, eyePair.right.y, eyePair.right.z);
-
-        std::stringstream ss;
-        ss << "left: " << left.x << " right: " << right.x;
-        reshade::log_message(3, ss.str().c_str());
-    }
-};
-
 void DirectX12Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
     // Just in case it's being called multiple times
     if (!srContextInitialized) {
         srContext = new SR::SRContext;
-        eyes = new MyEyes(SR::EyeTracker::create(*srContext));
+        //eyes = new MyEyes(SR::EyeTracker::create(*srContext));
         srContext->initialize();
         srContextInitialized = true;
     }
@@ -210,4 +187,9 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d12device = runtime->get_device();
     init_sr_context(runtime);
+}
+
+bool DirectX12Weaver::is_initialized()
+{
+    return srContextInitialized;
 }
