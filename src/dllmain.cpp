@@ -23,8 +23,19 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     if (weaverImplementation == nullptr) {
-        //weaverImplementation = new DirectX12Weaver;
-        weaverImplementation = new DirectX11Weaver;
+        switch (runtime->get_device()->get_api()) {
+        case reshade::api::device_api::d3d11:
+            weaverImplementation = new DirectX11Weaver;
+            break;
+        case reshade::api::device_api::d3d12:
+            weaverImplementation = new DirectX12Weaver;
+            break;
+        default:
+            //Games will be DX11 in the majority of cases.
+            //Todo: This may still crash our code so we should leave the API switching to user input if we cannot detect it ourselves.
+            weaverImplementation = new DirectX11Weaver;
+            break;
+        }
     }
 
     weaverImplementation->on_init_effect_runtime(runtime);
