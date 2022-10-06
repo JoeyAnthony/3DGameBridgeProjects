@@ -13,7 +13,20 @@
 #include <imgui.h>
 #include <reshade.hpp>
 
+#include <d3d12.h>
+#include <d3dx12.h>
+#include <combaseapi.h>
+#include "sr/weaver/dx12weaver.h"
+
+#include "sr/sense/eyetracker/eyetracker.h"
+#include "sr/sense/core/inputstream.h"
+#include "sr/sense/system/systemsense.h"
+#include "sr/sense/system/systemevent.h"
+#include "sr/utility/exception.h"
+#include <DirectXMath.h>
+
+#include "sr/types.h"
+
 // add headers that you want to pre-compile here
 #include "framework.h"
-
 #endif //PCH_H
