@@ -22,12 +22,16 @@ void DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     }
 
     // See if we can get a command allocator from reshade
-    ID3D12CommandAllocator* CommandAllocator;
     ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
-    dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
-
-    if (d3d12device) {
+    if (!d3d12device) {
         reshade::log_message(3, "Couldn't get a device");
+        return;
+    }
+
+    ID3D12CommandAllocator* CommandAllocator;
+    dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
+    if (CommandAllocator == nullptr) {
+        reshade::log_message(3, "Couldn't ceate command allocator");
         return;
     }
 
@@ -38,9 +42,9 @@ void DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
     dev->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&CommandQueue));
-
     if (CommandQueue == nullptr)
     {
+        reshade::log_message(3, "Couldn't create command queue");
         return;
     }
 
@@ -49,7 +53,6 @@ void DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
 
     // Reshade command queue for use later maybe
     //(ID3D12CommandQueue*)runtime->get_command_queue()->get_native()
-
     try {
         weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
         srContext->initialize();
@@ -109,16 +112,24 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         }
 
         init_weaver(runtime, effect_frame_copy, d3d12device->get_resource_from_view(rtv));
+        if (!weaverInitialized) {
+            reshade::log_message(3, "Failed to initialize weaver");
 
-        // Set command list and input frame buffer again to make sure they are correct
+            // When buffer creation succeeds and this fails, delete the create buffer
+            d3d12device->destroy_resource(effect_frame_copy);
+            return;
+        }
+
+        //Set command list and input frame buffer again to make sure they are correct
         weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
         weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
-
-        // Create resource view for the backbuffer
-        d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &back_buffer_rtv);
     }
 
     if (weaverInitialized) {
+        // Create resource view for the backbuffer
+        reshade::api::resource_view back_buffer_rtv;
+        d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &back_buffer_rtv);
+
         // Create copy of the effect buffer
         cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
         cmd_list->copy_resource(rtv_resource, effect_frame_copy);
