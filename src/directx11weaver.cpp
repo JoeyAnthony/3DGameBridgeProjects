@@ -23,7 +23,7 @@ void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         reshade::log_message(3, "Couldn't get a device");
     }
 
-    if (context) {
+    if (!context) {
         reshade::log_message(3, "Couldn't get a device context");
     }
 

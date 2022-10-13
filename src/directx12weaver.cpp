@@ -94,22 +94,36 @@ void DirectX12Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 {
 }
 
+bool DirectX12Weaver::create_efect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc) {
+    reshade::api::resource_desc desc = effect_resource_desc;
+    desc.type = reshade::api::resource_type::texture_2d;
+    desc.heap = reshade::api::memory_heap::gpu_only;
+    desc.usage = reshade::api::resource_usage::copy_dest;
+
+    if (!d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
+        nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
+
+        effect_frame_copy_x = 0;
+        effect_frame_copy_y = 0;
+
+        reshade::log_message(3, "Failed creating te effect frame copy");
+        return false;
+    }
+
+    effect_frame_copy_x = desc.texture.width;
+    effect_frame_copy_y = desc.texture.height;
+
+    return true;
+}
+
 void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
     reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
     reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
     if (!weaverInitialized) {
         reshade::log_message(3, "init effect buffer copy");
-        desc.type = reshade::api::resource_type::texture_2d;
-        desc.heap = reshade::api::memory_heap::gpu_only;
-        desc.usage = reshade::api::resource_usage::copy_dest;
 
-        if (!d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
-            nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
-
-            reshade::log_message(3, "Failed creating te effect frame copy");
-            return;
-        }
+        create_efect_copy_buffer(desc);
 
         init_weaver(runtime, effect_frame_copy, d3d12device->get_resource_from_view(rtv));
         if (!weaverInitialized) {
@@ -126,6 +140,15 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     }
 
     if (weaverInitialized) {
+        // Check texture size
+        if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            d3d12device->destroy_resource(effect_frame_copy);
+            if (!create_efect_copy_buffer(desc)) {
+                // Turn SR off or deinitialize and retry maybe?
+            }
+            reshade::log_message(3, "Buffer size changed");
+        }
+
         // Create resource view for the backbuffer
         reshade::api::resource_view back_buffer_rtv;
         d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &back_buffer_rtv);
