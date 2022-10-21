@@ -54,11 +54,13 @@ class DirectX11Weaver: public IGraphicsApi {
     reshade::api::resource_view game_frame_buffer;
     reshade::api::resource effect_frame_copy;
     reshade::api::resource_view effect_frame_copy_srv;
-    reshade::api::resource_view back_buffer_rtv;;
+    reshade::api::resource_view back_buffer_rtv;
+    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
 public:
     DirectX11Weaver(SR::SRContext* context);
     void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
+    bool create_efect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
 
     // Inherited via IGraphicsApi
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
