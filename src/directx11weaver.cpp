@@ -10,6 +10,34 @@ void DirectX11Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
     }
 }
 
+bool DirectX11Weaver::create_efect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc)
+{
+    reshade::api::resource_desc desc = effect_resource_desc;
+    desc.type = reshade::api::resource_type::texture_2d;
+    desc.heap = reshade::api::memory_heap::gpu_only;
+    desc.usage = reshade::api::resource_usage::copy_dest;
+
+    // Create buffer to store a copy of the effect frame
+    reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::shader_resource);
+    if (!d3d11device->create_resource(copy_rsc_desc,nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
+
+        effect_frame_copy_x = 0;
+        effect_frame_copy_y = 0;
+
+        reshade::log_message(3, "Failed creating te effect frame copy");
+        return false;
+    }
+
+    // Make shader resource view for the effect frame copy
+    reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, copy_rsc_desc.texture.format, 0, copy_rsc_desc.texture.levels, 0, copy_rsc_desc.texture.depth_or_layers);
+    d3d11device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::shader_resource, srv_desc, &effect_frame_copy_srv);
+
+    effect_frame_copy_x = copy_rsc_desc.texture.width;
+    effect_frame_copy_y = copy_rsc_desc.texture.height;
+
+    return true;
+}
+
 void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list) {
     if (weaverInitialized) {
         return;
@@ -75,24 +103,8 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv_resource);
 
     if (!weaverInitialized) {
-        desc.type = reshade::api::resource_type::texture_2d;
-        desc.heap = reshade::api::memory_heap::gpu_only;
-        desc.usage = reshade::api::resource_usage::copy_dest;
 
-        // Create buffer to store a copy of the effect frame
-        if (d3d11device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::shader_resource),
-            nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
-            reshade::log_message(3, "Created resource");
-        }
-        else {
-            reshade::log_message(3, "Failed creating resource");
-            return;
-        }
-
-        // Make shader resource view for the effect frame copy
-        reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, desc.texture.format, 0, desc.texture.levels, 0, desc.texture.depth_or_layers);
-        d3d11device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::shader_resource, srv_desc, &effect_frame_copy_srv);
-
+        create_efect_copy_buffer(desc);
         init_weaver(runtime, effect_frame_copy, cmd_list);
 
         // Set context and input frame buffer again to make sure they are correct
@@ -104,6 +116,16 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     }
 
     if (weaverInitialized) {
+        // Check texture size
+        //if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+        //    d3d11device->destroy_resource(effect_frame_copy);
+        //    d3d11device->destroy_resource_view(effect_frame_copy_srv);
+        //    if (!create_efect_copy_buffer(desc)) {
+        //        // Turn SR off or deinitialize and retry maybe?
+        //    }
+        //    reshade::log_message(3, "Buffer size changed");
+        //}
+
         // Copy resource
         cmd_list->copy_resource(rtv_resource, effect_frame_copy);
 
