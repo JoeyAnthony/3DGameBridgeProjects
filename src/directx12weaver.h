@@ -48,6 +48,7 @@ class DirectX12Weaver: public IGraphicsApi {
     reshade::api::resource effect_frame_copy;
 
 public:
+    DirectX12Weaver(SR::SRContext* context);
     void init_sr_context(reshade::api::effect_runtime* runtime);
     void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
 

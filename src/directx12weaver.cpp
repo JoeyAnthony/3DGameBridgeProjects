@@ -6,14 +6,20 @@ SR::PredictingDX12Weaver* weaver = nullptr;
 SR::SRContext* srContext = nullptr;
 reshade::api::device* d3d12device = nullptr;
 
-void DirectX12Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
-    // Just in case it's being called multiple times
+DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
+{
+    //Todo: Set context here.
     if (!srContextInitialized) {
         srContext = new SR::SRContext;
         //eyes = new MyEyes(SR::EyeTracker::create(*srContext));
         srContext->initialize();
         srContextInitialized = true;
     }
+}
+
+void DirectX12Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
+    // Just in case it's being called multiple times
+    
 }
 
 ID3D12Resource* CreateTestResourceTexture(ID3D12Device* device, unsigned int width, unsigned int height) {
