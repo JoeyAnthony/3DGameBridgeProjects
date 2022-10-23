@@ -10,7 +10,7 @@ void DirectX11Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
     }
 }
 
-bool DirectX11Weaver::create_efect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc)
+bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc)
 {
     reshade::api::resource_desc desc = effect_resource_desc;
     desc.type = reshade::api::resource_type::texture_2d;
@@ -104,7 +104,7 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
     if (!weaverInitialized) {
 
-        create_efect_copy_buffer(desc);
+        create_effect_copy_buffer(desc);
         init_weaver(runtime, effect_frame_copy, cmd_list);
 
         // Set context and input frame buffer again to make sure they are correct
@@ -120,7 +120,7 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         //if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
         //    d3d11device->destroy_resource(effect_frame_copy);
         //    d3d11device->destroy_resource_view(effect_frame_copy_srv);
-        //    if (!create_efect_copy_buffer(desc)) {
+        //    if (!create_effect_copy_buffer(desc)) {
         //        // Turn SR off or deinitialize and retry maybe?
         //    }
         //    reshade::log_message(3, "Buffer size changed");
