@@ -62,7 +62,7 @@ void DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
     dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
 
-    if (d3d12device) {
+    if (!d3d12device) {
         reshade::log_message(3, "Can cast a device! to native Dx12 Device!!!!");
     }
     else {
