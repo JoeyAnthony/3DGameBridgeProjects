@@ -108,9 +108,6 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         // Set context and input frame buffer again to make sure they are correct
         weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
         weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
-
-        // Create resource view for the backbuffer
-        d3d11device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d11device->get_resource_view_desc(rtv), &back_buffer_rtv);
     }
 
     if (weaverInitialized) {
@@ -128,7 +125,7 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         cmd_list->copy_resource(rtv_resource, effect_frame_copy);
 
         // Bind back buffer as render target
-        cmd_list->bind_render_targets_and_depth_stencil(1, &back_buffer_rtv);
+        cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
 
         // Weave to back buffer
         if (weavingEnabled) {
