@@ -3,23 +3,15 @@
 bool srContextInitialized = false;
 bool weaverInitialized = false;
 SR::PredictingDX12Weaver* weaver = nullptr;
-SR::SRContext* srContext = nullptr;
 reshade::api::device* d3d12device = nullptr;
 
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
 {
-    //Todo: Set context here.
+    //Set context here.
     if (!srContextInitialized) {
-        srContext = new SR::SRContext;
-        //eyes = new MyEyes(SR::EyeTracker::create(*srContext));
-        srContext->initialize();
+        srContext = context;
         srContextInitialized = true;
     }
-}
-
-void DirectX12Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
-    // Just in case it's being called multiple times
-    
 }
 
 ID3D12Resource* CreateTestResourceTexture(ID3D12Device* device, unsigned int width, unsigned int height) {
@@ -147,55 +139,59 @@ void DirectX12Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 }
 
 void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
-    reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
-    reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
+    if (srContextInitialized) {
+        reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
+        reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
-    if (!weaverInitialized) {
-        reshade::log_message(3, "init effect buffer copy");
-        desc.type = reshade::api::resource_type::texture_2d;
-        desc.heap = reshade::api::memory_heap::gpu_only;
-        desc.usage = reshade::api::resource_usage::copy_dest;
+        if (!weaverInitialized) {
+            reshade::log_message(3, "init effect buffer copy");
+            desc.type = reshade::api::resource_type::texture_2d;
+            desc.heap = reshade::api::memory_heap::gpu_only;
+            desc.usage = reshade::api::resource_usage::copy_dest;
 
-        if (d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
-            nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
-            reshade::log_message(3, "Created resource");
+            if (d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
+                nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
+                reshade::log_message(3, "Created resource");
+            }
+            else {
+                reshade::log_message(3, "Failed creating resource");
+                return;
+            }
+
+            init_weaver(runtime, effect_frame_copy, d3d12device->get_resource_from_view(rtv));
         }
-        else {
-            reshade::log_message(3, "Failed creating resource");
-            return;
+
+        if (weaverInitialized) {
+            reshade::api::resource_view view;
+            d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &view);
+
+            //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::cpu_access, reshade::api::resource_usage::copy_dest);
+            cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
+            cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+            //reshade::log_message(3, "Got a copy!");
+            //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::cpu_access);
+            cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
+
+            //const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
+            //cmd_list->clear_render_target_view(view, color);
+            cmd_list->bind_render_targets_and_depth_stencil(1, &view);
+
+            weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
+            ID3D12GraphicsCommandList* native_cmd_list = (ID3D12GraphicsCommandList*)cmd_list->get_native();
+            weaver->setCommandList(native_cmd_list);
+            weaver->weave(desc.texture.width, desc.texture.height);
         }
-
-        init_weaver(runtime, effect_frame_copy, d3d12device->get_resource_from_view(rtv));
-    }
-
-    if (weaverInitialized) {
-        reshade::api::resource_view view;
-        d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &view);
-
-        //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::cpu_access, reshade::api::resource_usage::copy_dest);
-        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
-        cmd_list->copy_resource(rtv_resource, effect_frame_copy);
-        //reshade::log_message(3, "Got a copy!");
-        //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::cpu_access);
-        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
-
-        //const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
-        //cmd_list->clear_render_target_view(view, color);
-        cmd_list->bind_render_targets_and_depth_stencil(1, &view);
-
-        weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
-        ID3D12GraphicsCommandList* native_cmd_list = (ID3D12GraphicsCommandList*)cmd_list->get_native();
-        weaver->setCommandList(native_cmd_list);
-        weaver->weave(desc.texture.width, desc.texture.height);
     }
 }
 
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d12device = runtime->get_device();
-    init_sr_context(runtime);
 }
 
-bool DirectX12Weaver::is_initialized()
-{
+void DirectX12Weaver::set_context_validity(bool isValid) {
+    srContextInitialized = isValid;
+}
+
+bool DirectX12Weaver::is_initialized() {
     return srContextInitialized;
 }

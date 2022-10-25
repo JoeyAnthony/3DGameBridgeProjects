@@ -14,6 +14,10 @@ add_library(srReshade SHARED
     src/directx12weaver.cpp
     src/igraphicsapi.h
     src/igraphicsapi.cpp
+    src/hotkey.cpp
+    src/hotkey.h
+    src/hotkeymanager.cpp
+    src/hotkeymanager.h
 )
 
 find_package(simulatedreality REQUIRED)
