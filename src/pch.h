@@ -25,4 +25,7 @@
 #include "sr/utility/exception.h"
 #include "sr/types.h"
 
+// Global shortcut definition
+enum shortcutType { toggleSR, toggleLens, flattenDepthMap };
+
 #endif //PCH_H

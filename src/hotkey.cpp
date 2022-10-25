@@ -4,7 +4,7 @@ HotKey::HotKey() {
 
 }
 
-void HotKey::setToggleKey(uint8_t newKeyValue, HotKey::shortcutType type, bool shiftRequired, bool altRequired, bool ctrlRequired) {
+void HotKey::setToggleKey(uint8_t newKeyValue, shortcutType type, bool shiftRequired, bool altRequired, bool ctrlRequired) {
     this->shortcutKey = newKeyValue;
     this->type = type;
     this->shiftRequired = shiftRequired;
@@ -12,7 +12,7 @@ void HotKey::setToggleKey(uint8_t newKeyValue, HotKey::shortcutType type, bool s
     this->ctrlRequired = ctrlRequired;
 }
 
-HotKey::HotKey(bool isEnabled, HotKey::shortcutType type, uint8_t key, bool shiftRequired, bool altRequired, bool ctrlRequired) {
+HotKey::HotKey(bool isEnabled, shortcutType type, uint8_t key, bool shiftRequired, bool altRequired, bool ctrlRequired) {
     this->isEnabled = isEnabled;
     this->type = type;
     this->shortcutKey = key;
@@ -21,7 +21,7 @@ HotKey::HotKey(bool isEnabled, HotKey::shortcutType type, uint8_t key, bool shif
     this->ctrlRequired = ctrlRequired;
 }
 
-bool HotKey::getHotKeyEnabled()
+bool HotKey::getEnabled()
 {
     return isEnabled;
 }
@@ -41,7 +41,7 @@ bool HotKey::getCtrlRequired()
     return ctrlRequired;
 }
 
-HotKey::shortcutType HotKey::getHotKeyType()
+shortcutType HotKey::getType()
 {
     return type;
 }

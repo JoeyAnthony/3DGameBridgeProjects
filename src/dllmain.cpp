@@ -4,6 +4,9 @@
 #include "directx12weaver.h"
 #include "hotkeymanager.h"
 
+#include <vector>
+#include <iostream>
+
 IGraphicsApi* weaverImplementation = nullptr;
 SR::SRContext* srContext = nullptr;
 HotKeyManager* hotKeyManager = nullptr;
@@ -25,18 +28,13 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
 }
 
 static void on_reshade_present(reshade::api::effect_runtime* runtime) {
+    std::map<shortcutType, bool> hotKeyList;
+
     //Check if certain hotkeys are being pressed
     if (hotKeyManager != nullptr) {
-        hotKeyManager->checkHotKeys(runtime, srContext);
-
-        //Todo: This is really ugly, we really should just have checkHotKeys() return a list of pressed hotkeys and let the dllMain handle execution of the hotkey functions.
-        //Check if context is still valid, if not. Set context to invalid.
-        if (srContext == nullptr) {
-            weaverImplementation->set_context_validity(false);
-        }
-        else {
-            weaverImplementation->set_context_validity(true);
-        }
+        //Find out which hotkeys have changed their toggled state, then execute their respective code.
+        hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
+        executeHotKeyFunctionByType(hotKeyList);
     }
 }
 
@@ -102,4 +100,32 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         break;
     }
     return TRUE;
+}
+
+void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
+    std::map<shortcutType, bool>::iterator i;
+    for (i = hotKeyList.begin(); i != hotKeyList.end(); i++){
+        switch (i->first) {
+        case shortcutType::toggleSR:
+            if (i->second) {
+                srContext = new SR::SRContext;
+                srContext->initialize();
+                weaverImplementation->set_context_validity(true);
+            }
+            else {
+                srContext->deleteSRContext(srContext);
+                srContext->~SRContext();
+                weaverImplementation->set_context_validity(false);
+            }
+            break;
+        case shortcutType::toggleLens:
+            //Todo: Implement lens toggling mechanism.
+            break;
+        case shortcutType::flattenDepthMap:
+            //Todo: Implement depth map flattening mechanism.
+            break;
+        default:
+            break;
+        }
+    }
 }
