@@ -58,13 +58,13 @@ class DirectX11Weaver: public IGraphicsApi {
 public:
     DirectX11Weaver(SR::SRContext* context);
     void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
+    virtual void set_context_validity(bool isValid);
 
     // Inherited via IGraphicsApi
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
     virtual void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) override;
     virtual void draw_settings_overlay(reshade::api::effect_runtime* runtime) override;
     virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
-    virtual void set_context_validity(bool isValid) = 0;
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
 
     // Inherited via IGraphicsApi

@@ -11,6 +11,34 @@ IGraphicsApi* weaverImplementation = nullptr;
 SR::SRContext* srContext = nullptr;
 HotKeyManager* hotKeyManager = nullptr;
 
+void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
+    std::map<shortcutType, bool>::iterator i;
+    for (i = hotKeyList.begin(); i != hotKeyList.end(); i++) {
+        switch (i->first) {
+        case shortcutType::toggleSR:
+            if (i->second) {
+                srContext = new SR::SRContext;
+                srContext->initialize();
+                weaverImplementation->set_context_validity(true);
+            }
+            else {
+                srContext->deleteSRContext(srContext);
+                srContext->~SRContext();
+                weaverImplementation->set_context_validity(false);
+            }
+            break;
+        case shortcutType::toggleLens:
+            //Todo: Implement lens toggling mechanism.
+            break;
+        case shortcutType::flattenDepthMap:
+            //Todo: Implement depth map flattening mechanism.
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 static void draw_debug_overlay(reshade::api::effect_runtime* runtime) {
     //weaverImplementation->draw_debug_overlay(runtime);
 }
@@ -100,32 +128,4 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         break;
     }
     return TRUE;
-}
-
-void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
-    std::map<shortcutType, bool>::iterator i;
-    for (i = hotKeyList.begin(); i != hotKeyList.end(); i++){
-        switch (i->first) {
-        case shortcutType::toggleSR:
-            if (i->second) {
-                srContext = new SR::SRContext;
-                srContext->initialize();
-                weaverImplementation->set_context_validity(true);
-            }
-            else {
-                srContext->deleteSRContext(srContext);
-                srContext->~SRContext();
-                weaverImplementation->set_context_validity(false);
-            }
-            break;
-        case shortcutType::toggleLens:
-            //Todo: Implement lens toggling mechanism.
-            break;
-        case shortcutType::flattenDepthMap:
-            //Todo: Implement depth map flattening mechanism.
-            break;
-        default:
-            break;
-        }
-    }
 }
