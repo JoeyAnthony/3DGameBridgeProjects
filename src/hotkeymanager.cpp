@@ -70,7 +70,6 @@ std::map<shortcutType, bool> HotKeyManager::checkHotKeys(reshade::api::effect_ru
                 //All conditions are met, execute hotkey logic.
                 registeredHotkeys[i].toggleHotKey();
                 toggledHotKeys[registeredHotkeys[i].getType()] = registeredHotkeys[i].getEnabled();
-                //executeHotKeyFunctionByType(registeredHotkeys[i].getType(), registeredHotkeys[i].isEnabled(), srContext);
             }
         }
     }

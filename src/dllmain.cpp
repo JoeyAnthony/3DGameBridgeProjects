@@ -53,9 +53,7 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
-}
 
-static void on_reshade_present(reshade::api::effect_runtime* runtime) {
     std::map<shortcutType, bool> hotKeyList;
 
     //Check if certain hotkeys are being pressed
@@ -64,6 +62,19 @@ static void on_reshade_present(reshade::api::effect_runtime* runtime) {
         hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
         executeHotKeyFunctionByType(hotKeyList);
     }
+}
+
+static void on_reshade_present(reshade::api::effect_runtime* runtime) {
+    reshade::log_message(3, "RECEIVED ON PRESENT CALLBACK");
+
+    //std::map<shortcutType, bool> hotKeyList;
+
+    ////Check if certain hotkeys are being pressed
+    //if (hotKeyManager != nullptr) {
+    //    //Find out which hotkeys have changed their toggled state, then execute their respective code.
+    //    hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
+    //    executeHotKeyFunctionByType(hotKeyList);
+    //}
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
@@ -114,7 +125,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
-        reshade::register_event<reshade::addon_event::reshade_present>(&on_reshade_present);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
         //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
