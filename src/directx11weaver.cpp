@@ -6,7 +6,7 @@ DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
     weavingEnabled = true;
 }
 
-bool DirectX11Weaver::create_efect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc)
+bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc)
 {
     reshade::api::resource_desc desc = effect_resource_desc;
     desc.type = reshade::api::resource_type::texture_2d;
@@ -16,6 +16,7 @@ bool DirectX11Weaver::create_efect_copy_buffer(const reshade::api::resource_desc
     // Create buffer to store a copy of the effect frame
     reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::shader_resource);
     if (!d3d11device->create_resource(copy_rsc_desc,nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
+        d3d11device->destroy_resource(effect_frame_copy);
 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
@@ -26,7 +27,16 @@ bool DirectX11Weaver::create_efect_copy_buffer(const reshade::api::resource_desc
 
     // Make shader resource view for the effect frame copy
     reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, copy_rsc_desc.texture.format, 0, copy_rsc_desc.texture.levels, 0, copy_rsc_desc.texture.depth_or_layers);
-    d3d11device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::shader_resource, srv_desc, &effect_frame_copy_srv);
+    if (!d3d11device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::shader_resource, srv_desc, &effect_frame_copy_srv)) {
+        d3d11device->destroy_resource(effect_frame_copy);
+        d3d11device->destroy_resource_view(effect_frame_copy_srv);
+
+        effect_frame_copy_x = 0;
+        effect_frame_copy_y = 0;
+
+        reshade::log_message(3, "Failed creating te effect frame copy");
+        return false;
+    }
 
     effect_frame_copy_x = copy_rsc_desc.texture.width;
     effect_frame_copy_y = copy_rsc_desc.texture.height;
@@ -101,8 +111,7 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv_resource);
 
     if (!weaverInitialized) {
-
-        create_efect_copy_buffer(desc);
+        create_effect_copy_buffer(desc);
         init_weaver(runtime, effect_frame_copy, cmd_list);
 
         // Set context and input frame buffer again to make sure they are correct
@@ -111,24 +120,23 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     }
 
     if (weaverInitialized) {
-        // Check texture size
-        //if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
-        //    d3d11device->destroy_resource(effect_frame_copy);
-        //    d3d11device->destroy_resource_view(effect_frame_copy_srv);
-        //    if (!create_efect_copy_buffer(desc)) {
-        //        // Turn SR off or deinitialize and retry maybe?
-        //    }
-        //    reshade::log_message(3, "Buffer size changed");
-        //}
+        //Check texture size
+        if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            d3d11device->destroy_resource(effect_frame_copy);
+            d3d11device->destroy_resource_view(effect_frame_copy_srv);
+            if(!create_effect_copy_buffer(desc)) {
+                reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+            }
+            reshade::log_message(3, "Buffer size changed, render next frame");
+        }
+        else {
+            // Copy resource
+            cmd_list->copy_resource(rtv_resource, effect_frame_copy);
 
-        // Copy resource
-        cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+            // Bind back buffer as render target
+            cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
 
-        // Bind back buffer as render target
-        cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
-
-        // Weave to back buffer
-        if (weavingEnabled) {
+            // Weave to back buffer
             weaver->weave(desc.texture.width, desc.texture.height);
         }
     }
