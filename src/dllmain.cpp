@@ -4,27 +4,48 @@
 #include "directx12weaver.h"
 #include "hotkeymanager.h"
 
+#include <chrono>
+#include <thread>
 #include <vector>
 #include <iostream>
 
 IGraphicsApi* weaverImplementation = nullptr;
 SR::SRContext* srContext = nullptr;
 HotKeyManager* hotKeyManager = nullptr;
+std::thread createContextThread;
+
+void createNewSrContext()
+{
+    // Initialize SRContext
+    while (srContext == nullptr) {
+        try {
+            srContext = new SR::SRContext();
+        }
+        catch (SR::ServerNotAvailableException e) {
+            std::cout << "Server not available, trying again in 100 milisecond" << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+    weaverImplementation->set_context_validity(true);
+}
 
 void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
     std::map<shortcutType, bool>::iterator i;
     for (i = hotKeyList.begin(); i != hotKeyList.end(); i++) {
         switch (i->first) {
         case shortcutType::toggleSR:
+            //reshade::log_message(3, "TOGGLE SR HOTKEY TRIGGERED!");
             if (i->second) {
-                srContext = new SR::SRContext;
-                srContext->initialize();
-                weaverImplementation->set_context_validity(true);
+                //Make a new thread here.
+                createContextThread = std::thread(createNewSrContext);
             }
             else {
-                srContext->deleteSRContext(srContext);
-                srContext->~SRContext();
                 weaverImplementation->set_context_validity(false);
+                weaverImplementation->set_weaver_validity(false);
+                if (srContext != nullptr) {
+                    srContext->deleteSRContext(srContext);
+                    srContext = nullptr;
+                }
             }
             break;
         case shortcutType::toggleLens:
@@ -52,9 +73,12 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
-
     std::map<shortcutType, bool> hotKeyList;
+
+    //If the context creation thread is joinable and the context is created. Join.
+    if (srContext != nullptr && createContextThread.joinable()) {
+        createContextThread.join();
+    }
 
     //Check if certain hotkeys are being pressed
     if (hotKeyManager != nullptr) {
@@ -62,6 +86,8 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
         executeHotKeyFunctionByType(hotKeyList);
     }
+
+    weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
 }
 
 static void on_reshade_present(reshade::api::effect_runtime* runtime) {

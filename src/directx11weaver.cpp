@@ -13,6 +13,8 @@ void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         return;
     }
 
+    delete weaver;
+    weaver = nullptr;
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv);
     ID3D11Device* dev = (ID3D11Device*)d3d11device->get_native();
     ID3D11DeviceContext* context = (ID3D11DeviceContext*)cmd_list->get_native();
@@ -147,6 +149,10 @@ void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
 
 void DirectX11Weaver::set_context_validity(bool isValid) {
     srContextInitialized = isValid;
+}
+
+void DirectX11Weaver::set_weaver_validity(bool isValid) {
+    weaverInitialized = isValid;
 }
 
 bool DirectX11Weaver::is_initialized() {
