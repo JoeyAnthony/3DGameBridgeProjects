@@ -9,6 +9,7 @@
 
 IGraphicsApi* weaverImplementation = nullptr;
 SR::SRContext* srContext = nullptr;
+SR::SwitchableLensHint* lensHint = nullptr;
 HotKeyManager* hotKeyManager = nullptr;
 
 void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
@@ -17,14 +18,10 @@ void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
         switch (i->first) {
         case shortcutType::toggleSR:
             if (i->second) {
-                srContext = new SR::SRContext;
-                srContext->initialize();
-                weaverImplementation->set_context_validity(true);
+                lensHint->enable();
             }
             else {
-                srContext->deleteSRContext(srContext);
-                srContext->~SRContext();
-                weaverImplementation->set_context_validity(false);
+                lensHint->disable();
             }
             break;
         case shortcutType::toggleLens:
@@ -81,6 +78,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     //First, construct the SR context
     if (srContext == nullptr) {
         srContext = new SR::SRContext;
+        lensHint = SR::SwitchableLensHint::create(*srContext);
         srContext->initialize();
     }
 
