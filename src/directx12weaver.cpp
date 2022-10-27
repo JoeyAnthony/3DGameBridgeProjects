@@ -107,7 +107,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         if (!d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
             nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
 
-            reshade::log_message(3, "Failed creating te effect frame copy");
+            reshade::log_message(3, "Failed creating the effect frame copy");
             return;
         }
 
