@@ -3,6 +3,8 @@ project (srReshade VERSION 0.1)
 
 set (CMAKE_CXX_STANDARD 17)
 
+add_subdirectory(tools)
+
 add_library(srReshade SHARED
     src/dllmain.cpp
     src/framework.h
