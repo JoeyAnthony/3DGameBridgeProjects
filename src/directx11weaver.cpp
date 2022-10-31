@@ -2,10 +2,7 @@
 
 DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
     //Set context here.
-    if (!srContextInitialized) {
-        srContext = context;
-        srContextInitialized = true;
-    }
+    srContext = context;
 }
 
 void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list) {
@@ -13,6 +10,8 @@ void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         return;
     }
 
+    delete weaver;
+    weaver = nullptr;
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv);
     ID3D11Device* dev = (ID3D11Device*)d3d11device->get_native();
     ID3D11DeviceContext* context = (ID3D11DeviceContext*)cmd_list->get_native();
@@ -78,75 +77,69 @@ void DirectX11Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 }
 
 void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    if (srContextInitialized) {
-        reshade::api::resource rtv_resource = d3d11device->get_resource_from_view(rtv);
-        reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv_resource);
+    reshade::api::resource rtv_resource = d3d11device->get_resource_from_view(rtv);
+    reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv_resource);
 
-        if (!weaverInitialized) {
-            reshade::log_message(3, "init effect buffer copy");
-            desc.type = reshade::api::resource_type::texture_2d;
-            desc.heap = reshade::api::memory_heap::gpu_only;
-            desc.usage = reshade::api::resource_usage::copy_dest;
+    if (!weaverInitialized) {
+        reshade::log_message(3, "init effect buffer copy");
+        desc.type = reshade::api::resource_type::texture_2d;
+        desc.heap = reshade::api::memory_heap::gpu_only;
+        desc.usage = reshade::api::resource_usage::copy_dest;
 
-            if (d3d11device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::shader_resource),
-                nullptr, reshade::api::resource_usage::shader_resource, &effect_frame_copy)) {
-                reshade::log_message(3, "Created resource");
-            }
-            else {
-                reshade::log_message(3, "Failed creating resource");
-                return;
-            }
-
-            init_weaver(runtime, effect_frame_copy, cmd_list);
+        if (d3d11device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::shader_resource),
+            nullptr, reshade::api::resource_usage::shader_resource, &effect_frame_copy)) {
+            reshade::log_message(3, "Created resource");
+        }
+        else {
+            reshade::log_message(3, "Failed creating resource");
+            return;
         }
 
-        if (weaverInitialized) {
-            reshade::api::resource_view view;
-            d3d11device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d11device->get_resource_view_desc(rtv), &view);
+        init_weaver(runtime, effect_frame_copy, cmd_list);
+    }
 
-            // Copy resource
-            cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::shader_resource, reshade::api::resource_usage::copy_dest);
+    if (weaverInitialized) {
+        reshade::api::resource_view view;
+        d3d11device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d11device->get_resource_view_desc(rtv), &view);
 
-            cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
-            cmd_list->copy_resource(rtv_resource, effect_frame_copy);
-            cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
+        // Copy resource
+        cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::shader_resource, reshade::api::resource_usage::copy_dest);
 
-            // Make shader resource view from the copied buffer
-            cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::shader_resource);
+        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
+        cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
 
-            //const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
-            //cmd_list->clear_render_target_view(view, color);
-            cmd_list->bind_render_targets_and_depth_stencil(1, &view);
+        // Make shader resource view from the copied buffer
+        cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::shader_resource);
 
-            ID3D11DeviceContext* native_cmd_list = (ID3D11DeviceContext*)cmd_list->get_native();
-            ID3D11DeviceContext* native_device_context = (ID3D11DeviceContext*)cmd_list->get_native();
+        //const float color[] = { 1.f, 0.3f, 0.5f, 1.f };
+        //cmd_list->clear_render_target_view(view, color);
+        cmd_list->bind_render_targets_and_depth_stencil(1, &view);
 
-            reshade::api::resource_view effect_frame_copy_srv;
-            reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, desc.texture.format, 0, desc.texture.levels, 0, desc.texture.depth_or_layers);
-            d3d11device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::shader_resource, srv_desc, &effect_frame_copy_srv);
+        ID3D11DeviceContext* native_cmd_list = (ID3D11DeviceContext*)cmd_list->get_native();
+        ID3D11DeviceContext* native_device_context = (ID3D11DeviceContext*)cmd_list->get_native();
 
-            try {
-                weaver->setContext(native_cmd_list);
-                // TODO probably doesn't work
-                weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
-                weaver->weave(desc.texture.width, desc.texture.height);
-            }
-            catch (std::exception e) {
-                reshade::log_message(3, e.what());
-            }
-            catch (...) {
-                reshade::log_message(3, "Couldn't initialize weaver");
-            }
+        reshade::api::resource_view effect_frame_copy_srv;
+        reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, desc.texture.format, 0, desc.texture.levels, 0, desc.texture.depth_or_layers);
+        d3d11device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::shader_resource, srv_desc, &effect_frame_copy_srv);
+
+        try {
+            weaver->setContext(native_cmd_list);
+            // TODO probably doesn't work
+            weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
+            weaver->weave(desc.texture.width, desc.texture.height);
+        }
+        catch (std::exception e) {
+            reshade::log_message(3, e.what());
+        }
+        catch (...) {
+            reshade::log_message(3, "Couldn't initialize weaver");
         }
     }
 }
 
 void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d11device = runtime->get_device();
-}
-
-void DirectX11Weaver::set_context_validity(bool isValid) {
-    srContextInitialized = isValid;
 }
 
 bool DirectX11Weaver::is_initialized() {

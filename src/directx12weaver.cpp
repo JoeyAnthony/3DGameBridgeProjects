@@ -51,11 +51,13 @@ ID3D12DescriptorHeap* CreateRTVTestHeap(ID3D12Device* device, UINT& heapSize) {
     return Heap;
 }
 
-void DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
+void DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer = {}) {
     if (weaverInitialized) {
         return;
     }
 
+    delete weaver;
+    weaver = nullptr;
     ID3D12CommandAllocator* CommandAllocator;
     ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
     dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
@@ -186,10 +188,6 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d12device = runtime->get_device();
-}
-
-void DirectX12Weaver::set_context_validity(bool isValid) {
-    srContextInitialized = isValid;
 }
 
 bool DirectX12Weaver::is_initialized() {

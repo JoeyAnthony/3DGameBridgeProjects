@@ -4,6 +4,8 @@
 #include "directx12weaver.h"
 #include "hotkeymanager.h"
 
+#include <chrono>
+#include <thread>
 #include <vector>
 #include <iostream>
 
@@ -12,20 +14,20 @@ SR::SRContext* srContext = nullptr;
 SR::SwitchableLensHint* lensHint = nullptr;
 HotKeyManager* hotKeyManager = nullptr;
 
-void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
+static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
     std::map<shortcutType, bool>::iterator i;
     for (i = hotKeyList.begin(); i != hotKeyList.end(); i++) {
         switch (i->first) {
         case shortcutType::toggleSR:
+            //reshade::log_message(3, "TOGGLE SR HOTKEY TRIGGERED!");
+            break;
+        case shortcutType::toggleLens:
             if (i->second) {
                 lensHint->enable();
             }
             else {
                 lensHint->disable();
             }
-            break;
-        case shortcutType::toggleLens:
-            //Todo: Implement lens toggling mechanism.
             break;
         case shortcutType::flattenDepthMap:
             //Todo: Implement depth map flattening mechanism.
@@ -49,8 +51,6 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
-
     std::map<shortcutType, bool> hotKeyList;
 
     //Check if certain hotkeys are being pressed
@@ -59,6 +59,8 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
         executeHotKeyFunctionByType(hotKeyList);
     }
+
+    weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
 }
 
 static void on_reshade_present(reshade::api::effect_runtime* runtime) {
@@ -74,13 +76,17 @@ static void on_reshade_present(reshade::api::effect_runtime* runtime) {
     //}
 }
 
-static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
-    //First, construct the SR context
+static void init_sr() {
+    //Construct SR Context and senses
     if (srContext == nullptr) {
         srContext = new SR::SRContext;
         lensHint = SR::SwitchableLensHint::create(*srContext);
         srContext->initialize();
     }
+}
+
+static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
+    init_sr();
 
     //Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
     //Register some standard hotkeys
