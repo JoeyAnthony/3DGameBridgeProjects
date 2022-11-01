@@ -5,32 +5,90 @@
 #include "hotkeymanager.h"
 
 #include <chrono>
+#include <functional>
 #include <thread>
 #include <vector>
 #include <iostream>
+#include <unordered_map>
+
+#define CHAR_BUFFER_SIZE 256
+
+using namespace std;
 
 IGraphicsApi* weaverImplementation = nullptr;
 SR::SRContext* srContext = nullptr;
 SR::SwitchableLensHint* lensHint = nullptr;
 HotKeyManager* hotKeyManager = nullptr;
 
-static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList) {
+//Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
+static const std::string depth3DShaderName = "SuperDepth3D";
+static char g_charBuffer[CHAR_BUFFER_SIZE];
+static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
+
+struct DeviceDataContainer {
+    reshade::api::effect_runtime* current_runtime = nullptr;
+    unordered_map<std::string, bool> allEnabledTechniques;
+};
+
+static void enumerateTechniques(reshade::api::effect_runtime* runtime, std::function<void(reshade::api::effect_runtime*, reshade::api::effect_technique, string&)> func)
+{
+    runtime->enumerate_techniques(nullptr, [func](reshade::api::effect_runtime* rt, reshade::api::effect_technique technique) {
+        g_charBufferSize = CHAR_BUFFER_SIZE;
+        rt->get_technique_name(technique, g_charBuffer, &g_charBufferSize);
+        string name(g_charBuffer);
+        func(rt, technique, name);
+        });
+}
+
+static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList, reshade::api::effect_runtime* runtime) {
     std::map<shortcutType, bool>::iterator i;
+    vector<reshade::api::effect_technique> togglable3DEffects = {};
+    map<shortcutType, bool> toggleMap;
+
     for (i = hotKeyList.begin(); i != hotKeyList.end(); i++) {
         switch (i->first) {
         case shortcutType::toggleSR:
-            //reshade::log_message(3, "TOGGLE SR HOTKEY TRIGGERED!");
+            //Here we want to completely disable all SR related functions including the eye tracker, weaver, context etc.
             break;
         case shortcutType::toggleLens:
+            //Here we want to toggle to the lens and toggle weaving
             if (i->second) {
                 lensHint->enable();
+                //Bypass weave() call
+                weaverImplementation->do_weave(true);
             }
             else {
                 lensHint->disable();
+                //Bypass weave() call
+                weaverImplementation->do_weave(false);
             }
             break;
-        case shortcutType::flattenDepthMap:
-            //Todo: Implement depth map flattening mechanism.
+        case shortcutType::toggle3D:
+            //Here we want to toggle Depth3D or any other 3D effect we use to create our second eye image.
+            enumerateTechniques(runtime, [&togglable3DEffects](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
+                if (!name.compare(depth3DShaderName)) {
+                        togglable3DEffects.push_back(technique);
+                }
+            });
+
+            for (int effectIterator = 0; effectIterator < togglable3DEffects.size(); effectIterator++) {
+                if (i->second) {
+                    runtime->set_technique_state(togglable3DEffects[effectIterator], true);
+                }
+                else {
+                    runtime->set_technique_state(togglable3DEffects[effectIterator], false);
+                }
+            }
+            break;
+        case shortcutType::toggleLensAnd3D:
+            //Todo: This should look at the current state of the lens toggle and 3D toggle, then, flip those.This toggle having its own state isn't great.
+            if (i->second) {
+                toggleMap = { {shortcutType::toggleLens, true}, {shortcutType::toggle3D, true} };
+            }
+            else {
+                toggleMap = { {shortcutType::toggleLens, false}, {shortcutType::toggle3D, false} };
+            }
+            executeHotKeyFunctionByType(toggleMap, runtime);
             break;
         default:
             break;
@@ -57,7 +115,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
     if (hotKeyManager != nullptr) {
         //Find out which hotkeys have changed their toggled state, then execute their respective code.
         hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
-        executeHotKeyFunctionByType(hotKeyList);
+        executeHotKeyFunctionByType(hotKeyList, runtime);
     }
 
     weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);

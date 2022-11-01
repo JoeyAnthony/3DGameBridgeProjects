@@ -27,6 +27,6 @@
 #include "sr/types.h"
 
 // Global shortcut definition
-enum shortcutType { toggleSR, toggleLens, flattenDepthMap };
+enum shortcutType { toggleSR, toggleLens, toggle3D, toggleLensAnd3D };
 
 #endif //PCH_H

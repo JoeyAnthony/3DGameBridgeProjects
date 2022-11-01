@@ -3,6 +3,7 @@
 DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
     //Set context here.
     srContext = context;
+    weavingEnabled = true;
 }
 
 void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list) {
@@ -127,7 +128,9 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             weaver->setContext(native_cmd_list);
             // TODO probably doesn't work
             weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
-            weaver->weave(desc.texture.width, desc.texture.height);
+            if (weavingEnabled) {
+                weaver->weave(desc.texture.width, desc.texture.height);
+            }
         }
         catch (std::exception e) {
             reshade::log_message(3, e.what());
@@ -144,4 +147,9 @@ void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
 
 bool DirectX11Weaver::is_initialized() {
     return false;
+}
+
+void DirectX11Weaver::do_weave(bool doWeave)
+{
+    weavingEnabled = doWeave;
 }

@@ -5,8 +5,8 @@
 
 class HotKey {
 public:
-    HotKey::HotKey();
-    HotKey::HotKey(bool isEnabled, shortcutType type, uint8_t key, bool shiftRequired, bool altRequired, bool ctrlRequired);
+    HotKey();
+    HotKey(bool isEnabled, shortcutType type, uint8_t key, bool shiftRequired, bool altRequired, bool ctrlRequired);
     void toggleHotKey() { isEnabled = !isEnabled; }
     //Unused for now, can make the key editable with this later.
     void setToggleKey(uint8_t newKeyValue, shortcutType type, bool shiftRequired, bool altRequired, bool ctrlRequired);

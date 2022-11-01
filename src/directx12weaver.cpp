@@ -11,6 +11,7 @@ DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
     if (!srContextInitialized) {
         srContext = context;
         srContextInitialized = true;
+        weavingEnabled = true;
     }
 }
 
@@ -181,13 +182,20 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
             ID3D12GraphicsCommandList* native_cmd_list = (ID3D12GraphicsCommandList*)cmd_list->get_native();
             weaver->setCommandList(native_cmd_list);
-            weaver->weave(desc.texture.width, desc.texture.height);
+            if (weavingEnabled) {
+                weaver->weave(desc.texture.width, desc.texture.height);
+            }
         }
     }
 }
 
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d12device = runtime->get_device();
+}
+
+void DirectX12Weaver::do_weave(bool doWeave)
+{
+    weavingEnabled = doWeave;
 }
 
 bool DirectX12Weaver::is_initialized() {

@@ -6,34 +6,12 @@ HotKeyManager::HotKeyManager()
     //Create some default hotkeys.
     HotKey toggleSRKey = HotKey(true, shortcutType::toggleSR, 0x31, false, false, true);
     HotKey toggleLensKey = HotKey(true, shortcutType::toggleLens, 0x32, false, false, true);
-    HotKey flattenDepthMapKey = HotKey(false, shortcutType::flattenDepthMap, 0x33, false, false, true);
+    HotKey toggle3D = HotKey(false, shortcutType::toggle3D, 0x33, false, false, true);
+    HotKey toggleLensAnd3D = HotKey(false, shortcutType::toggleLensAnd3D, 0x34, false, false, true);
     registeredHotkeys.push_back(toggleSRKey);
     registeredHotkeys.push_back(toggleLensKey);
-    registeredHotkeys.push_back(flattenDepthMapKey);
-}
-
-//Todo: We might want to move this funtion to dllmain since we're passing the SRContext here for various functions.
-void executeHotKeyFunctionByType(shortcutType type, bool isBeingToggledOn, SR::SRContext* context) {
-    switch (type) {
-    case shortcutType::toggleSR:
-        if (isBeingToggledOn) {
-            context = new SR::SRContext;
-            context->initialize();
-        }
-        else {
-            context->deleteSRContext(context);
-            context->~SRContext();
-        }
-        break;
-    case shortcutType::toggleLens:
-        //Todo: Implement lens toggling mechanism.
-        break;
-    case shortcutType::flattenDepthMap:
-        //Todo: Implement depth map flattening mechanism.
-        break;
-    default:
-        break;
-    }
+    registeredHotkeys.push_back(toggle3D);
+    registeredHotkeys.push_back(toggleLensAnd3D);
 }
 
 bool checkModifierKeys(HotKey hotKey, reshade::api::effect_runtime* runtime) {

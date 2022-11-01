@@ -39,6 +39,7 @@
 class DirectX12Weaver: public IGraphicsApi {
     //MyEyes* eyes = nullptr;
     bool g_popup_window_visible = false;
+    bool weavingEnabled = false;
     float view_separation = 0.f;
     float vertical_shift = 0.f;
     SR::SRContext* srContext = nullptr;
@@ -57,6 +58,7 @@ public:
     virtual void draw_settings_overlay(reshade::api::effect_runtime* runtime) override;
     virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) override;
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
+    virtual void do_weave(bool doWeave) override;
 
     // Inherited via IGraphicsApi
     virtual bool is_initialized() override;
