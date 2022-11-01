@@ -16,19 +16,19 @@ HotKeyManager::HotKeyManager()
 
 bool checkModifierKeys(HotKey hotKey, reshade::api::effect_runtime* runtime) {
     if (hotKey.getAltRequired()) {
-        if (!runtime->is_key_pressed(VK_MENU)) {
+        if (!runtime->is_key_down(VK_MENU)) {
             return false;
         }
     }
 
     if (hotKey.getCtrlRequired()) {
-        if (!runtime->is_key_pressed(VK_CONTROL)) {
+        if (!runtime->is_key_down(VK_CONTROL)) {
             return false;
         }
     }
 
     if (hotKey.getShiftRequired()) {
-        if (!runtime->is_key_pressed(VK_SHIFT)) {
+        if (!runtime->is_key_down(VK_SHIFT)) {
             return false;
         }
     }
