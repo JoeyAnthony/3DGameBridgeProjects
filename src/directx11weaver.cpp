@@ -106,33 +106,34 @@ void DirectX11Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 {
 }
 
+void DirectX11Weaver::resize_buffers(reshade::api::resource_desc desc) {
+    //Check texture size
+    if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+        d3d11device->destroy_resource(effect_frame_copy);
+        d3d11device->destroy_resource_view(effect_frame_copy_srv);
+        if (!create_effect_copy_buffer(desc)) {
+            reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+        }
+
+        // Set newly create buffer as input
+        weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
+        //reshade::log_message(3, "Buffer size changed, render next frame");
+    }
+}
+
 void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     reshade::api::resource rtv_resource = d3d11device->get_resource_from_view(rtv);
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv_resource);
 
     if (weaverInitialized) {
-        //Check texture size
-        if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
-            d3d11device->destroy_resource(effect_frame_copy);
-            d3d11device->destroy_resource_view(effect_frame_copy_srv);
-            if(!create_effect_copy_buffer(desc)) {
-                reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
-            }
+        // Copy resource
+        cmd_list->copy_resource(rtv_resource, effect_frame_copy);
 
-            // Set newly create buffer as input
-            weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
-            reshade::log_message(3, "Buffer size changed, render next frame");
-        }
-        else {
-            // Copy resource
-            cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+        // Bind back buffer as render target
+        cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
 
-            // Bind back buffer as render target
-            cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
-
-            // Weave to back buffer
-            weaver->weave(desc.texture.width, desc.texture.height);
-        }
+        // Weave to back buffer
+        weaver->weave(desc.texture.width, desc.texture.height);
     }
     else {
         create_effect_copy_buffer(desc);
@@ -142,6 +143,9 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
         weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
     }
+
+    // Resize buffer after rendering so it won't render a frame without effects applied
+    resize_buffers(desc);
 }
 
 void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
