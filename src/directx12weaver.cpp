@@ -118,38 +118,40 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     return true;
 }
 
-void DirectX12Weaver::resize_buffers(reshade::api::resource_desc desc)
-{
-    // Check texture size
-    if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
-        d3d12device->destroy_resource(effect_frame_copy);
-        if (!create_effect_copy_buffer(desc)) {
-            // Turn SR off or deinitialize and retry maybe?
-        }
-        reshade::log_message(3, "Buffer size changed");
-    }
-}
-
 void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
     reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
     reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
     if (weaverInitialized) {
-        // Create resource view for the backbuffer
-        reshade::api::resource_view back_buffer_rtv;
-        d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &back_buffer_rtv);
+        // Check texture size
+        if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            //TODO Might have to get the buffer from the creat function and only swap them when creation suceeds
+            d3d12device->destroy_resource(effect_frame_copy);
+            if (!create_effect_copy_buffer(desc)) {
+                reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+            }
 
-        // Create copy of the effect buffer
-        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
-        cmd_list->copy_resource(rtv_resource, effect_frame_copy);
-        cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
+            // Set newly create buffer as input
+            weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
+            reshade::log_message(3, "Buffer size changed");
+        }
+        else {
+            // Create resource view for the backbuffer
+            reshade::api::resource_view back_buffer_rtv;
+            d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &back_buffer_rtv);
 
-        // Bind back buffer as render target
-        cmd_list->bind_render_targets_and_depth_stencil(1, &back_buffer_rtv);
+            // Create copy of the effect buffer
+            cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
+            cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+            cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
 
-        // Weave to back buffer
-        if (weavingEnabled) {
-            weaver->weave(desc.texture.width, desc.texture.height);
+            // Bind back buffer as render target
+            cmd_list->bind_render_targets_and_depth_stencil(1, &back_buffer_rtv);
+
+            // Weave to back buffer
+            if (weavingEnabled) {
+                weaver->weave(desc.texture.width, desc.texture.height);
+            }
         }
     }
     else {
@@ -166,9 +168,6 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             return;
         }
     }
-
-    // Resize buffer after rendering so it won't render a frame without effects applied
-    resize_buffers(desc);
 }
 
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
