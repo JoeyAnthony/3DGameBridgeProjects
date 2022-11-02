@@ -136,17 +136,13 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             reshade::log_message(3, "Buffer size changed");
         }
         else {
-            // Create resource view for the backbuffer
-            reshade::api::resource_view back_buffer_rtv;
-            d3d12device->create_resource_view(runtime->get_current_back_buffer(), reshade::api::resource_usage::render_target, d3d12device->get_resource_view_desc(rtv), &back_buffer_rtv);
-
             // Create copy of the effect buffer
             cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
             cmd_list->copy_resource(rtv_resource, effect_frame_copy);
             cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
 
             // Bind back buffer as render target
-            cmd_list->bind_render_targets_and_depth_stencil(1, &back_buffer_rtv);
+            cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
 
             // Weave to back buffer
             if (weavingEnabled) {
