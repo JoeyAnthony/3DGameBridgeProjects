@@ -118,10 +118,10 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             if(!create_effect_copy_buffer(desc)) {
                 reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
             }
-            reshade::log_message(3, "Buffer size changed, render next frame");
 
-            weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
+            // Set newly create buffer as input
             weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
+            reshade::log_message(3, "Buffer size changed, render next frame");
         }
         else {
             // Copy resource
