@@ -40,6 +40,8 @@ static void enumerateTechniques(reshade::api::effect_runtime* runtime, std::func
         });
 }
 
+//Todo: Move this function outside of the dllmain. 
+//It was placed here because it needed access to the SRContext but it should be moved to another class for cleanliness sake.
 static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList, reshade::api::effect_runtime* runtime) {
     std::map<shortcutType, bool>::iterator i;
     vector<reshade::api::effect_technique> togglable3DEffects = {};
@@ -119,19 +121,6 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
     }
 
     weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
-}
-
-static void on_reshade_present(reshade::api::effect_runtime* runtime) {
-    reshade::log_message(3, "RECEIVED ON PRESENT CALLBACK");
-
-    //std::map<shortcutType, bool> hotKeyList;
-
-    ////Check if certain hotkeys are being pressed
-    //if (hotKeyManager != nullptr) {
-    //    //Find out which hotkeys have changed their toggled state, then execute their respective code.
-    //    hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
-    //    executeHotKeyFunctionByType(hotKeyList);
-    //}
 }
 
 static void init_sr() {
