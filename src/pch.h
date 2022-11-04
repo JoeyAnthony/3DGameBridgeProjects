@@ -20,8 +20,8 @@
 // SR
 #include "sr/sense/eyetracker/eyetracker.h"
 #include "sr/sense/core/inputstream.h"
-#include "sr/sense/system/systemsense.h"
-#include "sr/sense/system/systemevent.h"
+//#include "sr/sense/system/systemsense.h"
+//#include "sr/sense/system/systemevent.h" //Systemsense causes many warnings
 #include "sr/sense/display/switchablehint.h"
 #include "sr/utility/exception.h"
 #include "sr/types.h"
