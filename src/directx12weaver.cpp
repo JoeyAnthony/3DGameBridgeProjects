@@ -125,7 +125,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     if (weaverInitialized) {
         // Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
-            //TODO Might have to get the buffer from the creat function and only swap them when creation suceeds
+            //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d12device->destroy_resource(effect_frame_copy);
             if (!create_effect_copy_buffer(desc)) {
                 reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
