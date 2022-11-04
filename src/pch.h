@@ -22,7 +22,11 @@
 #include "sr/sense/core/inputstream.h"
 #include "sr/sense/system/systemsense.h"
 #include "sr/sense/system/systemevent.h"
+#include "sr/sense/display/switchablehint.h"
 #include "sr/utility/exception.h"
 #include "sr/types.h"
+
+// Global shortcut definition
+enum shortcutType { toggleSR, toggleLens, toggle3D, toggleLensAnd3D };
 
 #endif //PCH_H

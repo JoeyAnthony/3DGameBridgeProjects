@@ -1,13 +1,9 @@
 #include "directx11weaver.h"
 
-void DirectX11Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
-    // Just in case it's being called multiple times
-    if (!srContextInitialized) {
-        srContext = new SR::SRContext;
-        //eyes = new MyEyes(SR::EyeTracker::create(*srContext));
-        srContext->initialize();
-        srContextInitialized = true;
-    }
+DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
+    //Set context here.
+    srContext = context;
+    weavingEnabled = true;
 }
 
 void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list) {
@@ -15,6 +11,8 @@ void DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         return;
     }
 
+    delete weaver;
+    weaver = nullptr;
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv);
     ID3D11Device* dev = (ID3D11Device*)d3d11device->get_native();
     ID3D11DeviceContext* context = (ID3D11DeviceContext*)cmd_list->get_native();
@@ -111,16 +109,21 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         cmd_list->bind_render_targets_and_depth_stencil(1, &back_buffer_rtv);
 
         // Weave to back buffer
-        weaver->weave(desc.texture.width, desc.texture.height);
+        if (weavingEnabled) {
+            weaver->weave(desc.texture.width, desc.texture.height);
+        }
     }
 }
 
 void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d11device = runtime->get_device();
-    init_sr_context(runtime);
 }
 
-bool DirectX11Weaver::is_initialized()
-{
+bool DirectX11Weaver::is_initialized() {
     return false;
+}
+
+void DirectX11Weaver::do_weave(bool doWeave)
+{
+    weavingEnabled = doWeave;
 }

@@ -3,16 +3,15 @@
 bool srContextInitialized = false;
 bool weaverInitialized = false;
 SR::PredictingDX12Weaver* weaver = nullptr;
-SR::SRContext* srContext = nullptr;
 reshade::api::device* d3d12device = nullptr;
 
-void DirectX12Weaver::init_sr_context(reshade::api::effect_runtime* runtime) {
-    // Just in case it's being called multiple times
+DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
+{
+    //Set context here.
     if (!srContextInitialized) {
-        srContext = new SR::SRContext;
-        //eyes = new MyEyes(SR::EyeTracker::create(*srContext));
-        srContext->initialize();
+        srContext = context;
         srContextInitialized = true;
+        weavingEnabled = true;
     }
 }
 
@@ -139,16 +138,21 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         cmd_list->bind_render_targets_and_depth_stencil(1, &back_buffer_rtv);
 
         // Weave to back buffer
-        weaver->weave(desc.texture.width, desc.texture.height);
+        if (weavingEnabled) {
+            weaver->weave(desc.texture.width, desc.texture.height);
+        }
     }
 }
 
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d12device = runtime->get_device();
-    init_sr_context(runtime);
 }
 
-bool DirectX12Weaver::is_initialized()
+void DirectX12Weaver::do_weave(bool doWeave)
 {
+    weavingEnabled = doWeave;
+}
+
+bool DirectX12Weaver::is_initialized() {
     return srContextInitialized;
 }
