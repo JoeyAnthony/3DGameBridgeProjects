@@ -137,7 +137,9 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
 
             // Weave to back buffer
-            weaver->weave(desc.texture.width, desc.texture.height);
+            if (weaving_enabled) {
+                weaver->weave(desc.texture.width, desc.texture.height);
+            }
         }
     }
     else {
