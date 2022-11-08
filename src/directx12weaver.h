@@ -64,7 +64,4 @@ public:
     virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) override;
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     virtual void do_weave(bool doWeave) override;
-
-    // Inherited via IGraphicsApi
-    virtual bool is_initialized() override;
 };
