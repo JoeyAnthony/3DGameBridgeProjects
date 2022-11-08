@@ -3,7 +3,7 @@
 DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
     //Set context here.
     srContext = context;
-    weavingEnabled = true;
+    weaving_enabled = true;
 }
 
 bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc)
@@ -45,8 +45,8 @@ bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_des
 }
 
 bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list) {
-    if (weaverInitialized) {
-        return weaverInitialized;
+    if (weaver_initialized) {
+        return weaver_initialized;
     }
 
     delete weaver;
@@ -81,8 +81,8 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         return false;
     }
 
-    weaverInitialized = true;
-    return weaverInitialized;
+    weaver_initialized = true;
+    return weaver_initialized;
 }
 
 void DirectX11Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
@@ -115,7 +115,7 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource rtv_resource = d3d11device->get_resource_from_view(rtv);
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv_resource);
 
-    if (weaverInitialized) {
+    if (weaver_initialized) {
         //Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
@@ -160,11 +160,7 @@ void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
     d3d11device = runtime->get_device();
 }
 
-bool DirectX11Weaver::is_initialized() {
-    return false;
-}
-
 void DirectX11Weaver::do_weave(bool doWeave)
 {
-    weavingEnabled = doWeave;
+    weaving_enabled = doWeave;
 }

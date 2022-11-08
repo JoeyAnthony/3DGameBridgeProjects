@@ -39,12 +39,11 @@
 //};
 
 class DirectX11Weaver: public IGraphicsApi {
-    bool weaverInitialized = false;
-    bool weavingEnabled = false;
+    bool weaver_initialized = false;
+    bool weaving_enabled = false;
+    SR::SRContext* srContext;
     SR::PredictingDX11Weaver* weaver = nullptr;
-    SR::SRContext* srContext = nullptr;
     reshade::api::device* d3d11device = nullptr;
-    //MyEyes* eyes = nullptr;
 
     bool g_popup_window_visible = false;
     float view_separation = 0.f;

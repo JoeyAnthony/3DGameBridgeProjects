@@ -37,12 +37,15 @@
 //};
 
 class DirectX12Weaver: public IGraphicsApi {
-    //MyEyes* eyes = nullptr;
+    bool weaver_initialized = false;
+    bool weaving_enabled = false;
+    SR::SRContext* srContext;
+    SR::PredictingDX12Weaver* weaver = nullptr;
+    reshade::api::device* d3d12device = nullptr;
+
     bool g_popup_window_visible = false;
-    bool weavingEnabled = false;
     float view_separation = 0.f;
     float vertical_shift = 0.f;
-    SR::SRContext* srContext = nullptr;
 
     reshade::api::command_list* command_list;
     reshade::api::resource_view game_frame_buffer;

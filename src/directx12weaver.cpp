@@ -1,23 +1,15 @@
 #include "directx12weaver.h"
 
-bool srContextInitialized = false;
-bool weaverInitialized = false;
-SR::PredictingDX12Weaver* weaver = nullptr;
-reshade::api::device* d3d12device = nullptr;
-
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
 {
     //Set context here.
-    if (!srContextInitialized) {
-        srContext = context;
-        srContextInitialized = true;
-        weavingEnabled = true;
-    }
+    srContext = context;
+    weaving_enabled = true;
 }
 
 bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
-    if (weaverInitialized) {
-        return weaverInitialized;
+    if (weaver_initialized) {
+        return weaver_initialized;
     }
 
     // See if we can get a command allocator from reshade
@@ -66,8 +58,8 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         return false;
     }
 
-    weaverInitialized = true;
-    return weaverInitialized;
+    weaver_initialized = true;
+    return weaver_initialized;
 }
 
 void DirectX12Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
@@ -122,7 +114,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
     reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
-    if (weaverInitialized) {
+    if (weaver_initialized) {
         // Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
@@ -145,7 +137,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
 
             // Weave to back buffer
-            if (weavingEnabled) {
+            if (weaving_enabled) {
                 weaver->weave(desc.texture.width, desc.texture.height);
             }
         }
@@ -172,9 +164,5 @@ void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
 
 void DirectX12Weaver::do_weave(bool doWeave)
 {
-    weavingEnabled = doWeave;
-}
-
-bool DirectX12Weaver::is_initialized() {
-    return srContextInitialized;
+    weaving_enabled = doWeave;
 }
