@@ -130,14 +130,14 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             reshade::log_message(3, "Buffer size changed");
         }
         else {
-            // Copy resource
-            cmd_list->copy_resource(rtv_resource, effect_frame_copy);
-
-            // Bind back buffer as render target
-            cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
-
-            // Weave to back buffer
             if (weaving_enabled) {
+                // Copy resource
+                cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+
+                // Bind back buffer as render target
+                cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
+
+                // Weave to back buffer
                 weaver->weave(desc.texture.width, desc.texture.height);
             }
         }
