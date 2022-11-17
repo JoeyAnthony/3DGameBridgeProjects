@@ -39,12 +39,11 @@
 //};
 
 class DirectX11Weaver: public IGraphicsApi {
-    bool weaverInitialized = false;
-    bool weavingEnabled = false;
+    bool weaver_initialized = false;
+    bool weaving_enabled = false;
+    SR::SRContext* srContext;
     SR::PredictingDX11Weaver* weaver = nullptr;
-    SR::SRContext* srContext = nullptr;
     reshade::api::device* d3d11device = nullptr;
-    //MyEyes* eyes = nullptr;
 
     bool g_popup_window_visible = false;
     float view_separation = 0.f;
@@ -54,11 +53,13 @@ class DirectX11Weaver: public IGraphicsApi {
     reshade::api::resource_view game_frame_buffer;
     reshade::api::resource effect_frame_copy;
     reshade::api::resource_view effect_frame_copy_srv;
-    reshade::api::resource_view back_buffer_rtv;;
+    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
+    bool resize_buffer_failed = false;
 
 public:
     DirectX11Weaver(SR::SRContext* context);
-    void init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
+    bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
+    bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
 
     // Inherited via IGraphicsApi
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
@@ -67,7 +68,4 @@ public:
     virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     virtual void do_weave(bool doWeave) override;
-
-    // Inherited via IGraphicsApi
-    virtual bool is_initialized() override;
 };
