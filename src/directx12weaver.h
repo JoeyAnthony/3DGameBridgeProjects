@@ -51,6 +51,7 @@ class DirectX12Weaver: public IGraphicsApi {
     reshade::api::resource_view game_frame_buffer;
     reshade::api::resource effect_frame_copy;
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
+    bool resize_buffer_failed = false;
 
 public:
     DirectX12Weaver(SR::SRContext* context);

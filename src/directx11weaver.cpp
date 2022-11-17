@@ -121,8 +121,9 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d11device->destroy_resource(effect_frame_copy);
             d3d11device->destroy_resource_view(effect_frame_copy_srv);
-            if (!create_effect_copy_buffer(desc)) {
+            if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
                 reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+                resize_buffer_failed = true;
             }
 
             // Set newly create buffer as input
@@ -130,6 +131,8 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             reshade::log_message(3, "Buffer size changed");
         }
         else {
+            resize_buffer_failed = false;
+
             if (weaving_enabled) {
                 // Copy resource
                 cmd_list->copy_resource(rtv_resource, effect_frame_copy);

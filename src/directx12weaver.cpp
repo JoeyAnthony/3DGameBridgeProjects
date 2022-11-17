@@ -119,8 +119,9 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d12device->destroy_resource(effect_frame_copy);
-            if (!create_effect_copy_buffer(desc)) {
+            if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
                 reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+                resize_buffer_failed = true;
             }
 
             // Set newly create buffer as input
@@ -128,6 +129,8 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             reshade::log_message(3, "Buffer size changed");
         }
         else {
+            resize_buffer_failed = false;
+
             if (weaving_enabled) {
                 // Create copy of the effect buffer
                 cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);

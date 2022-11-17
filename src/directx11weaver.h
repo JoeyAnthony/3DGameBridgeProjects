@@ -54,6 +54,7 @@ class DirectX11Weaver: public IGraphicsApi {
     reshade::api::resource effect_frame_copy;
     reshade::api::resource_view effect_frame_copy_srv;
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
+    bool resize_buffer_failed = false;
 
 public:
     DirectX11Weaver(SR::SRContext* context);
