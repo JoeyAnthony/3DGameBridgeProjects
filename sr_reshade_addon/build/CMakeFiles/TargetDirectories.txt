@@ -1,0 +1,3 @@
+C:/Users/Bram/Documents/GitHub/SimulatedRealityInjector/build/CMakeFiles/srReshade.dir
+C:/Users/Bram/Documents/GitHub/SimulatedRealityInjector/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Bram/Documents/GitHub/SimulatedRealityInjector/build/CMakeFiles/ZERO_CHECK.dir
