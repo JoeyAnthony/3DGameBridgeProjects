@@ -1,10 +1,6 @@
 #pragma once
 #include "pch.h"
 
-// Third party
-#include <imgui.h>
-#include <reshade.hpp>
-
 // Directx
 #include <d3d11.h>
 #include <DirectXMath.h>
