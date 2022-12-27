@@ -1,6 +1,37 @@
 cmake_minimum_required(VERSION 3.23)
+
 project (srReshadeApi VERSION 0.1)
+message("SR ReShade Api Version: ${srReshadeApi_VERSION}")
 
 add_library(srReshadeApi SHARED
-src/main.cpp
+src/srreshade.h
+src/srreshade.cpp
 )
+
+target_include_directories(srReshadeApi INTERFACE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>"
+)
+target_compile_definitions(srReshadeApi PUBLIC SR_RESHADEAPI_EXPORTS)
+set_target_properties(srReshadeApi PROPERTIES LINKER_LANGUAGE CXX)
+
+set(CMAKE_INSTALL_LIBDIR ${PROJECT_SOURCE_DIR}/lib)
+set(CMAKE_INSTALL_BINDIR ${PROJECT_SOURCE_DIR}/bin)
+
+install(TARGETS srReshadeApi
+        EXPORT srReshadeApi
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib/static
+        PUBLIC_HEADER DESTINATION include/Lib)
+
+install(EXPORT srReshadeApi NAMESPACE srReshadeApi:: DESTINATION share/srReshadeApi)
+include(CMakePackageConfigHelpers)
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/srReshadeApiConfig.cmake
+    INSTALL_DESTINATION share/srReshadeApi
+    )
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/srReshadeApiConfig.cmake
+    DESTINATION share/srReshadeApi
+    )
