@@ -1,2 +1,3 @@
-# Include CMake-generated config file for the 'srReshadeApi' target
-include(${CMAKE_CURRENT_LIST_DIR}/srReshadeApi.cmake)
+@PACKAGE_INIT@
+
+include ("${CMAKE_CURRENT_LIST_DIR}/srReshadeApiTargets.cmake")
