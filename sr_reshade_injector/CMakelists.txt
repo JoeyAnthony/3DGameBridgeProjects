@@ -5,14 +5,12 @@ add_executable(srReshadeInjector
 src/main.cpp
 )
 
-set(srReshadeApi_DIR "../sr_reshade_api")
-find_package(srReshadeApi REQUIRED)
-
 set_target_properties(srReshadeInjector PROPERTIES LINKER_LANGUAGE CXX)
+
 target_link_libraries(srReshadeInjector PRIVATE srReshadeApi)
 
+# Copy all linked dlls to build exevutable directory
 add_custom_command(
     TARGET srReshadeInjector POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:srReshadeInjector> $<TARGET_FILE_DIR:srReshadeInjector>
-    COMMAND_EXPAND_LISTS
 )

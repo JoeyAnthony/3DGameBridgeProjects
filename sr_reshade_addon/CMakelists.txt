@@ -18,6 +18,10 @@ add_library(srReshadeAddon SHARED
     src/hotkeymanager.h
 )
 
+# Set output name for the addon
+set(ADDON_FILE_NAME "srReshade")
+set_target_properties(srReshadeAddon PROPERTIES OUTPUT_NAME ${ADDON_FILE_NAME})
+
 set(TARGET_IMGUI imgui)
 add_subdirectory(third-party/imgui)
 target_link_libraries(srReshadeAddon LINK_PUBLIC ${TARGET_IMGUI})
@@ -36,7 +40,7 @@ find_package(srDirectX REQUIRED)
 #option(<COPY_DLL_TO_RESHADE_DIR> "Should the dll be copied automatically to the game directory set with RESHADE_DIR"> OFF)
 
 # Rename dll with extension .addon
-add_custom_command(TARGET srReshadeAddon POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy $<TARGET_FILE:srReshadeAddon> $<TARGET_FILE_DIR:srReshadeAddon>/${PROJECT_NAME}.addon
+add_custom_command(TARGET srReshadeAddon POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different $<TARGET_FILE:srReshadeAddon> $<TARGET_FILE_DIR:srReshadeAddon>/${ADDON_FILE_NAME}.addon
 )
 
 # Copy dll to reshade directory
