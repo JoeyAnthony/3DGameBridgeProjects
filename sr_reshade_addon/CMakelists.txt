@@ -37,16 +37,22 @@ target_link_libraries(srReshadeAddon LINK_PUBLIC ${TARGET_RESHADE})
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 
-#option(<COPY_DLL_TO_RESHADE_DIR> "Should the dll be copied automatically to the game directory set with RESHADE_DIR"> OFF)
-
 # Rename dll with extension .addon
-add_custom_command(TARGET srReshadeAddon POST_BUILD COMMAND ${CMAKE_COMMAND} ARGS -E copy_if_different $<TARGET_FILE:srReshadeAddon> $<TARGET_FILE_DIR:srReshadeAddon>/${ADDON_FILE_NAME}.addon
+add_custom_command(
+	TARGET srReshadeAddon POST_BUILD COMMAND ${CMAKE_COMMAND} 
+	ARGS -E copy_if_different $<TARGET_FILE:srReshadeAddon> $<TARGET_FILE_DIR:srReshadeAddon>/${ADDON_FILE_NAME}.addon
 )
 
 # Copy dll to reshade directory
-# if(${COPY_DLL_TO_RESHADE_DIR} AND NOT ${RESHADE_DIR} STREQUAL "")
-
-# endif()
+set(ADDON_COPY_DIR "" CACHE STRING "Path where the .addon file will be copied to on successful build")
+if(NOT ${ADDON_COPY_DIR} STREQUAL "")
+	add_custom_command(
+		TARGET srReshadeAddon POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${ADDON_COPY_DIR}
+		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE_DIR:srReshadeAddon>/${ADDON_FILE_NAME}.addon ${ADDON_COPY_DIR}
+	)
+	message("Addon will be copied to ${ADDON_COPY_DIR}")
+endif()
 
 target_link_libraries(srReshadeAddon PRIVATE
     simulatedreality
