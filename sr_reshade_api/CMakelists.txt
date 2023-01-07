@@ -13,6 +13,8 @@ src/srreshade.cpp
 target_compile_definitions(srReshadeApi PUBLIC SR_RESHADEAPI_EXPORTS)
 set_target_properties(srReshadeApi PROPERTIES LINKER_LANGUAGE CXX)
 
+set_target_properties(srReshadeApi PROPERTIES PUBLIC_HEADER src/srreshade.h)
+
 install(TARGETS srReshadeApi
         EXPORT srReshadeApiTargets
         RUNTIME DESTINATION bin
