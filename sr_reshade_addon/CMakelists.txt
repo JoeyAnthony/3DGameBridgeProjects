@@ -39,7 +39,7 @@ find_package(srDirectX REQUIRED)
 
 # Rename dll with extension .addon
 add_custom_command(
-	TARGET srReshadeAddon POST_BUILD COMMAND ${CMAKE_COMMAND} 
+	TARGET srReshadeAddon POST_BUILD COMMAND ${CMAKE_COMMAND}
 	ARGS -E copy_if_different $<TARGET_FILE:srReshadeAddon> $<TARGET_FILE_DIR:srReshadeAddon>/${ADDON_FILE_NAME}.addon
 )
 
