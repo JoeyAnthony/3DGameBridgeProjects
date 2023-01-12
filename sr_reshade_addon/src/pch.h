@@ -14,8 +14,8 @@
 #include "framework.h"
 
 // Reshade
-#include <imgui.h>
-#include <reshade.hpp>
+#include <imgui/imgui.h>
+#include <reshade/include/reshade.hpp>
 
 // SR
 #include "sr/sense/eyetracker/eyetracker.h"

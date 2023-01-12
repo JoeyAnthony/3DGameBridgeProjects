@@ -1,0 +1,60 @@
+cmake_minimum_required(VERSION 3.23)
+project (srReshadeAddon VERSION 0.1)
+
+add_library(srReshadeAddon SHARED
+    src/dllmain.cpp
+    src/framework.h
+    src/pch.h
+    src/pch.cpp
+    src/directx11weaver.h
+    src/directx11weaver.cpp
+    src/directx12weaver.h
+    src/directx12weaver.cpp
+    src/igraphicsapi.h
+    src/igraphicsapi.cpp
+    src/hotkey.cpp
+    src/hotkey.h
+    src/hotkeymanager.cpp
+    src/hotkeymanager.h
+)
+
+# Set output name for the addon
+set(ADDON_FILE_NAME "srReshade")
+set_target_properties(srReshadeAddon PROPERTIES OUTPUT_NAME ${ADDON_FILE_NAME})
+
+set(TARGET_IMGUI imgui)
+add_subdirectory(third-party/imgui)
+target_link_libraries(srReshadeAddon LINK_PUBLIC ${TARGET_IMGUI})
+
+set(TARGET_DXHEADERS DirectX-Headers)
+add_subdirectory(third-party/DirectX-Headers)
+target_link_libraries(srReshadeAddon LINK_PUBLIC ${TARGET_DXHEADERS})
+
+set(TARGET_RESHADE reshade)
+add_subdirectory(third-party/reshade)
+target_link_libraries(srReshadeAddon LINK_PUBLIC ${TARGET_RESHADE})
+
+find_package(simulatedreality REQUIRED)
+find_package(srDirectX REQUIRED)
+
+# Rename dll with extension .addon
+add_custom_command(
+	TARGET srReshadeAddon POST_BUILD COMMAND ${CMAKE_COMMAND}
+	ARGS -E copy_if_different $<TARGET_FILE:srReshadeAddon> $<TARGET_FILE_DIR:srReshadeAddon>/${ADDON_FILE_NAME}.addon
+)
+
+# Copy dll to reshade directory
+set(ADDON_COPY_DIR "" CACHE STRING "Path where the .addon file will be copied to on successful build")
+if(NOT ${ADDON_COPY_DIR} STREQUAL "")
+	add_custom_command(
+		TARGET srReshadeAddon POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${ADDON_COPY_DIR}
+		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE_DIR:srReshadeAddon>/${ADDON_FILE_NAME}.addon ${ADDON_COPY_DIR}
+	)
+	message("Addon will be copied to ${ADDON_COPY_DIR}")
+endif()
+
+target_link_libraries(srReshadeAddon PRIVATE
+    simulatedreality
+    srDirectX::srDirectX
+)
