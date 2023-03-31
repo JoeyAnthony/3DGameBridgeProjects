@@ -46,6 +46,7 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     //(ID3D12CommandQueue*)runtime->get_command_queue()->get_native()
     try {
         weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        weaver->setLatencyInFrames(1);
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
     }
