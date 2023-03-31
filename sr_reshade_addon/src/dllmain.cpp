@@ -92,6 +92,22 @@ static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList,
             }
             executeHotKeyFunctionByType(toggleMap, runtime);
             break;
+        case shortcutType::toggleLatencyMode:
+            //Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
+            if (i->second) {
+                weaverImplementation->set_latency_mode(LatencyModes::latencyInFrames);
+                // Set the latency only once.
+                weaverImplementation->set_latency_in_frames(1);
+
+                //Log the current mode:
+                reshade::log_message(3, "Current latency mode set to: LATENCY_IN_FRAMES");
+            }
+            else {
+                // Make sure to update the current frametime every frame when using this!
+                weaverImplementation->set_latency_mode(LatencyModes::framerateAdaptive);
+                reshade::log_message(3, "Current latency mode set to: FRAMERATE_ADAPTIVE");
+            }
+            
         default:
             break;
         }

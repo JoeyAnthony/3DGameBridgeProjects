@@ -52,6 +52,12 @@ class DirectX11Weaver: public IGraphicsApi {
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
     bool resize_buffer_failed = false;
 
+    LatencyModes current_latency_mode = LatencyModes::framerateAdaptive;
+    std::chrono::high_resolution_clock::time_point clock_last_frame;
+    static const int frame_time_list_size = 100;
+    long long frame_time_list[frame_time_list_size] = { 1 / 60 * 1000 }; // Initialize frame time list with default of 16.66 ms (Average frame time for 60Hz)
+    short frame_time_index = 0;
+
 public:
     DirectX11Weaver(SR::SRContext* context);
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
@@ -64,4 +70,8 @@ public:
     virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     virtual void do_weave(bool doWeave) override;
+    virtual bool set_latency_in_frames(int numberOfFrames) override;
+    virtual bool set_latency_framerate_adaptive(int frametimeInMicroseconds) override;
+    virtual void set_latency_mode(LatencyModes mode) override;
+    virtual LatencyModes get_latency_mode() override;
 };

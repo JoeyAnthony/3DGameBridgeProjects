@@ -46,7 +46,6 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     //(ID3D12CommandQueue*)runtime->get_command_queue()->get_native()
     try {
         weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
-        weaver->setLatencyInFrames(1);
         srContext->initialize();
         reshade::log_message(3, "Initialized weaver");
     }
@@ -169,4 +168,28 @@ void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
 void DirectX12Weaver::do_weave(bool doWeave)
 {
     weaving_enabled = doWeave;
+}
+
+bool DirectX12Weaver::set_latency_in_frames(int numberOfFrames) {
+    if (current_latency_mode == LatencyModes::latencyInFrames) {
+        weaver->setLatencyInFrames(numberOfFrames);
+        return true;
+    }
+    return false;
+}
+
+bool DirectX12Weaver::set_latency_framerate_adaptive(int frametimeInMicroseconds) {
+    if (current_latency_mode == LatencyModes::framerateAdaptive) {
+        weaver->setLatency(frametimeInMicroseconds);
+        return true;
+    }
+    return false;
+}
+
+void DirectX12Weaver::set_latency_mode(LatencyModes mode) {
+    current_latency_mode = mode;
+}
+
+LatencyModes DirectX12Weaver::get_latency_mode() {
+    return current_latency_mode;
 }
