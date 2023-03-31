@@ -69,6 +69,7 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         weaver = new SR::PredictingDX11Weaver(*srContext, dev, context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
         weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
         weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)rtv.handle); //resourceview of the buffer
+        weaver->setLatencyInFrames(1);
         srContext->initialize();
         reshade::log_message(3, "Initialized weaver");
     }
