@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "igraphicsapi.h"
 #include "directx11weaver.h"
 #include "directx12weaver.h"
@@ -96,6 +96,7 @@ static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList,
             //Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
             if (i->second) {
                 weaverImplementation->set_latency_mode(LatencyModes::latencyInFrames);
+                // Todo: The amount of buffers set here should be configurable!
                 // Set the latency only once.
                 weaverImplementation->set_latency_in_frames(1);
 
@@ -104,8 +105,14 @@ static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList,
             }
             else {
                 // Make sure to update the current frametime every frame when using this!
+                
+                // Todo: This method was not satisfactory, revisit this and move the STATIC 40000μs mode from below!
                 weaverImplementation->set_latency_mode(LatencyModes::framerateAdaptive);
-                reshade::log_message(3, "Current latency mode set to: FRAMERATE_ADAPTIVE");
+                //reshade::log_message(3, "Current latency mode set to: FRAMERATE_ADAPTIVE");
+
+                // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
+                weaverImplementation->set_latency_framerate_adaptive(40000);
+                reshade::log_message(3, "Current latency mode set to: STATIC 40.000 Microseconds");
             }
             
         default:

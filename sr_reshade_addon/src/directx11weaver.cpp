@@ -147,20 +147,20 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 // Todo: Make sure to limit the latency to the monitor's max refresh rate!!!
                 // Todo: Make this a helper function of iGraphicsAPI
                 // Calculate the current frametime and set the latency of the eye tracker accordingly. Only do this in framerate adaptive latency mode.
-                if (get_latency_mode() == LatencyModes::framerateAdaptive) {
-                    auto current_time = std::chrono::high_resolution_clock::now();
-                    long long frame_time_in_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(current_time - clock_last_frame).count();
+                //if (get_latency_mode() == LatencyModes::framerateAdaptive) {
+                //    auto current_time = std::chrono::high_resolution_clock::now();
+                //    long long frame_time_in_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(current_time - clock_last_frame).count();
 
-                    // Take average of vector containing past frame times, then set the eye tracker latency to the average.
-                    weaver->setLatency(std::reduce(&frame_time_list[0], &frame_time_list[frame_time_list_size - 1]) / frame_time_list_size);
+                //    // Take average of vector containing past frame times, then set the eye tracker latency to the average.
+                //    weaver->setLatency(std::reduce(&frame_time_list[0], &frame_time_list[frame_time_list_size - 1]) / frame_time_list_size);
 
-                    // Update list of past frames and set list index back to 0 once we reach the 100th item in the list at which point we reset the index to 0.
-                    frame_time_list[frame_time_index] = frame_time_in_microseconds;
-                    frame_time_index = frame_time_index++ % 100;
+                //    // Update list of past frames and set list index back to 0 once we reach the 100th item in the list at which point we reset the index to 0.
+                //    frame_time_list[frame_time_index] = frame_time_in_microseconds;
+                //    frame_time_index = frame_time_index++ % 100;
 
-                    // Update the last frame timestamp
-                    clock_last_frame = current_time;
-                }
+                //    // Update the last frame timestamp
+                //    clock_last_frame = current_time;
+                //}
             }
         }
     }
