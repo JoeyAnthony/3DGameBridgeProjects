@@ -95,17 +95,8 @@ static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList,
         case shortcutType::toggleLatencyMode:
             //Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
             if (i->second) {
-                weaverImplementation->set_latency_mode(LatencyModes::latencyInFrames);
-                // Todo: The amount of buffers set here should be configurable!
-                // Set the latency only once.
-                weaverImplementation->set_latency_in_frames(1);
-
-                //Log the current mode:
-                reshade::log_message(3, "Current latency mode set to: LATENCY_IN_FRAMES");
-            }
-            else {
                 // Make sure to update the current frametime every frame when using this!
-                
+
                 // Todo: This method was not satisfactory, revisit this and move the STATIC 40000 microseconds mode from below!
                 weaverImplementation->set_latency_mode(LatencyModes::framerateAdaptive);
                 //reshade::log_message(3, "Current latency mode set to: FRAMERATE_ADAPTIVE");
@@ -113,6 +104,15 @@ static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList,
                 // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
                 weaverImplementation->set_latency_framerate_adaptive(40000);
                 reshade::log_message(3, "Current latency mode set to: STATIC 40000 Microseconds");
+            }
+            else {
+                weaverImplementation->set_latency_mode(LatencyModes::latencyInFrames);
+                // Todo: The amount of buffers set here should be configurable!
+                // Set the latency only once.
+                weaverImplementation->set_latency_in_frames(1);
+
+                //Log the current mode:
+                reshade::log_message(3, "Current latency mode set to: LATENCY_IN_FRAMES");
             }
             
         default:

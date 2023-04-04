@@ -72,6 +72,13 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)rtv.handle); //resourceview of the buffer
         srContext->initialize();
         reshade::log_message(3, "Initialized weaver");
+
+        // Todo: Make this setting of latency/mode a helper function.
+        // Set mode to latency in frames by default.
+        set_latency_mode(LatencyModes::latencyInFrames);
+        // Todo: The amount of buffers set here should be configurable!
+        set_latency_in_frames(1);
+        reshade::log_message(3, "Current latency mode set to: LATENCY_IN_FRAMES");
     }
     catch (std::exception e) {
         reshade::log_message(3, e.what());
