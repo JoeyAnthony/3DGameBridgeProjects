@@ -48,6 +48,12 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
+
+        // Todo: Make this setting of latency/mode a helper function.
+        // Set mode to latency in frames by default.
+        set_latency_mode(LatencyModes::latencyInFrames);
+        set_latency_in_frames(runtime->get_back_buffer_count() ? runtime->get_back_buffer_count() : 1); // Set the latency with which the weaver should do prediction.
+        reshade::log_message(reshade::log_level::info, "Current latency mode set to: LATENCY_IN_FRAMES");
     }
     catch (std::exception e) {
         reshade::log_message(reshade::log_level::info, e.what());
