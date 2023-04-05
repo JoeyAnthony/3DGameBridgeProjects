@@ -75,10 +75,10 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
 
         // Todo: Make this setting of latency/mode a helper function.
         // Set mode to latency in frames by default.
-        set_latency_mode(LatencyModes::latencyInFrames);
+        set_latency_mode(LatencyModes::framerateAdaptive);
         // Todo: The amount of buffers set here should be configurable!
-        set_latency_in_frames(runtime->get_back_buffer_count() ? runtime->get_back_buffer_count() : 1); // Set the latency with which the weaver should do prediction.
-        reshade::log_message(reshade::log_level::info, "Current latency mode set to: LATENCY_IN_FRAMES");
+        set_latency_framerate_adaptive(40000);
+        reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
     }
     catch (std::exception e) {
         reshade::log_message(reshade::log_level::info, e.what());
