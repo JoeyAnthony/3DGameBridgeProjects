@@ -217,7 +217,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             return FALSE;
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
-        reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+        //reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);

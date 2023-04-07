@@ -1,11 +1,17 @@
 #include "directx12weaver.h"
 
+DirectX12Weaver current_weaver;
+reshade::api::effect_runtime* current_runtime;
+reshade::api::resource_view latest_created_rtv;
+
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
 {
     //Set context here.
     srContext = context;
     weaving_enabled = true;
 }
+
+DirectX12Weaver::DirectX12Weaver() {}
 
 bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
     if (weaver_initialized) {
@@ -117,6 +123,14 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     return true;
 }
 
+static void on_present(reshade::api::command_queue* queue, reshade::api::swapchain* swapchain, const reshade::api::rect* source_rect, const reshade::api::rect* dest_rect, uint32_t dirty_rect_count, const reshade::api::rect* dirty_rects) {
+    reshade::api::resource backBuffer = swapchain->get_current_back_buffer();
+    reshade::api::resource_desc desc = queue->get_device()->get_resource_desc(backBuffer);
+    reshade::api::command_list* cmd_list = queue->get_immediate_command_list();
+
+    current_weaver.on_present_called(current_runtime, cmd_list, backBuffer, desc);
+}
+
 void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
     reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
     reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
@@ -168,8 +182,64 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     }
 }
 
+void DirectX12Weaver::on_present_called(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource rtv_resource, reshade::api::resource_desc desc) {
+    if (weaver_initialized) {
+        // Check texture size
+        if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
+            d3d12device->destroy_resource(effect_frame_copy);
+            if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
+                reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+                resize_buffer_failed = true;
+            }
+
+            // Set newly create buffer as input
+            weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
+            reshade::log_message(3, "Buffer size changed");
+        }
+        else {
+            resize_buffer_failed = false;
+
+            if (weaving_enabled) {
+                // Create copy of the effect buffer
+                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
+                cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
+
+                // Bind back buffer as render target
+                cmd_list->bind_render_targets_and_depth_stencil(1, &latest_created_rtv);
+
+                // Weave to back buffer
+                weaver->weave(desc.texture.width, desc.texture.height);
+            }
+        }
+    }
+    else {
+        create_effect_copy_buffer(desc);
+        if (init_weaver(runtime, effect_frame_copy, d3d12device->get_resource_from_view(latest_created_rtv))) {
+            //Set command list and input frame buffer again to make sure they are correct
+            weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
+            weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
+        }
+        else {
+            // When buffer creation succeeds and this fails, delete the created buffer
+            d3d12device->destroy_resource(effect_frame_copy);
+            reshade::log_message(3, "Failed to initialize weaver");
+            return;
+        }
+    }
+}
+
+static void on_init_resource_view(reshade::api::device* device, reshade::api::resource resource, reshade::api::resource_usage usage_type, const reshade::api::resource_view_desc& desc, reshade::api::resource_view view) {
+    latest_created_rtv = view;
+}
+
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     d3d12device = runtime->get_device();
+    current_weaver = *this;
+    current_runtime = runtime;
+    reshade::register_event<reshade::addon_event::present>(&on_present);
+    reshade::register_event<reshade::addon_event::init_resource_view >(&on_init_resource_view);
 }
 
 void DirectX12Weaver::do_weave(bool doWeave)
