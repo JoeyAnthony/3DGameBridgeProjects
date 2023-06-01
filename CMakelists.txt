@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
-project (srReshade VERSION 0.1)
+project (GameBridgeProjects VERSION 0.1)
 
 set (CMAKE_CXX_STANDARD 17)
 
-add_subdirectory(sr_reshade_addon)
-add_subdirectory(sr_reshade_api)
-add_subdirectory(sr_reshade_injector)
+add_subdirectory(gamebridge_reshade)
