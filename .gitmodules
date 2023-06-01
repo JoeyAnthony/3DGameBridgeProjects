@@ -1,9 +1,9 @@
 [submodule "sr_reshade_addon/third-party/imgui/include/imgui"]
-	path = sr_reshade_addon/third-party/imgui/include/imgui
+	path = gamebridge_reshade/third-party/imgui/include/imgui/imgui
 	url = https://github.com/ocornut/imgui
 [submodule "sr_reshade_addon/third-party/reshade/include/reshade"]
-	path = sr_reshade_addon/third-party/reshade/include/reshade
+	path = gamebridge_reshade/third-party/reshade/include/reshade/[B
 	url = https://github.com/crosire/reshade.git
 [submodule "sr_reshade_addon/third-party/DirectX-Headers/include/DirectX-Headers"]
-	path = sr_reshade_addon/third-party/DirectX-Headers/include/DirectX-Headers
+	path = gamebridge_reshade/third-party/DirectX-Headers/include/DirectX-Headers/DirectX-Headers
 	url = https://github.com/microsoft/DirectX-Headers.git
