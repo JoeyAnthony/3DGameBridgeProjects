@@ -1,4 +1,4 @@
-# Game Bridge Projects
+# 3D Game Bridge Projects
 This repository contains projects implementing a Game Bridge API or otherwise related to Game Bridge.
 
 ## Projects:
