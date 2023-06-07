@@ -15,14 +15,14 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     // See if we can get a command allocator from reshade
     ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
     if (!d3d12device) {
-        reshade::log_message(3, "Couldn't get a device");
+        reshade::log_message(reshade::log_level::info, "Couldn't get a device");
         return false;
     }
 
     ID3D12CommandAllocator* CommandAllocator;
     dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
     if (CommandAllocator == nullptr) {
-        reshade::log_message(3, "Couldn't ceate command allocator");
+        reshade::log_message(reshade::log_level::info, "Couldn't ceate command allocator");
         return false;
     }
 
@@ -35,7 +35,7 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     dev->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&CommandQueue));
     if (CommandQueue == nullptr)
     {
-        reshade::log_message(3, "Couldn't create command queue");
+        reshade::log_message(reshade::log_level::info, "Couldn't create command queue");
         return false;
     }
 
@@ -47,14 +47,14 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     try {
         weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
         srContext->initialize();
-        reshade::log_message(3, "Initialized weaver");
+        reshade::log_message(reshade::log_level::info, "Initialized weaver");
     }
     catch (std::exception e) {
-        reshade::log_message(3, e.what());
+        reshade::log_message(reshade::log_level::info, e.what());
         return false;
     }
     catch (...) {
-        reshade::log_message(3, "Couldn't initialize weaver");
+        reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
         return false;
     }
 
@@ -100,7 +100,7 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(3, "Failed creating te effect frame copy");
+        reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
         return false;
     }
 
@@ -120,13 +120,13 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d12device->destroy_resource(effect_frame_copy);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
-                reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+                reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
             }
 
             // Set newly create buffer as input
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
-            reshade::log_message(3, "Buffer size changed");
+            reshade::log_message(reshade::log_level::info, "Buffer size changed");
         }
         else {
             resize_buffer_failed = false;
@@ -155,7 +155,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
             d3d12device->destroy_resource(effect_frame_copy);
-            reshade::log_message(3, "Failed to initialize weaver");
+            reshade::log_message(reshade::log_level::info, "Failed to initialize weaver");
             return;
         }
     }

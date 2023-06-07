@@ -153,7 +153,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         default:
             //Games will be DX11 in the majority of cases.
             //Todo: This may still crash our code so we should leave the API switching to user input if we cannot detect it ourselves.
-            reshade::log_message(3, "Unable to determine graphics API, attempting to switch to DX11...");
+            reshade::log_message(reshade::log_level::info, "Unable to determine graphics API, attempting to switch to DX11...");
             weaverImplementation = new DirectX11Weaver(srContext);
             break;
         }
