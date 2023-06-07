@@ -21,7 +21,7 @@ bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_des
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(3, "Failed creating te effect frame copy");
+        reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
         return false;
     }
 
@@ -34,7 +34,7 @@ bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_des
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(3, "Failed creating te effect frame copy");
+        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
         return false;
     }
 
@@ -56,12 +56,12 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     ID3D11DeviceContext* context = (ID3D11DeviceContext*)cmd_list->get_native();
 
     if (!dev) {
-        reshade::log_message(3, "Couldn't get a device");
+        reshade::log_message(reshade::log_level::info, "Couldn't get a device");
         return false;
     }
 
     if (!context) {
-        reshade::log_message(3, "Couldn't get a device context");
+        reshade::log_message(reshade::log_level::info, "Couldn't get a device context");
         return false;
     }
 
@@ -70,14 +70,14 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
         weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)rtv.handle); //resourceview of the buffer
         srContext->initialize();
-        reshade::log_message(3, "Initialized weaver");
+        reshade::log_message(reshade::log_level::info, "Initialized weaver");
     }
     catch (std::exception e) {
-        reshade::log_message(3, e.what());
+        reshade::log_message(reshade::log_level::info, e.what());
         return false;
     }
     catch (...) {
-        reshade::log_message(3, "Couldn't initialize weaver");
+        reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
         return false;
     }
 
@@ -122,13 +122,13 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             d3d11device->destroy_resource(effect_frame_copy);
             d3d11device->destroy_resource_view(effect_frame_copy_srv);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
-                reshade::log_message(2, "Couldn't create effect copy buffer, trying again next frame");
+                reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
             }
 
             // Set newly create buffer as input
             weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
-            reshade::log_message(3, "Buffer size changed");
+            reshade::log_message(reshade::log_level::info, "Buffer size changed");
         }
         else {
             resize_buffer_failed = false;
@@ -155,7 +155,7 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
             d3d11device->destroy_resource(effect_frame_copy);
-            reshade::log_message(3, "Failed to initialize weaver");
+            reshade::log_message(reshade::log_level::info, "Failed to initialize weaver");
             return;
         }
     }
