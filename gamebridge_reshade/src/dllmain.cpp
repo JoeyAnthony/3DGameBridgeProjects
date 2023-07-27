@@ -1,4 +1,7 @@
 #include "pch.h"
+
+#include <windows.h>
+
 #include "igraphicsapi.h"
 #include "directx11weaver.h"
 #include "directx12weaver.h"
@@ -14,6 +17,10 @@
 #define CHAR_BUFFER_SIZE 256
 
 using namespace std;
+
+// Configurations
+CHAR config_path[MAX_PATH] = "";
+CHAR preset_path[MAX_PATH] = "";
 
 IGraphicsApi* weaverImplementation = nullptr;
 SR::SRContext* srContext = nullptr;
@@ -133,6 +140,9 @@ static void init_sr() {
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
+
+    runtime->set_current_preset_path(preset_path);
+
     init_sr();
 
     //Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
@@ -162,31 +172,37 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     weaverImplementation->on_init_effect_runtime(runtime);
 }
 
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
+extern "C" __declspec(dllexport) const char* NAME = "3D Game Bridge";
+extern "C" __declspec(dllexport) const char* DESCRIPTION = "An addon that can weave any side-by-side content to be viewed in 3D on a Simulated Reality display";
+
+extern "C" __declspec(dllexport) bool AddonInit(HMODULE addon_module, HMODULE reshade_module)
 {
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
+    if (!reshade::register_addon(addon_module, reshade_module))
+        return false;
+    
+    reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
+    reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
 
-        if (!reshade::register_addon(hModule))
-            return FALSE;
+    //reshade::register_overlay("Test", &draw_debug_overlay);
+	//reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
+	//reshade::log_message(3, "registered: draw_sr_settings_overlay");
 
-        reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
-        reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+    constexpr CHAR gb_env_var_name[15] = "GB_CONFIG_PATH";
+    constexpr CHAR gb_env_preset_name[15] = "GB_PRESET_PATH";
+    GetEnvironmentVariable(gb_env_var_name, config_path, MAX_PATH);
+    GetEnvironmentVariable(gb_env_preset_name, preset_path, MAX_PATH);
 
-        //reshade::register_overlay("Test", &draw_debug_overlay);
-        //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
-        //reshade::log_message(3, "registered: draw_sr_settings_overlay");
+    std::string msgc("Current config path: "); msgc += config_path;
+    std::string msgp("Current preset path: "); msgp += preset_path;
+    reshade::log_message(reshade::log_level::info, msgc.c_str());
+    reshade::log_message(reshade::log_level::info, msgp.c_str());
 
-        break;
-    case DLL_PROCESS_DETACH:
-        reshade::unregister_addon(hModule);
-        //reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(on_reshade_finish_effects);
-        //reshade::unregister_event<reshade::addon_event::init_effect_runtime>(on_init_effect_runtime);
-        break;
-    }
-    return TRUE;
+    return true;
+}
+extern "C" __declspec(dllexport) void AddonUninit(HMODULE addon_module, HMODULE reshade_module)
+{
+    //reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(on_reshade_finish_effects);
+    //reshade::unregister_event<reshade::addon_event::init_effect_runtime>(on_init_effect_runtime);
+
+    reshade::unregister_addon(addon_module, reshade_module);
 }

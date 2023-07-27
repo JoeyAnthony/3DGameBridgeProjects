@@ -13,7 +13,7 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     }
 
     // See if we can get a command allocator from reshade
-    ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
+    ID3D12Device* dev = (ID3D12Device*)d3d12device->get_native();
     if (!d3d12device) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device");
         return false;
