@@ -187,6 +187,7 @@ extern "C" __declspec(dllexport) bool AddonInit(HMODULE addon_module, HMODULE re
 	//reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
 	//reshade::log_message(3, "registered: draw_sr_settings_overlay");
 
+    // Read environment variables
     constexpr CHAR gb_env_var_name[15] = "GB_CONFIG_PATH";
     constexpr CHAR gb_env_preset_name[15] = "GB_PRESET_PATH";
     GetEnvironmentVariable(gb_env_var_name, config_path, MAX_PATH);
