@@ -6,6 +6,10 @@ add_library(${PROJECT_NAME} SHARED
     src/framework.h
     src/pch.h
     src/pch.cpp
+    src/directx9weaver.h
+    src/directx9weaver.cpp
+    src/directx10weaver.h
+    src/directx10weaver.cpp
     src/directx11weaver.h
     src/directx11weaver.cpp
     src/directx12weaver.h
