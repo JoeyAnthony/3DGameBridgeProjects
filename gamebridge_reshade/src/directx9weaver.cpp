@@ -107,7 +107,7 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
             }
 
             // Set newly create buffer as input
-            weaver->setInputFrameBuffer((IDirect3DTexture9*)effect_frame_copy_srv.handle);
+            weaver->setInputFrameBuffer((IDirect3DTexture9*)effect_frame_copy.handle);
             reshade::log_message(reshade::log_level::info, "Buffer size changed");
         }
         else {
