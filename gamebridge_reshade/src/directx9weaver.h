@@ -46,9 +46,7 @@ class DirectX9Weaver: public IGraphicsApi {
     float vertical_shift = 0.f;
 
     reshade::api::command_list* command_list{};
-    reshade::api::resource_view game_frame_buffer{};
     reshade::api::resource effect_frame_copy{};
-    reshade::api::resource_view effect_frame_copy_srv{};
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
     bool resize_buffer_failed = false;
 

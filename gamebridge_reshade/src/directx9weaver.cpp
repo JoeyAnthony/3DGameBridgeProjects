@@ -14,23 +14,10 @@ bool DirectX9Weaver::create_effect_copy_buffer(const reshade::api::resource_desc
     desc.usage = reshade::api::resource_usage::copy_dest;
 
     // Create buffer to store a copy of the effect frame
+    // Make sure to use reshade::api::resource_usage::render_target when creating the resource because we are copying from the RTV and the destination resource has to match the RTV resource usage type.
     reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::render_target);
-    copy_rsc_desc.type = reshade::api::resource_type::texture_2d;
     if (!d3d9device->create_resource(copy_rsc_desc,nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
         d3d9device->destroy_resource(effect_frame_copy);
-
-        effect_frame_copy_x = 0;
-        effect_frame_copy_y = 0;
-
-        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
-        return false;
-    }
-
-    // Make shader resource view for the effect frame copy
-    reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, copy_rsc_desc.texture.format, 0, copy_rsc_desc.texture.levels, 0, copy_rsc_desc.texture.depth_or_layers);
-    if (!d3d9device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::render_target, srv_desc, &effect_frame_copy_srv)) {
-        d3d9device->destroy_resource(effect_frame_copy);
-        d3d9device->destroy_resource_view(effect_frame_copy_srv);
 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
@@ -53,29 +40,7 @@ bool DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade:
     delete weaver;
     weaver = nullptr;
     reshade::api::resource_desc desc = d3d9device->get_resource_desc(rtv);
-    // Todo: Line below should be removed I think.
-    // desc.type = reshade::api::resource_type::texture_2d;
-
     IDirect3DDevice9* dev = (IDirect3DDevice9*)d3d9device->get_native();
-
-    // Create texture
-    reshade::api::resource texture;
-    d3d9device->create_resource(desc, nullptr, reshade::api::resource_usage::shader_resource, &texture);
-
-    // Create shader resource view for the texture
-    reshade::api::resource_view_desc srv_desc;
-    srv_desc.type = reshade::api::resource_view_type::texture_2d;
-    srv_desc.format = desc.texture.format;
-    srv_desc.texture.first_level = 0;
-    srv_desc.texture.level_count = desc.texture.levels;
-    srv_desc.texture.first_layer = 0;
-    srv_desc.texture.layer_count = 1;
-
-    reshade::api::resource_view texture_srv;
-    d3d9device->create_resource_view(rtv, reshade::api::resource_usage::shader_resource, srv_desc, &texture_srv);
-
-    IDirect3DTexture9* D3DTexture = nullptr;
-    dev->CreateTexture(desc.texture.width, desc.texture.height, desc.texture.levels, D3DUSAGE_QUERY_SRGBREAD, D3DFMT_UNKNOWN, D3DPOOL_DEFAULT, &D3DTexture, nullptr);
 
     if (!dev) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device");
@@ -84,7 +49,6 @@ bool DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade:
 
     try {
         weaver = new SR::PredictingDX9Weaver(*srContext, dev, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
-
         weaver->setInputFrameBuffer((IDirect3DTexture9*)rtv.handle); //resourceview of the buffer
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
@@ -137,7 +101,6 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d9device->destroy_resource(effect_frame_copy);
-            d3d9device->destroy_resource_view(effect_frame_copy_srv);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
                 reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
