@@ -14,40 +14,21 @@ bool DirectX9Weaver::create_effect_copy_buffer(const reshade::api::resource_desc
     desc.usage = reshade::api::resource_usage::copy_dest;
 
     // Create buffer to store a copy of the effect frame
-    reshade::api::resource_desc copy_rsc_desc;
+    reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::render_target);
     copy_rsc_desc.type = reshade::api::resource_type::texture_2d;
-    copy_rsc_desc.heap = reshade::api::memory_heap::gpu_only;
-    copy_rsc_desc.usage = reshade::api::resource_usage::shader_resource;
-    copy_rsc_desc.texture.width = desc.texture.width;
-    copy_rsc_desc.texture.height = desc.texture.height;
-    copy_rsc_desc.texture.depth_or_layers = 1; // 2D texture has depth or layers set to 1
-    copy_rsc_desc.texture.levels = desc.texture.levels;
-    copy_rsc_desc.texture.format = desc.texture.format;
-
-    // Create buffer to store a copy of the effect frame
-//    reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::shader_resource);
     if (!d3d9device->create_resource(copy_rsc_desc,nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
         d3d9device->destroy_resource(effect_frame_copy);
 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
+        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
         return false;
     }
 
     // Make shader resource view for the effect frame copy
-    reshade::api::resource_view_desc srv_desc;
-    srv_desc.type = reshade::api::resource_view_type::texture_2d;
-    srv_desc.format = copy_rsc_desc.texture.format;
-    srv_desc.texture.first_level = 0;
-    srv_desc.texture.level_count = copy_rsc_desc.texture.levels;
-    srv_desc.texture.first_layer = 0;
-    srv_desc.texture.layer_count = 1; // 2D texture has layers set to 1
-
-    // Make shader resource view for the effect frame copy
-//    reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, copy_rsc_desc.texture.format, 0, copy_rsc_desc.texture.levels, 0, copy_rsc_desc.texture.depth_or_layers);
-    if (!d3d9device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::shader_resource, srv_desc, &effect_frame_copy_srv)) {
+    reshade::api::resource_view_desc srv_desc(reshade::api::resource_view_type::texture_2d, copy_rsc_desc.texture.format, 0, copy_rsc_desc.texture.levels, 0, copy_rsc_desc.texture.depth_or_layers);
+    if (!d3d9device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::render_target, srv_desc, &effect_frame_copy_srv)) {
         d3d9device->destroy_resource(effect_frame_copy);
         d3d9device->destroy_resource_view(effect_frame_copy_srv);
 
@@ -72,7 +53,29 @@ bool DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade:
     delete weaver;
     weaver = nullptr;
     reshade::api::resource_desc desc = d3d9device->get_resource_desc(rtv);
+    // Todo: Line below should be removed I think.
+    // desc.type = reshade::api::resource_type::texture_2d;
+
     IDirect3DDevice9* dev = (IDirect3DDevice9*)d3d9device->get_native();
+
+    // Create texture
+    reshade::api::resource texture;
+    d3d9device->create_resource(desc, nullptr, reshade::api::resource_usage::shader_resource, &texture);
+
+    // Create shader resource view for the texture
+    reshade::api::resource_view_desc srv_desc;
+    srv_desc.type = reshade::api::resource_view_type::texture_2d;
+    srv_desc.format = desc.texture.format;
+    srv_desc.texture.first_level = 0;
+    srv_desc.texture.level_count = desc.texture.levels;
+    srv_desc.texture.first_layer = 0;
+    srv_desc.texture.layer_count = 1;
+
+    reshade::api::resource_view texture_srv;
+    d3d9device->create_resource_view(rtv, reshade::api::resource_usage::shader_resource, srv_desc, &texture_srv);
+
+    IDirect3DTexture9* D3DTexture = nullptr;
+    dev->CreateTexture(desc.texture.width, desc.texture.height, desc.texture.levels, D3DUSAGE_QUERY_SRGBREAD, D3DFMT_UNKNOWN, D3DPOOL_DEFAULT, &D3DTexture, nullptr);
 
     if (!dev) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device");
@@ -81,6 +84,7 @@ bool DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade:
 
     try {
         weaver = new SR::PredictingDX9Weaver(*srContext, dev, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
+
         weaver->setInputFrameBuffer((IDirect3DTexture9*)rtv.handle); //resourceview of the buffer
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
@@ -162,7 +166,7 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
         create_effect_copy_buffer(desc);
         if (init_weaver(runtime, effect_frame_copy, cmd_list)) {
             // Set context and input frame buffer again to make sure they are correct
-            weaver->setInputFrameBuffer((IDirect3DTexture9*)effect_frame_copy_srv.handle);
+            weaver->setInputFrameBuffer((IDirect3DTexture9*)effect_frame_copy.handle);
         }
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
