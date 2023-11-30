@@ -149,13 +149,6 @@ void DirectX9Weaver::do_weave(bool doWeave)
     weaving_enabled = doWeave;
 }
 
-// Called after IDirect3DDevice9::Reset
-void DirectX9Weaver::on_init_swapchain(reshade::api::swapchain *swapchain) {
-    if (weaver) {
-        weaver->restoreDeviceObjects();
-    }
-}
-
 // Called before IDirect3DDevice9::Reset
 void DirectX9Weaver::on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     if (weaver) {

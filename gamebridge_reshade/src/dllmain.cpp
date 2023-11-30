@@ -176,12 +176,6 @@ static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     }
 }
 
-static void on_init_swapchain(reshade::api::swapchain *swapchain) {
-    if(weaverImplementation) {
-        weaverImplementation->on_init_swapchain(swapchain);
-    }
-}
-
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
@@ -196,7 +190,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
-        reshade::register_event<reshade::addon_event::init_swapchain>(&on_init_swapchain);
         reshade::register_event<reshade::addon_event::destroy_swapchain >(&on_destroy_swapchain);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);

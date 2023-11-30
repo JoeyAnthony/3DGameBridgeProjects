@@ -63,7 +63,6 @@ public:
     void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
 
-    void on_init_swapchain(reshade::api::swapchain *swapchain) override;
     void on_destroy_swapchain(reshade::api::swapchain *swapchain) override;
 
     void do_weave(bool doWeave) override;
