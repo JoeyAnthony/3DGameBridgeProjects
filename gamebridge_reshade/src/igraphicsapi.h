@@ -11,7 +11,5 @@ public:
     virtual void do_weave(bool doWeave) = 0;
     virtual ~IGraphicsApi() = default;
 
-    // Only needed for DX9
-    virtual void on_init_swapchain(reshade::api::swapchain *swapchain) {};
     virtual void on_destroy_swapchain(reshade::api::swapchain *swapchain) {};
 };
