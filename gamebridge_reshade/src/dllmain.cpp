@@ -3,6 +3,8 @@
 #include "directx11weaver.h"
 #include "directx12weaver.h"
 #include "hotkeymanager.h"
+#include "directx10weaver.h"
+#include "directx9weaver.h"
 
 #include <chrono>
 #include <functional>
@@ -144,22 +146,34 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     //Then, check the active graphics API and pass it a new context.
     if (weaverImplementation == nullptr) {
         switch (runtime->get_device()->get_api()) {
-        case reshade::api::device_api::d3d11:
-            weaverImplementation = new DirectX11Weaver(srContext);
-            break;
-        case reshade::api::device_api::d3d12:
-            weaverImplementation = new DirectX12Weaver(srContext);
-            break;
-        default:
-            //Games will be DX11 in the majority of cases.
-            //Todo: This may still crash our code so we should leave the API switching to user input if we cannot detect it ourselves.
-            reshade::log_message(reshade::log_level::info, "Unable to determine graphics API, attempting to switch to DX11...");
-            weaverImplementation = new DirectX11Weaver(srContext);
-            break;
+            case reshade::api::device_api::d3d9:
+                weaverImplementation = new DirectX9Weaver(srContext);
+                break;
+            case reshade::api::device_api::d3d10:
+                weaverImplementation = new DirectX10Weaver(srContext);
+                break;
+            case reshade::api::device_api::d3d11:
+                weaverImplementation = new DirectX11Weaver(srContext);
+                break;
+            case reshade::api::device_api::d3d12:
+                weaverImplementation = new DirectX12Weaver(srContext);
+                break;
+            default:
+                //Games will be DX11 in the majority of cases.
+                //Todo: This may still crash our code so we should leave the API switching to user input if we cannot detect it ourselves.
+                reshade::log_message(reshade::log_level::info, "Unable to determine graphics API, attempting to switch to DX11...");
+                weaverImplementation = new DirectX11Weaver(srContext);
+                break;
         }
     }
 
     weaverImplementation->on_init_effect_runtime(runtime);
+}
+
+static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
+    if(weaverImplementation) {
+        weaverImplementation->on_destroy_swapchain(swapchain);
+    }
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -176,6 +190,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+        reshade::register_event<reshade::addon_event::destroy_swapchain >(&on_destroy_swapchain);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
         //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);

@@ -10,4 +10,6 @@ public:
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) = 0;
     virtual void do_weave(bool doWeave) = 0;
     virtual ~IGraphicsApi() = default;
+
+    virtual void on_destroy_swapchain(reshade::api::swapchain *swapchain) {};
 };
