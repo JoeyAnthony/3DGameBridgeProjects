@@ -14,7 +14,7 @@
 #include "framework.h"
 
 // Reshade
-#include <imgui/imgui.h>
+#include <reshade/deps/imgui/imgui.h>
 #include <reshade/include/reshade.hpp>
 
 // SR
