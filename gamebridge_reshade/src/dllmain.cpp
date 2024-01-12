@@ -17,6 +17,9 @@
 
 using namespace std;
 
+// Todo: Remove
+reshade::api::resource_view m_rtv;
+
 IGraphicsApi* weaverImplementation = nullptr;
 SR::SRContext* srContext = nullptr;
 SR::SwitchableLensHint* lensHint = nullptr;
@@ -113,16 +116,18 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    std::map<shortcutType, bool> hotKeyList;
+    m_rtv = rtv;
 
-    //Check if certain hotkeys are being pressed
-    if (hotKeyManager != nullptr) {
-        //Find out which hotkeys have changed their toggled state, then execute their respective code.
-        hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
-        executeHotKeyFunctionByType(hotKeyList, runtime);
-    }
-
-    weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+//    std::map<shortcutType, bool> hotKeyList;
+//
+//    //Check if certain hotkeys are being pressed
+//    if (hotKeyManager != nullptr) {
+//        //Find out which hotkeys have changed their toggled state, then execute their respective code.
+//        hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
+//        executeHotKeyFunctionByType(hotKeyList, runtime);
+//    }
+//
+//    weaverImplementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
 }
 
 static void init_sr() {
@@ -170,6 +175,33 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     weaverImplementation->on_init_effect_runtime(runtime);
 }
 
+static void on_reshade_overlay(reshade::api::effect_runtime* runtime) {
+    std::map<shortcutType, bool> hotKeyList;
+
+    //Check if certain hotkeys are being pressed
+    if (hotKeyManager != nullptr) {
+        //Find out which hotkeys have changed their toggled state, then execute their respective code.
+        hotKeyList = hotKeyManager->checkHotKeys(runtime, srContext);
+        executeHotKeyFunctionByType(hotKeyList, runtime);
+    }
+
+    if(weaverImplementation != nullptr && runtime->get_device() != nullptr && runtime->get_command_queue() != nullptr && runtime != nullptr && m_rtv.handle != 0) {
+//        reshade::api::resource_desc desc = runtime->get_device()->get_resource_desc(runtime->get_current_back_buffer());
+//
+//        // Create a resource view description for a shader resource view (SRV)
+//        reshade::api::resource_view_desc srvDesc;
+//        srvDesc.type = reshade::api::resource_view_type::texture_2d;
+//        srvDesc.format = desc.texture.format; // Use the same format as the resource
+//        srvDesc.texture.first_level = 0;
+//        srvDesc.texture.layer_count = desc.texture.levels; // Set appropriate levels
+//
+//        reshade::api::resource_view temp_resource_view;
+//        runtime->get_device()->create_resource_view(runtime->get_current_back_buffer(), desc.usage, srvDesc, &temp_resource_view);
+
+        weaverImplementation->on_reshade_finish_effects(runtime, runtime->get_command_queue()->get_immediate_command_list(), m_rtv, m_rtv);
+    }
+}
+
 static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     if(weaverImplementation) {
         weaverImplementation->on_destroy_swapchain(swapchain);
@@ -190,6 +222,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+        reshade::register_event<reshade::addon_event::reshade_overlay>(&on_reshade_overlay);
         reshade::register_event<reshade::addon_event::destroy_swapchain >(&on_destroy_swapchain);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
