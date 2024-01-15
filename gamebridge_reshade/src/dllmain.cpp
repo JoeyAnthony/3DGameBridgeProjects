@@ -122,6 +122,15 @@ static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList,
     }
 }
 
+static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
+    if (weaverImplementation) {
+        weaverImplementation->draw_status_overlay(runtime);
+    } else {
+        // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
+        ImGui::TextUnformatted("Status: INACTIVE - UNSUPPORTED GRAPHICS API");
+    }
+}
+
 static void draw_debug_overlay(reshade::api::effect_runtime* runtime) {
     //weaverImplementation->draw_debug_overlay(runtime);
 }
@@ -199,10 +208,8 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                 weaverImplementation = new DirectX12Weaver(srContext);
                 break;
             default:
-                //Games will be DX11 in the majority of cases.
                 //Todo: This may still crash our code so we should leave the API switching to user input if we cannot detect it ourselves.
-                reshade::log_message(reshade::log_level::info, "Unable to determine graphics API, attempting to switch to DX11...");
-                weaverImplementation = new DirectX11Weaver(srContext);
+                reshade::log_message(reshade::log_level::warning, "Unable to determine graphics API, it may not be supported. Becoming inactive.");
                 break;
         }
     }
@@ -232,6 +239,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::destroy_swapchain >(&on_destroy_swapchain);
+
+        reshade::register_overlay(nullptr, &draw_status_overlay);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
         //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);

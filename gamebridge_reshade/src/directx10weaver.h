@@ -13,6 +13,8 @@
 #include "igraphicsapi.h"
 
 class DirectX10Weaver: public IGraphicsApi {
+    uint32_t lastLatencyFrameTimeSet = DEFAULT_WEAVER_LATENCY;
+
     bool weaver_initialized = false;
     bool weaving_enabled = false;
     SR::SRContext* srContext;
@@ -29,7 +31,6 @@ class DirectX10Weaver: public IGraphicsApi {
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
     bool resize_buffer_failed = false;
 
-    bool doSetLatencyInFrames = false;
     LatencyModes current_latency_mode = LatencyModes::framerateAdaptive;
 
 public:
@@ -45,8 +46,9 @@ public:
     void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     void do_weave(bool doWeave) override;
-    bool set_latency_in_frames(int numberOfFrames) override;
-    bool set_latency_framerate_adaptive(int frametimeInMicroseconds) override;
+    bool set_latency_in_frames(uint32_t numberOfFrames) override;
+    bool set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) override;
     void set_latency_mode(LatencyModes mode) override;
+    void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
     LatencyModes get_latency_mode() override;
 };

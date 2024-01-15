@@ -9,6 +9,7 @@ public:
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void draw_settings_overlay(reshade::api::effect_runtime* runtime) = 0;
+    virtual void draw_status_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) = 0;
     virtual void on_init_effect_runtime(reshade::api::effect_runtime* runtime) = 0;
     virtual void do_weave(bool doWeave) = 0;
@@ -26,8 +27,8 @@ public:
     // This method should only be called once, after which it will use the maximum framerate of the monitor in use to determine the latency of the eye tracker.
     // This does NOT look at the current framerate, use this when you are able to consistently reach your monitor's maximum refresh rate.
     // If numberOfFrames is set 0 or lower, the weaver will use ReShade to determine how many buffers are in the swap chain.
-    virtual bool set_latency_in_frames(int numberOfFrames) = 0;
+    virtual bool set_latency_in_frames(uint32_t numberOfFrames) = 0;
 
     // This method must be called every frame with the current frametime.
-    virtual bool set_latency_framerate_adaptive(int frametimeInMicroseconds) = 0;
+    virtual bool set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) = 0;
 };

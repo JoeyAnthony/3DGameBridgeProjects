@@ -107,6 +107,20 @@ void DirectX11Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
     }
 }
 
+void DirectX11Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
+    // Log activity status
+    ImGui::TextUnformatted("Status: ACTIVE");
+
+    // Log the latency mode
+    std::string latencyModeDisplay = "Latency mode: ";
+    if(current_latency_mode == LatencyModes::framerateAdaptive) {
+        latencyModeDisplay += "IN " + std::to_string(lastLatencyFrameTimeSet) + " MICROSECONDS";
+    } else {
+        latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
+    }
+    ImGui::TextUnformatted(latencyModeDisplay.c_str());
+}
+
 void DirectX11Weaver::draw_sr_settings_overlay(reshade::api::effect_runtime* runtime)
 {
     ImGui::Checkbox("Turn on SR", &g_popup_window_visible);
@@ -124,9 +138,8 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
-        if(doSetLatencyInFrames) {
+        if(get_latency_mode() == LatencyModes::latencyInFrames) {
             weaver->setLatencyInFrames(runtime->get_back_buffer_count() ? runtime->get_back_buffer_count() : 1); // Set the latency with which the weaver should do prediction.
-            doSetLatencyInFrames = false;
         }
 
         //Check texture size
@@ -183,10 +196,9 @@ void DirectX11Weaver::do_weave(bool doWeave)
     weaving_enabled = doWeave;
 }
 
-bool DirectX11Weaver::set_latency_in_frames(int numberOfFrames) {
+bool DirectX11Weaver::set_latency_in_frames(uint32_t numberOfFrames) {
     if (weaver_initialized && current_latency_mode == LatencyModes::latencyInFrames) {
         if (numberOfFrames <= 0) {
-            doSetLatencyInFrames = true;
             return true;
         }
         weaver->setLatencyInFrames(numberOfFrames);
@@ -195,10 +207,9 @@ bool DirectX11Weaver::set_latency_in_frames(int numberOfFrames) {
     return false;
 }
 
-bool DirectX11Weaver::set_latency_framerate_adaptive(int frametimeInMicroseconds) {
+bool DirectX11Weaver::set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) {
     if (weaver_initialized && current_latency_mode == LatencyModes::framerateAdaptive) {
         weaver->setLatency(frametimeInMicroseconds);
-        doSetLatencyInFrames = false;
         return true;
     }
     return false;
