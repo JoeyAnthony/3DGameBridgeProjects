@@ -49,14 +49,20 @@ class DirectX12Weaver: public IGraphicsApi {
 
     reshade::api::command_list* command_list;
     reshade::api::resource_view game_frame_buffer;
-    reshade::api::resource effect_frame_copy;
-    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
-    bool resize_buffer_failed = false;
+
+    std::vector<reshade::api::resource> effect_copy_resources;
+    std::vector<Int32XY> effect_copy_resource_res;
+    //bool resize_buffer_failed = false
+    bool effect_copy_resources_initialized = false;
+
+    std::vector<Destroy_Resource_Data> to_destroy;
 
 public:
     DirectX12Weaver(SR::SRContext* context);
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
-    bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
+    bool init_effect_copy_resources(const reshade::api::effect_runtime* runtime, const reshade::api::resource_desc& effect_resource_desc);
+    bool destroy_effect_copy_resources();
+    bool create_effect_copy_resource(const reshade::api::resource_desc& effect_resource_desc, uint32_t buffer_index);
 
     // Inherited via IGraphicsApi
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
