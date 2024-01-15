@@ -133,14 +133,15 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
             if (weaving_enabled) {
                 // Create copy of the effect buffer
-                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
+                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_source);
                 cmd_list->copy_resource(rtv_resource, effect_frame_copy);
-                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
 
                 // Bind back buffer as render target
                 cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
 
                 // Weave to back buffer
+                weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
+                cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
                 weaver->weave(desc.texture.width, desc.texture.height);
             }
         }
