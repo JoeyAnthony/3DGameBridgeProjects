@@ -94,7 +94,7 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     desc.heap = reshade::api::memory_heap::gpu_only;
     desc.usage = reshade::api::resource_usage::copy_dest;
 
-    if (!d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest),
+    if (!d3d12device->create_resource(reshade::api::resource_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access),
         nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
 
         effect_frame_copy_x = 0;
