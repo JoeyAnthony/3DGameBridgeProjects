@@ -89,7 +89,7 @@ void DirectX12Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 }
 
 bool DirectX12Weaver::init_effect_copy_resources(const reshade::api::effect_runtime* runtime, const reshade::api::resource_desc& effect_resource_desc) {
-    if (!effect_copy_resources_initialized) {
+    if (effect_copy_resources_initialized) {
         return true;
     }
 
@@ -109,6 +109,7 @@ bool DirectX12Weaver::init_effect_copy_resources(const reshade::api::effect_runt
             reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
             return false;
         }
+
         effect_copy_resource_res[i].x = desc.texture.width;
         effect_copy_resource_res[i].y = desc.texture.height;
     }
