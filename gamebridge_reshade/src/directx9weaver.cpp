@@ -52,6 +52,12 @@ bool DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade:
         weaver->setInputFrameBuffer((IDirect3DTexture9*)rtv.handle); //resourceview of the buffer
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
+
+        // Set mode to latency in frames by default.
+        set_latency_mode(LatencyModes::framerateAdaptive);
+        set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
+        std::string latencyLog = "Current latency mode set to: STATIC " + std::to_string(DEFAULT_WEAVER_LATENCY) + " Microseconds";
+        reshade::log_message(reshade::log_level::info, latencyLog.c_str());
     }
     catch (std::exception e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -97,6 +103,12 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
     reshade::api::resource_desc desc = d3d9device->get_resource_desc(rtv_resource);
 
     if (weaver_initialized) {
+        // Check if we need to set the latency in frames.
+        if(doSetLatencyInFrames) {
+            weaver->setLatencyInFrames(runtime->get_back_buffer_count() ? runtime->get_back_buffer_count() : 1); // Set the latency with which the weaver should do prediction.
+            doSetLatencyInFrames = false;
+        }
+
         //Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
@@ -154,4 +166,33 @@ void DirectX9Weaver::on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     if (weaver) {
         weaver->invalidateDeviceObjects();
     }
+}
+
+bool DirectX9Weaver::set_latency_in_frames(int numberOfFrames) {
+    if (weaver_initialized && current_latency_mode == LatencyModes::latencyInFrames) {
+        if (numberOfFrames <= 0) {
+            doSetLatencyInFrames = true;
+            return true;
+        }
+        weaver->setLatencyInFrames(numberOfFrames);
+        return true;
+    }
+    return false;
+}
+
+bool DirectX9Weaver::set_latency_framerate_adaptive(int frametimeInMicroseconds) {
+    if (weaver_initialized && current_latency_mode == LatencyModes::framerateAdaptive) {
+        weaver->setLatency(frametimeInMicroseconds);
+        doSetLatencyInFrames = false;
+        return true;
+    }
+    return false;
+}
+
+void DirectX9Weaver::set_latency_mode(LatencyModes mode) {
+    current_latency_mode = mode;
+}
+
+LatencyModes DirectX9Weaver::get_latency_mode() {
+    return current_latency_mode;
 }

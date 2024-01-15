@@ -14,7 +14,7 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
 
     // See if we can get a command allocator from reshade
     ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
-    if (!d3d12device) {
+    if (!dev) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device");
         return false;
     }
@@ -41,20 +41,16 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
 
     ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
     ID3D12Resource* native_back_buffer = (ID3D12Resource*)back_buffer.handle;
-
-    // Reshade command queue for use later maybe
-    //(ID3D12CommandQueue*)runtime->get_command_queue()->get_native()
     try {
         weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
-        // Todo: Make this setting of latency/mode a helper function.
         // Set mode to latency in frames by default.
         set_latency_mode(LatencyModes::framerateAdaptive);
-        // Todo: The amount of buffers set here should be configurable!
-        set_latency_framerate_adaptive(40000);
-        reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
+        set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
+        std::string latencyLog = "Current latency mode set to: STATIC " + std::to_string(DEFAULT_WEAVER_LATENCY) + " Microseconds";
+        reshade::log_message(reshade::log_level::info, latencyLog.c_str());
     }
     catch (std::exception e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -122,6 +118,12 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
     if (weaver_initialized) {
+        // Check if we need to set the latency in frames.
+        if(doSetLatencyInFrames) {
+            weaver->setLatencyInFrames(runtime->get_back_buffer_count() ? runtime->get_back_buffer_count() : 1); // Set the latency with which the weaver should do prediction.
+            doSetLatencyInFrames = false;
+        }
+
         // Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
@@ -178,7 +180,11 @@ void DirectX12Weaver::do_weave(bool doWeave)
 }
 
 bool DirectX12Weaver::set_latency_in_frames(int numberOfFrames) {
-    if (current_latency_mode == LatencyModes::latencyInFrames) {
+    if (weaver_initialized && current_latency_mode == LatencyModes::latencyInFrames) {
+        if (numberOfFrames <= 0) {
+            doSetLatencyInFrames = true;
+            return true;
+        }
         weaver->setLatencyInFrames(numberOfFrames);
         return true;
     }
@@ -186,8 +192,9 @@ bool DirectX12Weaver::set_latency_in_frames(int numberOfFrames) {
 }
 
 bool DirectX12Weaver::set_latency_framerate_adaptive(int frametimeInMicroseconds) {
-    if (current_latency_mode == LatencyModes::framerateAdaptive) {
+    if (weaver_initialized && current_latency_mode == LatencyModes::framerateAdaptive) {
         weaver->setLatency(frametimeInMicroseconds);
+        doSetLatencyInFrames = false;
         return true;
     }
     return false;

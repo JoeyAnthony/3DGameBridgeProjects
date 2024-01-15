@@ -1,7 +1,7 @@
 #pragma once
 #include "pch.h"
 
-
+const uint32_t DEFAULT_WEAVER_LATENCY = 40000;
 enum LatencyModes { framerateAdaptive, latencyInFrames };
 
 class IGraphicsApi {
@@ -25,6 +25,7 @@ public:
 
     // This method should only be called once, after which it will use the maximum framerate of the monitor in use to determine the latency of the eye tracker.
     // This does NOT look at the current framerate, use this when you are able to consistently reach your monitor's maximum refresh rate.
+    // If numberOfFrames is set 0 or lower, the weaver will use ReShade to determine how many buffers are in the swap chain.
     virtual bool set_latency_in_frames(int numberOfFrames) = 0;
 
     // This method must be called every frame with the current frametime.

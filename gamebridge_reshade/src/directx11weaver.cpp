@@ -73,12 +73,11 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
-        // Todo: Make this setting of latency/mode a helper function.
         // Set mode to latency in frames by default.
         set_latency_mode(LatencyModes::framerateAdaptive);
-        // Todo: The amount of buffers set here should be configurable!
-        set_latency_framerate_adaptive(40000);
-        reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
+        set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
+        std::string latencyLog = "Current latency mode set to: STATIC " + std::to_string(DEFAULT_WEAVER_LATENCY) + " Microseconds";
+        reshade::log_message(reshade::log_level::info, latencyLog.c_str());
     }
     catch (std::exception e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -124,6 +123,12 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource_desc desc = d3d11device->get_resource_desc(rtv_resource);
 
     if (weaver_initialized) {
+        // Check if we need to set the latency in frames.
+        if(doSetLatencyInFrames) {
+            weaver->setLatencyInFrames(runtime->get_back_buffer_count() ? runtime->get_back_buffer_count() : 1); // Set the latency with which the weaver should do prediction.
+            doSetLatencyInFrames = false;
+        }
+
         //Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
@@ -150,29 +155,10 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
                 // Weave to back buffer
                 weaver->weave(desc.texture.width, desc.texture.height);
-                
-                // Todo: Make sure to limit the latency to the monitor's max refresh rate!!!
-                // Todo: Make this a helper function of iGraphicsAPI
-                // Calculate the current frametime and set the latency of the eye tracker accordingly. Only do this in framerate adaptive latency mode.
-                //if (get_latency_mode() == LatencyModes::framerateAdaptive) {
-                //    auto current_time = std::chrono::high_resolution_clock::now();
-                //    long long frame_time_in_microseconds = std::chrono::duration_cast<std::chrono::microseconds>(current_time - clock_last_frame).count();
-
-                //    // Take average of vector containing past frame times, then set the eye tracker latency to the average.
-                //    weaver->setLatency(std::reduce(&frame_time_list[0], &frame_time_list[frame_time_list_size - 1]) / frame_time_list_size);
-
-                //    // Update list of past frames and set list index back to 0 once we reach the 100th item in the list at which point we reset the index to 0.
-                //    frame_time_list[frame_time_index] = frame_time_in_microseconds;
-                //    frame_time_index = frame_time_index++ % 100;
-
-                //    // Update the last frame timestamp
-                //    clock_last_frame = current_time;
-                //}
             }
         }
     }
     else {
-        clock_last_frame = std::chrono::high_resolution_clock::now();
         create_effect_copy_buffer(desc);
         if (init_weaver(runtime, effect_frame_copy, cmd_list)) {
             // Set context and input frame buffer again to make sure they are correct
@@ -198,7 +184,11 @@ void DirectX11Weaver::do_weave(bool doWeave)
 }
 
 bool DirectX11Weaver::set_latency_in_frames(int numberOfFrames) {
-    if (current_latency_mode == LatencyModes::latencyInFrames) {
+    if (weaver_initialized && current_latency_mode == LatencyModes::latencyInFrames) {
+        if (numberOfFrames <= 0) {
+            doSetLatencyInFrames = true;
+            return true;
+        }
         weaver->setLatencyInFrames(numberOfFrames);
         return true;
     }
@@ -206,8 +196,9 @@ bool DirectX11Weaver::set_latency_in_frames(int numberOfFrames) {
 }
 
 bool DirectX11Weaver::set_latency_framerate_adaptive(int frametimeInMicroseconds) {
-    if (current_latency_mode == LatencyModes::framerateAdaptive) {
+    if (weaver_initialized && current_latency_mode == LatencyModes::framerateAdaptive) {
         weaver->setLatency(frametimeInMicroseconds);
+        doSetLatencyInFrames = false;
         return true;
     }
     return false;
