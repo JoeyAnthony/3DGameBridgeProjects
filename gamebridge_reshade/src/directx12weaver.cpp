@@ -167,8 +167,6 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
     uint32_t back_buffer_index = runtime->get_current_back_buffer_index();
-    std::stringstream msg; msg << "Current back buffer: " << back_buffer_index;
-    reshade::log_message(reshade::log_level::info, msg.str().c_str());
 
     if (weaver_initialized) {
         // Check texture size
@@ -195,9 +193,9 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
             if (weaving_enabled) {
                 // Create copy of the effect buffer
-                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_source);
+                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
                 cmd_list->copy_resource(rtv_resource, effect_copy_resources[back_buffer_index]);
-
+                cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
 
                 // Bind back buffer as render target
                 cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
@@ -207,6 +205,8 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 cmd_list->barrier(effect_copy_resources[back_buffer_index], reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
                 weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
                 weaver->weave(desc.texture.width, desc.texture.height);
+
+                cmd_list->barrier(effect_copy_resources[back_buffer_index], reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_dest);
             }
         }
     }
