@@ -1,4 +1,5 @@
 #include "directx12weaver.h"
+#include <sstream>
 
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
 {
@@ -88,23 +89,28 @@ void DirectX12Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 {
 }
 
-bool DirectX12Weaver::init_effect_copy_resources(const reshade::api::effect_runtime* runtime, const reshade::api::resource_desc& effect_resource_desc) {
+bool DirectX12Weaver::init_effect_copy_resources(reshade::api::effect_runtime* runtime, const reshade::api::resource_desc& effect_resource_desc) {
     if (effect_copy_resources_initialized) {
         return true;
     }
 
-    reshade::api::resource_desc desc(effect_resource_desc);
-    desc.type = reshade::api::resource_type::texture_2d;
-    desc.heap = reshade::api::memory_heap::gpu_only;
-    desc.usage = reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access;
-    //desc.texture.samples = 1;
-
     uint32_t num_buffers = runtime->get_back_buffer_count();
+
     effect_copy_resources = std::vector<reshade::api::resource>(num_buffers);
+    effect_copy_resource_res = std::vector<Int32XY>(num_buffers);
 
     for (uint32_t i = 0; i < num_buffers; i++) {
-        if (!d3d12device->create_resource(desc, nullptr, reshade::api::resource_usage::copy_dest, &effect_copy_resources[i])) {
+        reshade::api::resource_desc desc(d3d12device->get_resource_desc(runtime->get_back_buffer(i)));
+        //desc.type = reshade::api::resource_type::texture_2d;
+        desc.heap = reshade::api::memory_heap::gpu_only;
+        desc.usage = reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access;
+        //desc.texture.samples = 1;
+
+        reshade::api::resource_desc desc2(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access);
+
+        if (!d3d12device->create_resource(desc2, nullptr, reshade::api::resource_usage::copy_dest, &effect_copy_resources[i])) {
             destroy_effect_copy_resources();
+
 
             reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
             return false;
@@ -114,19 +120,20 @@ bool DirectX12Weaver::init_effect_copy_resources(const reshade::api::effect_runt
         effect_copy_resource_res[i].y = desc.texture.height;
     }
 
-
     effect_copy_resources_initialized = true;
     return true;
 }
 
-bool DirectX12Weaver::create_effect_copy_resource(const reshade::api::resource_desc& effect_resource_desc, uint32_t buffer_index) {
-    reshade::api::resource_desc desc(effect_resource_desc);
+bool DirectX12Weaver::create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t buffer_index) {
+    reshade::api::resource_desc desc(d3d12device->get_resource_desc(runtime->get_back_buffer(runtime->get_current_back_buffer_index())));
     desc.type = reshade::api::resource_type::texture_2d;
     desc.heap = reshade::api::memory_heap::gpu_only;
     desc.usage = reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access;
     //desc.texture.samples = 1;
 
-    if (!d3d12device->create_resource(desc, nullptr, reshade::api::resource_usage::copy_dest, &effect_copy_resources[buffer_index])) {
+    reshade::api::resource_desc desc2(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access);
+
+    if (!d3d12device->create_resource(desc2, nullptr, reshade::api::resource_usage::copy_dest, &effect_copy_resources[buffer_index])) {
 
         reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
 
@@ -160,8 +167,8 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
 
     uint32_t back_buffer_index = runtime->get_current_back_buffer_index();
-    //std::string msg = "Current back buffer: " + back_buffer_index;
-    //reshade::log_message(reshade::log_level::info, msg.c_str());
+    std::stringstream msg; msg << "Current back buffer: " << back_buffer_index;
+    reshade::log_message(reshade::log_level::info, msg.str().c_str());
 
     if (weaver_initialized) {
         // Check texture size
@@ -176,7 +183,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
             reshade::log_message(reshade::log_level::info, "Resource marked for destroy");
 
-            if (!create_effect_copy_resource(desc, back_buffer_index) /** && !resize_buffer_failed **/) {
+            if (!create_effect_copy_resource(runtime, back_buffer_index) /** && !resize_buffer_failed **/) {
                 reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 //resize_buffer_failed = true;
             }
