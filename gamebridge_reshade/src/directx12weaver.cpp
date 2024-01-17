@@ -208,7 +208,12 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         }
     }
     else {
-        init_effect_copy_resources(runtime, desc);
+        if(!init_effect_copy_resources(runtime))
+        {
+            // Initialization of resources failed.
+            return;
+        }
+
         if (init_weaver(runtime, effect_copy_resources[0], d3d12device->get_resource_from_view(rtv))) {
             //Set command list and input frame buffer again to make sure they are correct
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
