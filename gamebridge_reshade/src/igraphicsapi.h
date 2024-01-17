@@ -1,6 +1,18 @@
 #pragma once
 #include "pch.h"
 
+struct Int32XY
+{
+    uint32_t x = 0;
+    uint32_t y = 0;
+};
+
+struct Destroy_Resource_Data
+{
+    reshade::api::resource resource;
+    uint32_t frames_alive = 0;
+};
+
 class IGraphicsApi {
 public:
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) = 0;
@@ -11,5 +23,6 @@ public:
     virtual void do_weave(bool doWeave) = 0;
     virtual ~IGraphicsApi() = default;
 
+    // Only used for dx9
     virtual void on_destroy_swapchain(reshade::api::swapchain *swapchain) {};
 };

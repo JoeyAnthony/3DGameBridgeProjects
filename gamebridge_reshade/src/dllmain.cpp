@@ -171,7 +171,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
 }
 
 static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
-    if(weaverImplementation) {
+    if(weaverImplementation != nullptr) {
         weaverImplementation->on_destroy_swapchain(swapchain);
     }
 }
@@ -190,7 +190,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
-        reshade::register_event<reshade::addon_event::destroy_swapchain >(&on_destroy_swapchain);
+        reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
         //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
