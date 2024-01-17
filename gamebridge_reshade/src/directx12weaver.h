@@ -47,6 +47,10 @@ class DirectX12Weaver: public IGraphicsApi {
     float view_separation = 0.f;
     float vertical_shift = 0.f;
 
+    // This must be updated for every new version of ReShade as it can change when the class layout changes.
+    int descriptor_heap_impl_offset_in_bytes = 0;
+    std::string descriptor_heap_impl_offset_target_reshade_version = "6.0.0";
+
     reshade::api::command_list* command_list;
     reshade::api::resource_view game_frame_buffer;
 
