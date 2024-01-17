@@ -60,9 +60,9 @@ class DirectX12Weaver: public IGraphicsApi {
 public:
     DirectX12Weaver(SR::SRContext* context);
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
-    bool init_effect_copy_resources(reshade::api::effect_runtime* runtime, const reshade::api::resource_desc& effect_resource_desc);
+    bool init_effect_copy_resources(reshade::api::effect_runtime* runtime);
     bool destroy_effect_copy_resources();
-    bool create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t buffer_index);
+    bool create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t back_buffer_index);
 
     // Inherited via IGraphicsApi
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;

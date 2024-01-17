@@ -89,62 +89,59 @@ void DirectX12Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 {
 }
 
-bool DirectX12Weaver::init_effect_copy_resources(reshade::api::effect_runtime* runtime, const reshade::api::resource_desc& effect_resource_desc) {
+bool DirectX12Weaver::init_effect_copy_resources(reshade::api::effect_runtime* runtime) {
+    // Only initialize resources once
     if (effect_copy_resources_initialized) {
         return true;
     }
 
     uint32_t num_buffers = runtime->get_back_buffer_count();
 
+    // Init copy resource vectors
     effect_copy_resources = std::vector<reshade::api::resource>(num_buffers);
     effect_copy_resource_res = std::vector<Int32XY>(num_buffers);
 
+    // Create copy resource for every back buffer
     for (uint32_t i = 0; i < num_buffers; i++) {
-        reshade::api::resource_desc desc(d3d12device->get_resource_desc(runtime->get_back_buffer(i)));
-        //desc.type = reshade::api::resource_type::texture_2d;
-        desc.heap = reshade::api::memory_heap::gpu_only;
-        desc.usage = reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access;
-        //desc.texture.samples = 1;
-
-        reshade::api::resource_desc desc2(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access);
-
-        if (!d3d12device->create_resource(desc2, nullptr, reshade::api::resource_usage::copy_dest, &effect_copy_resources[i])) {
+        if (!create_effect_copy_resource(runtime, i)) {
+            // Destroy on failure
             destroy_effect_copy_resources();
 
-
-            reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
+            log_message(reshade::log_level::info, "Failed initialing frame copy resources");
             return false;
         }
-
-        effect_copy_resource_res[i].x = desc.texture.width;
-        effect_copy_resource_res[i].y = desc.texture.height;
     }
 
     effect_copy_resources_initialized = true;
     return true;
 }
 
-bool DirectX12Weaver::create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t buffer_index) {
-    reshade::api::resource_desc desc(d3d12device->get_resource_desc(runtime->get_back_buffer(runtime->get_current_back_buffer_index())));
-    desc.type = reshade::api::resource_type::texture_2d;
-    desc.heap = reshade::api::memory_heap::gpu_only;
-    desc.usage = reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access;
-    //desc.texture.samples = 1;
+bool DirectX12Weaver::create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t back_buffer_index) {
+    reshade::api::resource_desc back_buffer_desc(d3d12device->get_resource_desc(runtime->get_back_buffer(back_buffer_index)));
+    reshade::api::resource_desc copy_resource_description(
+        reshade::api::resource_type::texture_2d,
+        back_buffer_desc.texture.width,
+        back_buffer_desc.texture.height,
+        back_buffer_desc.texture.depth_or_layers,
+        back_buffer_desc.texture.levels,
+        back_buffer_desc.texture.format,
+        1,
+        reshade::api::memory_heap::gpu_only,
+        reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access
+    );
 
-    reshade::api::resource_desc desc2(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access);
+    if (!d3d12device->create_resource(copy_resource_description, nullptr, reshade::api::resource_usage::unordered_access, &effect_copy_resources[back_buffer_index])) {
 
-    if (!d3d12device->create_resource(desc2, nullptr, reshade::api::resource_usage::copy_dest, &effect_copy_resources[buffer_index])) {
+        log_message(reshade::log_level::info, "Failed to initialize copy resource");
 
-        reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
-
-        effect_copy_resource_res[buffer_index].x = 0;
-        effect_copy_resource_res[buffer_index].y = 0;
+        effect_copy_resource_res[back_buffer_index].x = 0;
+        effect_copy_resource_res[back_buffer_index].y = 0;
 
         return false;
     }
 
-    effect_copy_resource_res[buffer_index].x = desc.texture.width;
-    effect_copy_resource_res[buffer_index].y = desc.texture.height;
+    effect_copy_resource_res[back_buffer_index].x = back_buffer_desc.texture.width;
+    effect_copy_resource_res[back_buffer_index].y = back_buffer_desc.texture.height;
 
     return true;
 }
