@@ -6,6 +6,7 @@
  */
 
 #include "directx12weaver.h"
+#include "reshade/source/d3d12/d3d12_impl_command_list.hpp"
 #include <sstream>
 
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
@@ -231,6 +232,14 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
                 weaver->weave(desc.texture.width, desc.texture.height);
 
+                // Force reset of descriptor heap state that ReShade keeps (DANGER! THIS WILL BREAK IF THE CLASS LAYOUT IN RESHADE CHANGES!)
+                auto current_descriptor_heaps = reinterpret_cast<ID3D12DescriptorHeap **>(reinterpret_cast<uint8_t *>(cmd_list) + descriptor_heap_impl_offset_in_bytes /* offsetof(reshade::d3d12::command_list_impl, _current_descriptor_heaps) */);
+                auto testHeap = dynamic_cast<ID3D12DescriptorHeap*>(*current_descriptor_heaps);
+                if(testHeap != nullptr) {
+                    current_descriptor_heaps[0] = nullptr;
+                    current_descriptor_heaps[1] = nullptr;
+                }
+
             }
         }
     }
@@ -244,6 +253,16 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         if (init_weaver(runtime, effect_copy_resources[0], d3d12device->get_resource_from_view(rtv))) {
             //Set command list and input frame buffer again to make sure they are correct
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
+            weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
+
+            class FML : public reshade::d3d12::command_list_impl {
+            public:
+                static size_t getCurrentHeapDescriptorOffset() {
+                    return offsetof(FML, _current_descriptor_heaps);
+                }
+            };
+
+            descriptor_heap_impl_offset_in_bytes = FML::getCurrentHeapDescriptorOffset();
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
         }
         else {
