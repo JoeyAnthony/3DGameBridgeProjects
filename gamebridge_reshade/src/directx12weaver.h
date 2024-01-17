@@ -52,7 +52,6 @@ class DirectX12Weaver: public IGraphicsApi {
 
     std::vector<reshade::api::resource> effect_copy_resources;
     std::vector<Int32XY> effect_copy_resource_res;
-    //bool resize_buffer_failed = false
     bool effect_copy_resources_initialized = false;
 
     std::vector<Destroy_Resource_Data> to_destroy;

@@ -180,16 +180,15 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
             if (!create_effect_copy_resource(runtime, back_buffer_index) /** && !resize_buffer_failed **/) {
                 reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
-                //resize_buffer_failed = true;
             }
 
             reshade::log_message(reshade::log_level::info, "Buffer size changed");
         }
         else {
-            //resize_buffer_failed = false;
-
             if (weaving_enabled) {
                 // Create copy of the effect buffer
+                cmd_list->barrier(effect_copy_resources[back_buffer_index], reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_dest);
+
                 cmd_list->barrier(rtv_resource, reshade::api::resource_usage::render_target, reshade::api::resource_usage::copy_source);
                 cmd_list->copy_resource(rtv_resource, effect_copy_resources[back_buffer_index]);
                 cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
@@ -203,7 +202,6 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
                 weaver->weave(desc.texture.width, desc.texture.height);
 
-                cmd_list->barrier(effect_copy_resources[back_buffer_index], reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_dest);
             }
         }
     }
