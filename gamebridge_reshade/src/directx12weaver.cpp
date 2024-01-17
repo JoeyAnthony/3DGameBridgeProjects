@@ -232,12 +232,14 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
                 weaver->weave(desc.texture.width, desc.texture.height);
 
-                // Force reset of descriptor heap state that ReShade keeps (DANGER! THIS WILL BREAK IF THE CLASS LAYOUT IN RESHADE CHANGES!)
-                auto current_descriptor_heaps = reinterpret_cast<ID3D12DescriptorHeap **>(reinterpret_cast<uint8_t *>(cmd_list) + descriptor_heap_impl_offset_in_bytes /* offsetof(reshade::d3d12::command_list_impl, _current_descriptor_heaps) */);
-                auto testHeap = dynamic_cast<ID3D12DescriptorHeap*>(*current_descriptor_heaps);
-                if(testHeap != nullptr) {
-                    current_descriptor_heaps[0] = nullptr;
-                    current_descriptor_heaps[1] = nullptr;
+                if (descriptor_heap_impl_offset_in_bytes != -1) {
+                    // Force reset of descriptor heap state that ReShade keeps (DANGER! THIS WILL BREAK IF THE CLASS LAYOUT IN RESHADE CHANGES!)
+                    auto current_descriptor_heaps = reinterpret_cast<ID3D12DescriptorHeap **>(reinterpret_cast<uint8_t *>(cmd_list) + descriptor_heap_impl_offset_in_bytes /* offsetof(reshade::d3d12::command_list_impl, _current_descriptor_heaps) */);
+                    auto testHeap = dynamic_cast<ID3D12DescriptorHeap*>(*current_descriptor_heaps);
+                    if(testHeap != nullptr) {
+                        current_descriptor_heaps[0] = nullptr;
+                        current_descriptor_heaps[1] = nullptr;
+                    }
                 }
 
             }
@@ -255,14 +257,17 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
 
-            class FML : public reshade::d3d12::command_list_impl {
-            public:
-                static size_t getCurrentHeapDescriptorOffset() {
-                    return offsetof(FML, _current_descriptor_heaps);
-                }
-            };
+            // Determine if we are on the correct version
+            if(descriptor_heap_impl_offset_target_reshade_version_nr_major == reshade_version_nr_major && descriptor_heap_impl_offset_target_reshade_version_nr_minor == reshade_version_nr_minor && descriptor_heap_impl_offset_target_reshade_version_nr_patch == reshade_version_nr_patch) {
+                class ReShadeCommandListInheritor : public reshade::d3d12::command_list_impl {
+                public:
+                    static size_t getCurrentHeapDescriptorOffset() {
+                        return offsetof(ReShadeCommandListInheritor, _current_descriptor_heaps);
+                    }
+                };
 
-            descriptor_heap_impl_offset_in_bytes = FML::getCurrentHeapDescriptorOffset();
+                descriptor_heap_impl_offset_in_bytes = ReShadeCommandListInheritor::getCurrentHeapDescriptorOffset();
+            }
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
         }
         else {
