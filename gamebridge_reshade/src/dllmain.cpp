@@ -1,3 +1,7 @@
+#include <windows.h>
+#include <winver.h>
+#pragma comment(lib, "Version.lib")
+
 #include "pch.h"
 #include "igraphicsapi.h"
 #include "directx11weaver.h"
@@ -6,12 +10,15 @@
 #include "directx10weaver.h"
 #include "directx9weaver.h"
 
+
 #include <chrono>
 #include <functional>
 #include <thread>
 #include <vector>
 #include <iostream>
 #include <unordered_map>
+
+
 
 #define CHAR_BUFFER_SIZE 256
 
@@ -27,10 +34,61 @@ static const std::string depth3DShaderName = "SuperDepth3D";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
 
+std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
+
 struct DeviceDataContainer {
     reshade::api::effect_runtime* current_runtime = nullptr;
     unordered_map<std::string, bool> allEnabledTechniques;
 };
+
+// Function to get the version information of a module
+vector<size_t> GetModuleVersionInfo(LPCWSTR moduleName) {
+    vector<size_t> reshadeVersionNumbers = {};
+
+    // Get the size of the version info buffer
+    DWORD versionInfoSizeHandle;
+    DWORD dwSize = GetFileVersionInfoSizeExW(FILE_VER_GET_NEUTRAL , moduleName, &versionInfoSizeHandle);
+    if (dwSize == 0) {
+        reshade::log_message(reshade::log_level::warning, "Failed to get version info size.");
+        return reshadeVersionNumbers;
+    }
+
+    // Allocate memory for the version info
+    std::shared_ptr<BYTE> versionInfoBuffer(new BYTE[dwSize], std::default_delete<BYTE[]>());
+
+    // Retrieve the version info
+    if (!GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL , moduleName, 0, dwSize, versionInfoBuffer.get())) {
+        reshade::log_message(reshade::log_level::warning, "Failed to get version info.");
+        return reshadeVersionNumbers;
+    }
+
+    // Query the version information
+    LPVOID fileInfo;
+    UINT fileInfoSize;
+    if (!VerQueryValueW(versionInfoBuffer.get(), L"\\", &fileInfo, &fileInfoSize)) {
+        reshade::log_message(reshade::log_level::warning, "Failed to query version info.");
+        return reshadeVersionNumbers;
+    }
+
+    // Extract version components
+    auto* pVsFixedfileinfo = reinterpret_cast<VS_FIXEDFILEINFO*>(fileInfo);
+    WORD majorVersion = HIWORD(pVsFixedfileinfo->dwFileVersionMS);
+    WORD minorVersion = LOWORD(pVsFixedfileinfo->dwFileVersionMS);
+    WORD buildNumber = HIWORD(pVsFixedfileinfo->dwFileVersionLS);
+
+    // Format the version information as a string
+    reshadeVersionNumbers.push_back(std::stoi(std::to_string(majorVersion)));
+    reshadeVersionNumbers.push_back(std::stoi(std::to_string(minorVersion)));
+    reshadeVersionNumbers.push_back(std::stoi(std::to_string(buildNumber)));
+
+    // Todo: Not sure if I need to delete more.
+    // Clean up
+    // Todo: This crashes, not sure why.
+    //    delete pVsFixedfileinfo;
+    //    delete fileInfo;
+
+    return reshadeVersionNumbers;
+}
 
 static void enumerateTechniques(reshade::api::effect_runtime* runtime, std::function<void(reshade::api::effect_runtime*, reshade::api::effect_technique, string&)> func)
 {
@@ -164,6 +222,17 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                 reshade::log_message(reshade::log_level::info, "Unable to determine graphics API, attempting to switch to DX11...");
                 weaverImplementation = new DirectX11Weaver(srContext);
                 break;
+        }
+    }
+
+    // Get ReShade version number
+    for (int i = 0; i < reshade_dll_names.size(); i++) {
+        std::vector<size_t> versionNrs = GetModuleVersionInfo(reshade_dll_names[i]);
+        if (versionNrs.size() == 3) {
+            weaverImplementation->reshade_version_nr_major = versionNrs[0];
+            weaverImplementation->reshade_version_nr_minor = versionNrs[1];
+            weaverImplementation->reshade_version_nr_patch = versionNrs[2];
+            break;
         }
     }
 
