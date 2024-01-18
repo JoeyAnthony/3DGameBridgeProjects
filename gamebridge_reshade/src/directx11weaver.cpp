@@ -138,8 +138,8 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
-        if(get_latency_mode() == LatencyModes::latencyInFrames) {
-            weaver->setLatencyInFrames(runtime->get_back_buffer_count() ? runtime->get_back_buffer_count() : 1); // Set the latency with which the weaver should do prediction.
+        if(get_latency_mode() == LatencyModes::latencyInFramesAutomatic) {
+            weaver->setLatencyInFrames(runtime->get_back_buffer_count()); // Set the latency with which the weaver should do prediction.
         }
 
         //Check texture size
@@ -197,10 +197,8 @@ void DirectX11Weaver::do_weave(bool doWeave)
 }
 
 bool DirectX11Weaver::set_latency_in_frames(uint32_t numberOfFrames) {
-    if (weaver_initialized && current_latency_mode == LatencyModes::latencyInFrames) {
-        if (numberOfFrames <= 0) {
-            return true;
-        }
+    set_latency_mode(LatencyModes::latencyInFrames);
+    if (weaver_initialized) {
         weaver->setLatencyInFrames(numberOfFrames);
         return true;
     }
@@ -208,8 +206,10 @@ bool DirectX11Weaver::set_latency_in_frames(uint32_t numberOfFrames) {
 }
 
 bool DirectX11Weaver::set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) {
-    if (weaver_initialized && current_latency_mode == LatencyModes::framerateAdaptive) {
+    set_latency_mode(LatencyModes::framerateAdaptive);
+    if (weaver_initialized) {
         weaver->setLatency(frametimeInMicroseconds);
+        lastLatencyFrameTimeSet = frametimeInMicroseconds;
         return true;
     }
     return false;

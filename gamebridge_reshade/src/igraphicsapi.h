@@ -2,7 +2,10 @@
 #include "pch.h"
 
 const uint32_t DEFAULT_WEAVER_LATENCY = 40000;
-enum LatencyModes { framerateAdaptive, latencyInFrames };
+// framerateAdaptive = provide an amount of time in microseconds in between weave() calls.
+// latencyInFrames = provide an amount of buffers or "frames" between the application and presenting to the screen.
+// latencyInFramesAutomatic = gets the amount of buffers or "frames" from the backbuffer using the ReShade api every frame.
+enum LatencyModes { framerateAdaptive, latencyInFrames, latencyInFramesAutomatic };
 
 class IGraphicsApi {
 public:
@@ -17,8 +20,7 @@ public:
 
     virtual void on_destroy_swapchain(reshade::api::swapchain *swapchain) {};
 
-    //Latency settings
-    // The latency mode must be set before attempting to set the latency with "set_latency_in_frames" or "set_latency_framerate_adaptive".
+    // Latency settings
     virtual void set_latency_mode(LatencyModes mode) = 0;
     virtual LatencyModes get_latency_mode() = 0;
 
@@ -26,7 +28,7 @@ public:
 
     // This method should only be called once, after which it will use the maximum framerate of the monitor in use to determine the latency of the eye tracker.
     // This does NOT look at the current framerate, use this when you are able to consistently reach your monitor's maximum refresh rate.
-    // If numberOfFrames is set 0 or lower, the weaver will use ReShade to determine how many buffers are in the swap chain.
+    // The numberOfFrames setting is overwritten when the latency mode is changed to latencyInFramesAutomatic.
     virtual bool set_latency_in_frames(uint32_t numberOfFrames) = 0;
 
     // This method must be called every frame with the current frametime.
