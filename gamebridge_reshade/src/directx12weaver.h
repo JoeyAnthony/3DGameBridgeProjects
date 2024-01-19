@@ -43,11 +43,11 @@ public:
     void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
     void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) override;
     void draw_settings_overlay(reshade::api::effect_runtime* runtime) override;
-    bool set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) override;
     void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     void do_weave(bool doWeave) override;
     bool set_latency_in_frames(int32_t numberOfFrames) override;
+    bool set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) override;
     void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
     LatencyModes get_latency_mode() override;
 };
