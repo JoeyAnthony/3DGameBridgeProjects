@@ -28,9 +28,9 @@ struct Destroy_Resource_Data
 
 class IGraphicsApi {
 public:
-    size_t reshade_version_nr_major = 0;
-    size_t reshade_version_nr_minor = 0;
-    size_t reshade_version_nr_patch = 0;
+    int32_t reshade_version_nr_major = 0;
+    int32_t reshade_version_nr_minor = 0;
+    int32_t reshade_version_nr_patch = 0;
 
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) = 0;
