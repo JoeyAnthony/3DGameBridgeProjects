@@ -375,7 +375,12 @@ int32_t DirectX12Weaver::determineOffsetForDescriptorHeap() {
     try {
         result = known_descriptor_heap_offsets_by_version.at(find_closest(descriptorOffsetVersions, reshadeVersionConcat));
     } catch (std::out_of_range& e) {
-        std::string errorMsg = "Couldn't find correct ReShade version descriptor heap offset with error:\n";
+        std::string errorMsg = "Couldn't find correct ReShade version descriptor heap offset because the requested known descriptor offset is out of index:\n";
+        errorMsg += e.what();
+        reshade::log_message(reshade::log_level::warning,   errorMsg.c_str());
+        return -1;
+    } catch (std::invalid_argument& e) {
+        std::string errorMsg = "Couldn't find correct ReShade version descriptor heap offset because the known descriptor offset list is empty:\n";
         errorMsg += e.what();
         reshade::log_message(reshade::log_level::warning,   errorMsg.c_str());
         return -1;
