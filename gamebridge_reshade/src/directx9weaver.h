@@ -30,6 +30,7 @@ class DirectX9Weaver: public IGraphicsApi {
     bool resize_buffer_failed = false;
 
     LatencyModes current_latency_mode = LatencyModes::framerateAdaptive;
+    void set_latency_mode(LatencyModes mode);
 
 public:
     explicit DirectX9Weaver(SR::SRContext* context);
@@ -45,9 +46,8 @@ public:
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     void on_destroy_swapchain(reshade::api::swapchain *swapchain) override;
     void do_weave(bool doWeave) override;
-    bool set_latency_in_frames(uint32_t numberOfFrames) override;
+    bool set_latency_in_frames(int32_t numberOfFrames) override;
     bool set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) override;
-    void set_latency_mode(LatencyModes mode) override;
     void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
     LatencyModes get_latency_mode() override;
 };

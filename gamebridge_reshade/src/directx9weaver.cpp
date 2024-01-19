@@ -181,18 +181,22 @@ void DirectX9Weaver::on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     }
 }
 
-bool DirectX9Weaver::set_latency_in_frames(uint32_t numberOfFrames) {
-    set_latency_mode(LatencyModes::latencyInFrames);
+bool DirectX9Weaver::set_latency_in_frames(int32_t numberOfFrames) {
     if (weaver_initialized) {
-        weaver->setLatencyInFrames(numberOfFrames);
+        if (numberOfFrames < 0) {
+            set_latency_mode(LatencyModes::latencyInFramesAutomatic);
+        } else {
+            set_latency_mode(LatencyModes::latencyInFrames);
+            weaver->setLatencyInFrames(numberOfFrames);
+        }
         return true;
     }
     return false;
 }
 
 bool DirectX9Weaver::set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) {
-    set_latency_mode(LatencyModes::framerateAdaptive);
     if (weaver_initialized) {
+        set_latency_mode(LatencyModes::framerateAdaptive);
         weaver->setLatency(frametimeInMicroseconds);
         lastLatencyFrameTimeSet = frametimeInMicroseconds;
         return true;
