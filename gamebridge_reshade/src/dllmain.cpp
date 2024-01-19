@@ -10,15 +10,12 @@
 #include "directx10weaver.h"
 #include "directx9weaver.h"
 
-
 #include <chrono>
 #include <functional>
 #include <thread>
 #include <vector>
 #include <iostream>
 #include <unordered_map>
-
-
 
 #define CHAR_BUFFER_SIZE 256
 

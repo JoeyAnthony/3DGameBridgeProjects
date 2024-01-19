@@ -69,7 +69,7 @@ public:
     bool init_effect_copy_resources(reshade::api::effect_runtime* runtime);
     bool destroy_effect_copy_resources();
     bool create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t back_buffer_index);
-    int32_t determineOffsetForDescriptorHeap();
+    int32_t determine_offset_for_descriptor_heap();
 
     // Inherited via IGraphicsApi
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;

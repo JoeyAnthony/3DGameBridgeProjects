@@ -231,7 +231,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
 
             // Determine what descriptor heap offset is needed for the loaded version of ReShade.
-            int32_t offsetForDescriptorHeap = determineOffsetForDescriptorHeap();
+            int32_t offsetForDescriptorHeap = determine_offset_for_descriptor_heap();
             if(offsetForDescriptorHeap > -1) {
                 descriptor_heap_impl_offset_in_bytes = offsetForDescriptorHeap;
             }
@@ -331,7 +331,7 @@ int32_t find_closest(const std::vector<int32_t>& sortedArray, const int targetVa
  * Update: Version 5.9.X now crashes with the most recent version of the SD3D shader and our addon. I am choosing to up the minimum version to 6.0.0.
  * If the version number is not on the list of known ones, we will use the offset of the closest known version to it.
  */
-int32_t DirectX12Weaver::determineOffsetForDescriptorHeap() {
+int32_t DirectX12Weaver::determine_offset_for_descriptor_heap() {
     int32_t result;
     int32_t reshadeVersionConcat = concatenateReshadeVersion(reshade_version_nr_major, reshade_version_nr_minor, reshade_version_nr_patch);
     if (reshadeVersionConcat < 590) {
