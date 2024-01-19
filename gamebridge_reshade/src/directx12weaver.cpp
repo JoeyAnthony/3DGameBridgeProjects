@@ -1,5 +1,7 @@
-#include "directx12weaver.h"
+#ifdef GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE
 #include "reshade/source/d3d12/d3d12_impl_command_list.hpp"
+#endif
+#include "directx12weaver.h"
 #include <sstream>
 
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
@@ -229,16 +231,20 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
 
             // Determine if we are on the correct version
-            if(descriptor_heap_impl_offset_target_reshade_version_nr_major == reshade_version_nr_major && descriptor_heap_impl_offset_target_reshade_version_nr_minor == reshade_version_nr_minor && descriptor_heap_impl_offset_target_reshade_version_nr_patch == reshade_version_nr_patch) {
+            int32_t offsetForDescriptorHeap = determineOffsetForDescriptorHeap();
+            if(offsetForDescriptorHeap > -1) {
+                descriptor_heap_impl_offset_in_bytes = offsetForDescriptorHeap;
+            }
+#ifdef GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE
+                // Code for finding the correct descriptor heap offset in linked-to ReShade version.
                 class ReShadeCommandListInheritor : public reshade::d3d12::command_list_impl {
                 public:
                     static size_t getCurrentHeapDescriptorOffset() {
                         return offsetof(ReShadeCommandListInheritor, _current_descriptor_heaps);
                     }
                 };
-
                 descriptor_heap_impl_offset_in_bytes = ReShadeCommandListInheritor::getCurrentHeapDescriptorOffset();
-            }
+#endif
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
         }
         else {
@@ -272,4 +278,79 @@ void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
 void DirectX12Weaver::do_weave(bool doWeave)
 {
     weaving_enabled = doWeave;
+}
+
+/**
+ * Takes a major, minor and patch number from ReShade and concatenates them into a single number for easier processing.
+ */
+int32_t concatenateReshadeVersion(int32_t major, int32_t minor, int32_t patch) {
+    std::string result = "";
+    result += std::to_string(major);
+    result += std::to_string(minor);
+    result += std::to_string(patch);
+    return std::stoi(result);
+}
+
+/**
+ * Find the closest element to a given value in a sorted array.
+ *
+ * @param sortedArray A sorted vector of integers.
+ * @param targetValue The value to find the closest element to.
+ * @return The closest element in the array to the target value.
+ * @throws std::invalid_argument if the array is empty.
+ */
+int32_t find_closest(const std::vector<int32_t>& sortedArray, const int targetValue) {
+    // Check if the array is empty
+    if (sortedArray.empty()) {
+        throw std::invalid_argument("Unable to find closest, array is empty.");
+    }
+
+    // Use binary search to find the lower bound of the target value
+    const auto lowerBound = std::lower_bound(sortedArray.begin(), sortedArray.end(), targetValue);
+
+    // Initialize the answer with the closest value found so far
+    int32_t closestValue = (lowerBound != sortedArray.end()) ? *lowerBound : sortedArray.back();
+
+    // Check if there is a predecessor to the lower bound
+    if (lowerBound != sortedArray.begin()) {
+        auto predecessor = lowerBound - 1;
+
+        // Update the answer if the predecessor is closer to the target value
+        if (std::abs(closestValue - targetValue) > std::abs(*predecessor - targetValue)) {
+            closestValue = *predecessor;
+        }
+    }
+
+    // Return the closest value found
+    return closestValue;
+}
+
+/**
+ * Compares the version of the ReShade with the list of known offsets.
+ * If version is smaller than 5.9.X, this check will return an offset of -1 to signal no offset is required.
+ * Update: Version 5.9.X now crashes with the most recent version of the SD3D shader and our addon. I am choosing to up the minimum version to 6.0.0.
+ * If the version number is not on the list of known ones, we will use the offset of the closest known version to it.
+ */
+int32_t DirectX12Weaver::determineOffsetForDescriptorHeap() {
+    int32_t result;
+    int32_t reshadeVersionConcat = concatenateReshadeVersion(reshade_version_nr_major, reshade_version_nr_minor, reshade_version_nr_patch);
+    if (reshadeVersionConcat < 590) {
+        // No offset needed, return -1
+        return -1;
+    }
+    std::vector<int32_t> descriptorOffsetVersions;
+    for(auto it = known_descriptor_heap_offsets_by_version.begin(); it != known_descriptor_heap_offsets_by_version.end(); ++it ) {
+        descriptorOffsetVersions.push_back( it->first );
+    }
+
+    try {
+        result = known_descriptor_heap_offsets_by_version.at(find_closest(descriptorOffsetVersions, reshadeVersionConcat));
+    } catch (std::out_of_range& e) {
+        std::string errorMsg = "Couldn't find correct ReShade version descriptor heap offset with error:\n";
+        errorMsg += e.what();
+        reshade::log_message(reshade::log_level::warning,   errorMsg.c_str());
+        return -1;
+    }
+
+    return result;
 }

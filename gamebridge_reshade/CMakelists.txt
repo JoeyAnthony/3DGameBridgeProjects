@@ -22,6 +22,10 @@ add_library(${PROJECT_NAME} SHARED
     src/hotkeymanager.h
 )
 
+# Determines whether the descriptor offset should be fetched from the ReShade source.
+# OFF by default as it requires a small change to includes of ReShade
+option(GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE "Enable Get Descriptor Offset" OFF)
+
 # Set output name for the addon
 set(ADDON_FILE_NAME "srReshade")
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${ADDON_FILE_NAME})
@@ -56,6 +60,11 @@ if(NOT ${ADDON_COPY_DIR} STREQUAL "")
 		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE_DIR:${PROJECT_NAME}>/${ADDON_FILE_NAME}.addon ${ADDON_COPY_DIR}
 	)
 	message("Addon will be copied to ${ADDON_COPY_DIR}")
+endif()
+
+# Check the descriptor option and define a preprocessor macro accordingly
+if(GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
