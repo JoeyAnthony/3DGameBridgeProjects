@@ -205,7 +205,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
                 weaver->weave(desc.texture.width, desc.texture.height);
 
-                // Check if the descriptor heap offset is set. If it is, we have to reset the descriptor heaps to ensure ReShade the overlay can render.
+                // Check if the descriptor heap offset is set. If it is, we have to reset the descriptor heaps to ensure the ReShade overlay can render.
                 if (descriptor_heap_impl_offset_in_bytes != -1) {
                     // Force reset of descriptor heap state that ReShade keeps (DANGER! THIS WILL BREAK IF THE CLASS LAYOUT IN RESHADE CHANGES, SEE directx12weaver.cpp TO UPDATE KNOWN OFFSETS!)
                     auto current_descriptor_heaps = reinterpret_cast<ID3D12DescriptorHeap **>(reinterpret_cast<uint8_t *>(cmd_list) + descriptor_heap_impl_offset_in_bytes /* offsetof(reshade::d3d12::command_list_impl, _current_descriptor_heaps) */);
