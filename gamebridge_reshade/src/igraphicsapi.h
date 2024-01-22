@@ -1,3 +1,10 @@
+/*
+ * This file falls under the GNU General Public License v3.0 license: See the LICENSE.txt in the root of this project for more info.
+ * Summary:
+ * Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license.
+ * Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Modifications to the source code must be disclosed publicly.
+ */
+
 #pragma once
 #include "pch.h"
 
@@ -6,6 +13,18 @@ const uint32_t DEFAULT_WEAVER_LATENCY = 40000;
 // latencyInFrames = provide an amount of buffers or "frames" between the application and presenting to the screen.
 // latencyInFramesAutomatic = gets the amount of buffers or "frames" from the backbuffer using the ReShade api every frame.
 enum LatencyModes { framerateAdaptive, latencyInFrames, latencyInFramesAutomatic };
+
+struct Int32XY
+{
+    uint32_t x = 0;
+    uint32_t y = 0;
+};
+
+struct Destroy_Resource_Data
+{
+    reshade::api::resource resource;
+    uint32_t frames_alive = 0;
+};
 
 class IGraphicsApi {
 public:
@@ -18,6 +37,7 @@ public:
     virtual void do_weave(bool doWeave) = 0;
     virtual ~IGraphicsApi() = default;
 
+    // Only used for dx9
     virtual void on_destroy_swapchain(reshade::api::swapchain *swapchain) {};
 
     virtual LatencyModes get_latency_mode() = 0;

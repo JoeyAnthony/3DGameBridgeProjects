@@ -1,3 +1,10 @@
+/*
+ * This file falls under the GNU General Public License v3.0 license: See the LICENSE.txt in the root of this project for more info.
+ * Summary:
+ * Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license.
+ * Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Modifications to the source code must be disclosed publicly.
+ */
+
 #pragma once
 #include "pch.h"
 
@@ -27,9 +34,13 @@ class DirectX12Weaver: public IGraphicsApi {
     float vertical_shift = 0.f;
 
     reshade::api::command_list* command_list;
-    reshade::api::resource effect_frame_copy;
-    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
-    bool resize_buffer_failed = false;
+    reshade::api::resource_view game_frame_buffer;
+
+    std::vector<reshade::api::resource> effect_copy_resources;
+    std::vector<Int32XY> effect_copy_resource_res;
+    bool effect_copy_resources_initialized = false;
+
+    std::vector<Destroy_Resource_Data> to_destroy;
 
     LatencyModes current_latency_mode = LatencyModes::framerateAdaptive;
     void set_latency_mode(LatencyModes mode);
@@ -37,7 +48,9 @@ class DirectX12Weaver: public IGraphicsApi {
 public:
     explicit DirectX12Weaver(SR::SRContext* context);
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
-    bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
+    bool init_effect_copy_resources(reshade::api::effect_runtime* runtime);
+    bool destroy_effect_copy_resources();
+    bool create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t back_buffer_index);
 
     // Inherited via IGraphicsApi
     void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
