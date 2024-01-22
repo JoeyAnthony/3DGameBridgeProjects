@@ -78,12 +78,6 @@ vector<size_t> GetModuleVersionInfo(LPCWSTR moduleName) {
     reshadeVersionNumbers.push_back(std::stoi(std::to_string(minorVersion)));
     reshadeVersionNumbers.push_back(std::stoi(std::to_string(buildNumber)));
 
-    // Todo: Not sure if I need to delete more.
-    // Clean up
-    // Todo: This crashes, not sure why.
-    //    delete pVsFixedfileinfo;
-    //    delete fileInfo;
-
     return reshadeVersionNumbers;
 }
 
