@@ -231,9 +231,9 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
 
             // Determine what descriptor heap offset is needed for the loaded version of ReShade.
-            int32_t offsetForDescriptorHeap = determine_offset_for_descriptor_heap();
-            if(offsetForDescriptorHeap > -1) {
-                descriptor_heap_impl_offset_in_bytes = offsetForDescriptorHeap;
+            int32_t offset_for_descriptor_heap = determine_offset_for_descriptor_heap();
+            if(offset_for_descriptor_heap > -1) {
+                descriptor_heap_impl_offset_in_bytes = offset_for_descriptor_heap;
             }
 #ifdef GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE
                 // Code for finding the correct descriptor heap offset in linked-to ReShade version.
@@ -283,7 +283,7 @@ void DirectX12Weaver::do_weave(bool doWeave)
 /**
  * Takes a major, minor and patch number from ReShade and concatenates them into a single number for easier processing.
  */
-int32_t concatenateReshadeVersion(int32_t major, int32_t minor, int32_t patch) {
+int32_t ConcatenateReshadeVersion(int32_t major, int32_t minor, int32_t patch) {
     std::string result = "";
     result += std::to_string(major);
     result += std::to_string(minor);
@@ -294,29 +294,29 @@ int32_t concatenateReshadeVersion(int32_t major, int32_t minor, int32_t patch) {
 /**
  * Find the closest element to a given value in a sorted array.
  *
- * @param sortedArray A sorted vector of integers.
- * @param targetValue The value to find the closest element to.
+ * @param sorted_array A sorted vector of integers.
+ * @param target_value The value to find the closest element to.
  * @return The closest element in the array to the target value.
  * @throws std::invalid_argument if the array is empty.
  */
-int32_t find_closest(const std::vector<int32_t>& sortedArray, const int targetValue) {
+int32_t find_closest(const std::vector<int32_t>& sorted_array, const int target_value) {
     // Check if the array is empty
-    if (sortedArray.empty()) {
+    if (sorted_array.empty()) {
         throw std::invalid_argument("Unable to find closest, array is empty.");
     }
 
     // Use binary search to find the lower bound of the target value
-    const auto lowerBound = std::lower_bound(sortedArray.begin(), sortedArray.end(), targetValue);
+    const auto lowerBound = std::lower_bound(sorted_array.begin(), sorted_array.end(), target_value);
 
     // Initialize the answer with the closest value found so far
-    int32_t closestValue = (lowerBound != sortedArray.end()) ? *lowerBound : sortedArray.back();
+    int32_t closestValue = (lowerBound != sorted_array.end()) ? *lowerBound : sorted_array.back();
 
     // Check if there is a predecessor to the lower bound
-    if (lowerBound != sortedArray.begin()) {
+    if (lowerBound != sorted_array.begin()) {
         auto predecessor = lowerBound - 1;
 
         // Update the answer if the predecessor is closer to the target value
-        if (std::abs(closestValue - targetValue) > std::abs(*predecessor - targetValue)) {
+        if (std::abs(closestValue - target_value) > std::abs(*predecessor - target_value)) {
             closestValue = *predecessor;
         }
     }
@@ -333,24 +333,27 @@ int32_t find_closest(const std::vector<int32_t>& sortedArray, const int targetVa
  */
 int32_t DirectX12Weaver::determine_offset_for_descriptor_heap() {
     int32_t result;
-    int32_t reshadeVersionConcat = concatenateReshadeVersion(reshade_version_nr_major, reshade_version_nr_minor, reshade_version_nr_patch);
-    if (reshadeVersionConcat < 590) {
+    int32_t reshade_version_concat = ConcatenateReshadeVersion(reshade_version_nr_major, reshade_version_nr_minor,
+                                                               reshade_version_nr_patch);
+    if (reshade_version_concat < 590) {
         // No offset needed, return -1
         return -1;
     }
-    std::vector<int32_t> descriptorOffsetVersions;
+    std::vector<int32_t> descriptor_offset_versions;
     for(auto it = known_descriptor_heap_offsets_by_version.begin(); it != known_descriptor_heap_offsets_by_version.end(); ++it ) {
-        descriptorOffsetVersions.push_back( it->first );
+        descriptor_offset_versions.push_back(it->first );
     }
 
     try {
-        result = known_descriptor_heap_offsets_by_version.at(find_closest(descriptorOffsetVersions, reshadeVersionConcat));
-    } catch (std::out_of_range& e) {
-        std::string errorMsg = "Couldn't find correct ReShade version descriptor heap offset because the requested known descriptor offset is out of index:\n";
-        errorMsg += e.what();
-        reshade::log_message(reshade::log_level::warning,   errorMsg.c_str());
+        result = known_descriptor_heap_offsets_by_version.at(100);
+    }
+    catch (std::out_of_range& e) {
+        std::string error_msg = "Couldn't find correct ReShade version descriptor heap offset because the requested known descriptor offset is out of index:\n";
+        error_msg += e.what();
+        reshade::log_message(reshade::log_level::warning, error_msg.c_str());
         return -1;
-    } catch (std::invalid_argument& e) {
+    }
+    catch (std::invalid_argument& e) {
         std::string errorMsg = "Couldn't find correct ReShade version descriptor heap offset because the known descriptor offset list is empty:\n";
         errorMsg += e.what();
         reshade::log_message(reshade::log_level::warning,   errorMsg.c_str());
