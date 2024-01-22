@@ -71,6 +71,12 @@ bool DirectX10Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         weaver->setInputFrameBuffer((ID3D10ShaderResourceView*)rtv.handle); //resourceview of the buffer
         srContext->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
+
+        // Set mode to latency in frames by default.
+        set_latency_mode(LatencyModes::framerateAdaptive);
+        set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
+        std::string latencyLog = "Current latency mode set to: STATIC " + std::to_string(DEFAULT_WEAVER_LATENCY) + " Microseconds";
+        reshade::log_message(reshade::log_level::info, latencyLog.c_str());
     }
     catch (std::exception e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -83,6 +89,20 @@ bool DirectX10Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
 
     weaver_initialized = true;
     return weaver_initialized;
+}
+
+void DirectX10Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
+    // Log activity status
+    ImGui::TextUnformatted("Status: ACTIVE");
+
+    // Log the latency mode
+    std::string latencyModeDisplay = "Latency mode: ";
+    if(current_latency_mode == LatencyModes::framerateAdaptive) {
+        latencyModeDisplay += "IN " + std::to_string(lastLatencyFrameTimeSet) + " MICROSECONDS";
+    } else {
+        latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
+    }
+    ImGui::TextUnformatted(latencyModeDisplay.c_str());
 }
 
 void DirectX10Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
@@ -116,6 +136,11 @@ void DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource_desc desc = d3d10device->get_resource_desc(rtv_resource);
 
     if (weaver_initialized) {
+        // Check if we need to set the latency in frames.
+        if(get_latency_mode() == LatencyModes::latencyInFramesAutomatic) {
+            weaver->setLatencyInFrames(runtime->get_back_buffer_count()); // Set the latency with which the weaver should do prediction.
+        }
+
         //Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
@@ -167,4 +192,35 @@ void DirectX10Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
 void DirectX10Weaver::do_weave(bool doWeave)
 {
     weaving_enabled = doWeave;
+}
+
+bool DirectX10Weaver::set_latency_in_frames(int32_t numberOfFrames) {
+    if (weaver_initialized) {
+        if (numberOfFrames < 0) {
+            set_latency_mode(LatencyModes::latencyInFramesAutomatic);
+        } else {
+            set_latency_mode(LatencyModes::latencyInFrames);
+            weaver->setLatencyInFrames(numberOfFrames);
+        }
+        return true;
+    }
+    return false;
+}
+
+bool DirectX10Weaver::set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) {
+    if (weaver_initialized) {
+        set_latency_mode(LatencyModes::framerateAdaptive);
+        weaver->setLatency(frametimeInMicroseconds);
+        lastLatencyFrameTimeSet = frametimeInMicroseconds;
+        return true;
+    }
+    return false;
+}
+
+void DirectX10Weaver::set_latency_mode(LatencyModes mode) {
+    current_latency_mode = mode;
+}
+
+LatencyModes DirectX10Weaver::get_latency_mode() {
+    return current_latency_mode;
 }

@@ -31,6 +31,7 @@ HotKeyManager* hotKeyManager = nullptr;
 
 //Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static const std::string depth3DShaderName = "SuperDepth3D";
+static const std::string fxaaShaderName = "FXAA";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
 
@@ -101,9 +102,35 @@ static void executeHotKeyFunctionByType(std::map<shortcutType, bool> hotKeyList,
             }
             executeHotKeyFunctionByType(toggleMap, runtime);
             break;
+        case shortcutType::toggleLatencyMode:
+            //Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
+            if (i->second) {
+                // Set the latency in frames to -1 to use ReShade's swap_chain buffer count.
+                weaverImplementation->set_latency_in_frames(-1);
+
+                // Log the current mode:
+                reshade::log_message(reshade::log_level::info, "Current latency mode set to: LATENCY_IN_FRAMES");
+            }
+            else {
+                // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
+                weaverImplementation->set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
+
+                //Log the current mode:
+                reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
+            }
+            
         default:
             break;
         }
+    }
+}
+
+static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
+    if (weaverImplementation) {
+        weaverImplementation->draw_status_overlay(runtime);
+    } else {
+        // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
+        ImGui::TextUnformatted("Status: INACTIVE - UNSUPPORTED GRAPHICS API");
     }
 }
 
@@ -117,6 +144,24 @@ static void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) {
 
 static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
     //weaverImplementation->draw_settings_overlay(runtime);
+}
+
+static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
+    vector<reshade::api::effect_technique> fxaaTechnique = {};
+
+    // Todo: This is not a nice way of forcing on_finish_effects to trigger. Maybe make a dummy shader that you always turn on instead (or use a different callback)
+    // Toggle FXAA.fx on
+    enumerateTechniques(runtime, [&fxaaTechnique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
+        if (!name.compare(fxaaShaderName)) {
+            reshade::log_message(reshade::log_level::info, "Found FXAA.fx shader!");
+            fxaaTechnique.push_back(technique);
+        }
+        });
+
+    for (int effectIterator = 0; effectIterator < fxaaTechnique.size(); effectIterator++) {
+        runtime->set_technique_state(fxaaTechnique[effectIterator], true);
+        reshade::log_message(reshade::log_level::info, "Toggled FXAA to ensure on_finish_effects gets called.");
+    }
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
@@ -166,10 +211,8 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                 weaverImplementation = new DirectX12Weaver(srContext);
                 break;
             default:
-                //Games will be DX11 in the majority of cases.
                 //Todo: This may still crash our code so we should leave the API switching to user input if we cannot detect it ourselves.
-                reshade::log_message(reshade::log_level::info, "Unable to determine graphics API, attempting to switch to DX11...");
-                weaverImplementation = new DirectX11Weaver(srContext);
+                reshade::log_message(reshade::log_level::warning, "Unable to determine graphics API, it may not be supported. Becoming inactive.");
                 break;
         }
     }
@@ -197,7 +240,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+        reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
+
+        reshade::register_overlay(nullptr, &draw_status_overlay);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
         //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
