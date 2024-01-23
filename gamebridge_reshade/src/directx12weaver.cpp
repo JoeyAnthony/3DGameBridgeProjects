@@ -14,7 +14,7 @@
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
 {
     //Set context here.
-    srContext = context;
+    sr_context = context;
     weaving_enabled = true;
 }
 
@@ -24,7 +24,7 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     }
 
     // See if we can get a command allocator from reshade
-    ID3D12Device* dev = ((ID3D12Device*)d3d12device->get_native());
+    ID3D12Device* dev = ((ID3D12Device*)d3d12_device->get_native());
     if (!dev) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device");
         return false;
@@ -53,8 +53,8 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
     ID3D12Resource* native_back_buffer = (ID3D12Resource*)back_buffer.handle;
     try {
-        weaver = new SR::PredictingDX12Weaver(*srContext, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
-        srContext->initialize();
+        weaver = new SR::PredictingDX12Weaver(*sr_context, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
         // Set mode to latency in frames by default.
@@ -144,7 +144,7 @@ bool DirectX12Weaver::init_effect_copy_resources(reshade::api::effect_runtime* r
 }
 
 bool DirectX12Weaver::create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t back_buffer_index) {
-    reshade::api::resource_desc back_buffer_desc(d3d12device->get_resource_desc(runtime->get_back_buffer(back_buffer_index)));
+    reshade::api::resource_desc back_buffer_desc(d3d12_device->get_resource_desc(runtime->get_back_buffer(back_buffer_index)));
     reshade::api::resource_desc copy_resource_description(
         reshade::api::resource_type::texture_2d,
         back_buffer_desc.texture.width,
@@ -157,7 +157,7 @@ bool DirectX12Weaver::create_effect_copy_resource(reshade::api::effect_runtime* 
         reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::unordered_access
     );
 
-    if (!d3d12device->create_resource(copy_resource_description, nullptr, reshade::api::resource_usage::unordered_access, &effect_copy_resources[back_buffer_index])) {
+    if (!d3d12_device->create_resource(copy_resource_description, nullptr, reshade::api::resource_usage::unordered_access, &effect_copy_resources[back_buffer_index])) {
 
         log_message(reshade::log_level::info, "Failed to initialize copy resource");
 
@@ -176,7 +176,7 @@ bool DirectX12Weaver::create_effect_copy_resource(reshade::api::effect_runtime* 
 bool DirectX12Weaver::destroy_effect_copy_resources()
 {
     for (uint32_t i = 0; i < effect_copy_resources.size(); i++) {
-        d3d12device->destroy_resource(effect_copy_resources[i]);
+        d3d12_device->destroy_resource(effect_copy_resources[i]);
 
         effect_copy_resource_res[i].x = 0;
         effect_copy_resource_res[i].y = 0;
@@ -187,8 +187,8 @@ bool DirectX12Weaver::destroy_effect_copy_resources()
 }
 
 void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
-    reshade::api::resource rtv_resource = d3d12device->get_resource_from_view(rtv);
-    reshade::api::resource_desc desc = d3d12device->get_resource_desc(rtv_resource);
+    reshade::api::resource rtv_resource = d3d12_device->get_resource_from_view(rtv);
+    reshade::api::resource_desc desc = d3d12_device->get_resource_desc(rtv_resource);
 
     uint32_t back_buffer_index = runtime->get_current_back_buffer_index();
 
@@ -254,7 +254,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             return;
         }
 
-        if (init_weaver(runtime, effect_copy_resources[0], d3d12device->get_resource_from_view(rtv))) {
+        if (init_weaver(runtime, effect_copy_resources[0], d3d12_device->get_resource_from_view(rtv))) {
             //Set command list and input frame buffer again to make sure they are correct
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_copy_resources[back_buffer_index].handle);
@@ -290,7 +290,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         it->frames_alive++;
         if (it->frames_alive > 5)
         {
-            d3d12device->destroy_resource(it->resource);
+            d3d12_device->destroy_resource(it->resource);
             it = to_destroy.erase(it);
             reshade::log_message(reshade::log_level::info, "Resource destroyed");
             continue;
@@ -301,7 +301,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 }
 
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
-    d3d12device = runtime->get_device();
+    d3d12_device = runtime->get_device();
 }
 
 void DirectX12Weaver::do_weave(bool doWeave)
@@ -312,7 +312,7 @@ void DirectX12Weaver::do_weave(bool doWeave)
 /**
  * Takes a major, minor and patch number from ReShade and concatenates them into a single number for easier processing.
  */
-int32_t ConcatenateReshadeVersion(int32_t major, int32_t minor, int32_t patch) {
+int32_t concatenate_reshade_version(int32_t major, int32_t minor, int32_t patch) {
     std::string result = "";
     result += std::to_string(major);
     result += std::to_string(minor);
@@ -328,30 +328,30 @@ int32_t ConcatenateReshadeVersion(int32_t major, int32_t minor, int32_t patch) {
  * @return The closest element in the array to the target value.
  * @throws std::invalid_argument if the array is empty.
  */
-int32_t find_closest(const std::vector<int32_t>& sorted_array, const int target_value) {
+int32_t find_closest(const std::vector<int32_t>& sorted_array, int target_value) {
     // Check if the array is empty
     if (sorted_array.empty()) {
         throw std::invalid_argument("Unable to find closest, array is empty.");
     }
 
     // Use binary search to find the lower bound of the target value
-    const auto lowerBound = std::lower_bound(sorted_array.begin(), sorted_array.end(), target_value);
+    const auto lower_bound = std::lower_bound(sorted_array.begin(), sorted_array.end(), target_value);
 
     // Initialize the answer with the closest value found so far
-    int32_t closestValue = (lowerBound != sorted_array.end()) ? *lowerBound : sorted_array.back();
+    int32_t closest_value = (lower_bound != sorted_array.end()) ? *lower_bound : sorted_array.back();
 
     // Check if there is a predecessor to the lower bound
-    if (lowerBound != sorted_array.begin()) {
-        auto predecessor = lowerBound - 1;
+    if (lower_bound != sorted_array.begin()) {
+        auto predecessor = lower_bound - 1;
 
         // Update the answer if the predecessor is closer to the target value
-        if (std::abs(closestValue - target_value) > std::abs(*predecessor - target_value)) {
-            closestValue = *predecessor;
+        if (std::abs(closest_value - target_value) > std::abs(*predecessor - target_value)) {
+            closest_value = *predecessor;
         }
     }
 
     // Return the closest value found
-    return closestValue;
+    return closest_value;
 }
 
 /**
@@ -362,8 +362,8 @@ int32_t find_closest(const std::vector<int32_t>& sorted_array, const int target_
  */
 int32_t DirectX12Weaver::determine_offset_for_descriptor_heap() {
     int32_t result;
-    int32_t reshade_version_concat = ConcatenateReshadeVersion(reshade_version_nr_major, reshade_version_nr_minor,
-                                                               reshade_version_nr_patch);
+    int32_t reshade_version_concat = concatenate_reshade_version(reshade_version_nr_major, reshade_version_nr_minor,
+                                                                 reshade_version_nr_patch);
     if (reshade_version_concat < 590) {
         // No offset needed, return -1
         return -1;
@@ -374,7 +374,7 @@ int32_t DirectX12Weaver::determine_offset_for_descriptor_heap() {
     }
 
     try {
-        result = known_descriptor_heap_offsets_by_version.at(100);
+        result = known_descriptor_heap_offsets_by_version.at(find_closest(descriptor_offset_versions, reshade_version_concat));
     }
     catch (std::out_of_range& e) {
         std::string error_msg = "Couldn't find correct ReShade version descriptor heap offset because the requested known descriptor offset is out of index:\n";
