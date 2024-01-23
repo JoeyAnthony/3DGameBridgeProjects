@@ -7,23 +7,23 @@ class HotKey {
 public:
     HotKey();
     HotKey(bool isEnabled, shortcutType type, uint8_t key, bool shiftRequired, bool altRequired, bool ctrlRequired);
-    void toggleHotKey() { isEnabled = !isEnabled; }
+    void toggle_hot_key() { is_enabled = !is_enabled; }
     //Unused for now, can make the key editable with this later.
-    void setToggleKey(uint8_t newKeyValue, shortcutType type, bool shiftRequired, bool altRequired, bool ctrlRequired);
+    void set_toggle_key(uint8_t newKeyValue, shortcutType type, bool shiftRequired, bool altRequired, bool ctrlRequired);
 
-    bool getEnabled();
-    bool getShiftRequired();
-    bool getAltRequired();
-    bool getCtrlRequired();
-    shortcutType getType();
-    uint8_t getKey();
-    uint8_t getId();
+    bool get_enabled();
+    bool get_shift_required();
+    bool get_alt_required();
+    bool get_ctrl_required();
+    shortcutType get_type();
+    uint8_t get_key();
+    uint8_t get_id();
 
 private:
-    bool isEnabled = true;
-    bool shiftRequired = false;
-    bool altRequired = false;
-    bool ctrlRequired = true;
-    shortcutType type = shortcutType::toggleSR;
-    uint8_t shortcutKey = 0x00;
+    bool is_enabled = true;
+    bool shift_required = false;
+    bool alt_required = false;
+    bool ctrl_required = true;
+    shortcutType type = shortcutType::toggle_SR;
+    uint8_t shortcut_key = 0x00;
 };
