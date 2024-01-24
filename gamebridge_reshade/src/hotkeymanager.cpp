@@ -15,7 +15,7 @@ HotKeyManager::HotKeyManager()
     HotKey toggleLensKey = HotKey(true, shortcutType::toggle_lens, 0x32, false, false, true);
     HotKey toggle3D = HotKey(false, shortcutType::toggle_3D, 0x33, false, false, true);
     HotKey toggleLensAnd3D = HotKey(false, shortcutType::toggle_lens_and_3D, 0x34, false, false, true);
-    HotKey toggleLatencyMode = HotKey(false, shortcutType::toggleLatencyMode, 0x35, false, false, true);
+    HotKey toggleLatencyMode = HotKey(false, shortcutType::toggle_latency_mode, 0x35, false, false, true);
     registered_hot_keys.push_back(toggleSRKey);
     registered_hot_keys.push_back(toggleLensKey);
     registered_hot_keys.push_back(toggle3D);

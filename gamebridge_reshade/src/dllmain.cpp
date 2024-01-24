@@ -35,7 +35,7 @@ HotKeyManager* hotKey_manager = nullptr;
 
 //Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static const std::string depth_3D_shader_name = "SuperDepth3D";
-static const std::string fxaaShaderName = "FXAA";
+static const std::string fxaa_shader_name = "FXAA";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
 
@@ -153,7 +153,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
                 execute_hot_key_function_by_type(toggle_map, runtime);
             break;
-        case shortcutType::toggleLatencyMode:
+        case shortcutType::toggle_latency_mode:
             //Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
             if (i->second) {
                 // Set the latency in frames to -1 to use ReShade's swap_chain buffer count.
@@ -177,8 +177,8 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
 }
 
 static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
-    if (weaverImplementation) {
-        weaverImplementation->draw_status_overlay(runtime);
+    if (weaver_implementation) {
+        weaver_implementation->draw_status_overlay(runtime);
     } else {
         // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
         ImGui::TextUnformatted("Status: INACTIVE - UNSUPPORTED GRAPHICS API");
@@ -202,8 +202,8 @@ static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
 
     // Todo: This is not a nice way of forcing on_finish_effects to trigger. Maybe make a dummy shader that you always turn on instead (or use a different callback)
     // Toggle FXAA.fx on
-    enumerateTechniques(runtime, [&fxaaTechnique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
-        if (!name.compare(fxaaShaderName)) {
+    enumerate_techniques(runtime, [&fxaaTechnique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
+        if (!name.compare(fxaa_shader_name)) {
             reshade::log_message(reshade::log_level::info, "Found FXAA.fx shader!");
             fxaaTechnique.push_back(technique);
         }
