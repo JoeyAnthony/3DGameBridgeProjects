@@ -11,56 +11,56 @@ HotKey::HotKey() {
 
 }
 
-void HotKey::setToggleKey(uint8_t newKeyValue, shortcutType type, bool shiftRequired, bool altRequired, bool ctrlRequired) {
-    this->shortcutKey = newKeyValue;
+void HotKey::set_toggle_key(uint8_t newKeyValue, shortcutType type, bool shiftRequired, bool altRequired, bool ctrlRequired) {
+    this->shortcut_key = newKeyValue;
     this->type = type;
-    this->shiftRequired = shiftRequired;
-    this->altRequired = altRequired;
-    this->ctrlRequired = ctrlRequired;
+    this->shift_required = shiftRequired;
+    this->alt_required = altRequired;
+    this->ctrl_required = ctrlRequired;
 }
 
 HotKey::HotKey(bool isEnabled, shortcutType type, uint8_t key, bool shiftRequired, bool altRequired, bool ctrlRequired) {
-    this->isEnabled = isEnabled;
+    this->is_enabled = isEnabled;
     this->type = type;
-    this->shortcutKey = key;
-    this->shiftRequired = shiftRequired;
-    this->altRequired = altRequired;
-    this->ctrlRequired = ctrlRequired;
+    this->shortcut_key = key;
+    this->shift_required = shiftRequired;
+    this->alt_required = altRequired;
+    this->ctrl_required = ctrlRequired;
 }
 
-bool HotKey::getEnabled()
+bool HotKey::get_enabled()
 {
-    return isEnabled;
+    return is_enabled;
 }
 
-bool HotKey::getShiftRequired()
+bool HotKey::get_shift_required()
 {
-    return shiftRequired;
+    return shift_required;
 }
 
-bool HotKey::getAltRequired()
+bool HotKey::get_alt_required()
 {
-    return altRequired;
+    return alt_required;
 }
 
-bool HotKey::getCtrlRequired()
+bool HotKey::get_ctrl_required()
 {
-    return ctrlRequired;
+    return ctrl_required;
 }
 
-shortcutType HotKey::getType()
+shortcutType HotKey::get_type()
 {
     return type;
 }
 
-uint8_t HotKey::getKey()
+uint8_t HotKey::get_key()
 {
-    return shortcutKey;
+    return shortcut_key;
 }
 
-uint8_t HotKey::getId()
+uint8_t HotKey::get_id()
 {
     //Returns a "unique" integer.
     //Todo: A check should be performed when a new shortcut is added to ensure every id is indeed unique.
-    return type + shortcutKey;
+    return type + shortcut_key;
 }

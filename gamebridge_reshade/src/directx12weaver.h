@@ -25,13 +25,20 @@ class DirectX12Weaver: public IGraphicsApi {
 
     bool weaver_initialized = false;
     bool weaving_enabled = false;
-    SR::SRContext* srContext;
+    SR::SRContext* sr_context;
     SR::PredictingDX12Weaver* weaver = nullptr;
-    reshade::api::device* d3d12device = nullptr;
+    reshade::api::device* d3d12_device = nullptr;
 
     bool g_popup_window_visible = false;
     float view_separation = 0.f;
     float vertical_shift = 0.f;
+
+    size_t descriptor_heap_impl_offset_in_bytes = -1;
+    // This must be updated for every new version of ReShade as it can change when the class layout changes!
+    // [key] int32_t represents the version number of ReShade without the periods. [value] int32_t represents the offset in bytes inside the class.
+    const std::map<int32_t, int32_t> known_descriptor_heap_offsets_by_version = {
+            {600, 80},
+    };
 
     reshade::api::command_list* command_list;
     reshade::api::resource_view game_frame_buffer;
@@ -51,6 +58,7 @@ public:
     bool init_effect_copy_resources(reshade::api::effect_runtime* runtime);
     bool destroy_effect_copy_resources();
     bool create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t back_buffer_index);
+    int32_t determine_offset_for_descriptor_heap();
 
     // Inherited via IGraphicsApi
     void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;

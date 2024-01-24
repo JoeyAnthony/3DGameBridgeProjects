@@ -23,9 +23,9 @@ class DirectX9Weaver: public IGraphicsApi {
 
     bool weaver_initialized = false;
     bool weaving_enabled = false;
-    SR::SRContext* srContext;
+    SR::SRContext* sr_context;
     SR::PredictingDX9Weaver* weaver = nullptr;
-    reshade::api::device* d3d9device = nullptr;
+    reshade::api::device* d3d9_device = nullptr;
 
     bool g_popup_window_visible = false;
     float view_separation = 0.f;
