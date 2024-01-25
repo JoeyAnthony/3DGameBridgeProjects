@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 3.23)
+project (GameBridgeUEVR VERSION 0.1)
+
+add_library(${PROJECT_NAME} SHARED
+    src/Plugin.cpp
+)
+
+# Set output name for the addon
+set(ADDON_FILE_NAME "GameBridgeUEVR")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${ADDON_FILE_NAME})
+
+target_include_directories(${PROJECT_NAME} PRIVATE third-party/UEVR/include)
+target_include_directories(${PROJECT_NAME} PRIVATE third-party/UEVR/examples/renderlib)
+target_include_directories(${PROJECT_NAME} PRIVATE third-party/imgui/)
+
+# find_package(simulatedreality REQUIRED)
+find_package(srDirectX REQUIRED)
+
+# Copy dll to reshade directory
+set(ADDON_COPY_DIR "" CACHE STRING "Path where the .addon file will be copied to on successful build")
+if(NOT ${ADDON_COPY_DIR} STREQUAL "")
+	add_custom_command(
+		TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${ADDON_COPY_DIR}
+		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE_DIR:${PROJECT_NAME}>/${ADDON_FILE_NAME}.addon ${ADDON_COPY_DIR}
+	)
+	message("Addon will be copied to ${ADDON_COPY_DIR}")
+endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    simulatedreality
+    srDirectX::srDirectX
+)

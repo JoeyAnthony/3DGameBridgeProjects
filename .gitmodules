@@ -7,3 +7,6 @@
 [submodule "sr_reshade_addon/third-party/DirectX-Headers/include/DirectX-Headers"]
 	path = gamebridge_reshade/third-party/DirectX-Headers/include/DirectX-Headers
 	url = https://github.com/microsoft/DirectX-Headers.git
+[submodule "gamebridge_uevr/third-party/UEVR"]
+	path = gamebridge_uevr/third-party/UEVR
+	url = https://github.com/praydog/UEVR.git
