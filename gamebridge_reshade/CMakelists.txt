@@ -26,6 +26,10 @@ add_library(${PROJECT_NAME} SHARED
 # OFF by default as it requires a small change to includes of ReShade
 option(GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE "Enable Get Descriptor Offset" OFF)
 
+if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+	set(BUILD_PLATFORM 32)
+endif()
+
 # Set output name for the addon
 set(ADDON_FILE_NAME "srReshade")
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${ADDON_FILE_NAME})
@@ -69,5 +73,5 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     simulatedreality
-    srDirectX::srDirectX
+    srDirectX${BUILD_PLATFORM}::srDirectX
 )
