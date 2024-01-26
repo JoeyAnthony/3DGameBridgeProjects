@@ -36,12 +36,14 @@ SOFTWARE.
 //#include "imgui/imgui_impl_win32.h"
 
 //#include "rendering/d3d11.hpp"
-//#include "rendering/d3d12.hpp"
+#include "rendering/d3d12.hpp"
 
 #include "uevr/Plugin.hpp"
 
 #include <opencv2/core/cvstd.hpp>
 #include <wrl/client.h>
+
+#include <openxr/openxr.h>
 
 using namespace uevr;
 
@@ -196,6 +198,10 @@ public:
         API::get()->log_error("%s %s", "Hello", "error");
         API::get()->log_warn("%s %s", "Hello", "warning");
         API::get()->log_info("%s %s", "Hello", "info");
+
+        initialize_dx12_members();
+
+        m_initialized = true;
     }
 
     void on_present() override {
@@ -204,6 +210,7 @@ public:
         }
 
         const auto renderer_data = API::get()->param()->renderer;
+        API::get()->param()->openxr->
 
         if (renderer_data->renderer_type == UEVR_RENDERER_D3D11) {
 
@@ -219,6 +226,25 @@ public:
             }
 
             // Render dx12 stuff
+
+            auto& backbuffer = this->get_rt(RTV::BACKBUFFER_0);
+            auto desc = backbuffer->GetDesc();
+
+            // Reset command list
+            cmd_allocator->Reset();
+            cmd_list->Reset(cmd_allocator.Get(), nullptr);
+
+            // Set back buffer as render target
+            auto cpu_desc_handle = get_cpu_rtv(device, (RTV)swapchain->GetCurrentBackBufferIndex());
+            cmd_list->OMSetRenderTargets(1, &cpu_desc_handle, FALSE, nullptr);
+
+            // Clear framebuffer
+            const float clearColor[] = { 0.5, 0.5, 0.5, 1 };
+            cmd_list->ClearRenderTargetView(cpu_desc_handle, clearColor, 0, nullptr);
+
+            cmd_list->Close();
+
+            command_queue->ExecuteCommandLists(1, (ID3D12CommandList* const*)cmd_list.GetAddressOf());
         }
     }
 

@@ -12,6 +12,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME ${ADDON_FILE_NAME})
 target_include_directories(${PROJECT_NAME} PRIVATE third-party/UEVR/include)
 target_include_directories(${PROJECT_NAME} PRIVATE third-party/UEVR/examples/renderlib)
 target_include_directories(${PROJECT_NAME} PRIVATE third-party/imgui/)
+target_include_directories(${PROJECT_NAME} PRIVATE third-party/OpenXR-SDK/include)
 
 # find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
