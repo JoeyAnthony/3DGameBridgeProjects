@@ -284,6 +284,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
 static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     if(weaver_implementation != nullptr) {
         weaver_implementation->on_destroy_swapchain(swapchain);
+        reshade::log_message(reshade::log_level::warning, "SWAPCHAIN DESTROYED!");
     }
 }
 
