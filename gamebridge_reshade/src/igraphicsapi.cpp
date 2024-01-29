@@ -6,3 +6,14 @@
  */
 
 #include "igraphicsapi.h"
+
+/**
+ * Takes a major, minor and patch number from ReShade and concatenates them into a single number for easier processing.
+ */
+int32_t IGraphicsApi::get_concatinated_reshade_version() {
+    std::string result = "";
+    result += std::to_string(reshade_version_nr_major);
+    result += std::to_string(reshade_version_nr_minor);
+    result += std::to_string(reshade_version_nr_patch);
+    return std::stoi(result);
+}
