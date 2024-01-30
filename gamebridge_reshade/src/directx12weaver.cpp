@@ -63,7 +63,7 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         std::string latencyLog = "Current latency mode set to: STATIC " + std::to_string(DEFAULT_WEAVER_LATENCY) + " Microseconds";
         reshade::log_message(reshade::log_level::info, latencyLog.c_str());
     }
-    catch (std::exception e) {
+    catch (std::exception& e) {
         reshade::log_message(reshade::log_level::info, e.what());
         return false;
     }
@@ -128,7 +128,7 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::warning, "Failed creating te effect frame copy");
+        reshade::log_message(reshade::log_level::warning, "Failed creating the effect frame copy");
         return false;
     }
 
@@ -151,7 +151,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         // Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             // TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
-            // Destroy the resource only when the GPu is finished drawing.
+            // Destroy the resource only when the GPU is finished drawing.
             runtime->get_command_queue()->wait_idle();
             d3d12_device->destroy_resource(effect_frame_copy);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
@@ -165,6 +165,8 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         }
         else {
             if (weaving_enabled) {
+                weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
+
                 // Create copy of the effect buffer
                 cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::unordered_access, reshade::api::resource_usage::copy_dest);
 
@@ -177,7 +179,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
                 // Weave to back buffer
                 cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
-                weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
+                //weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
                 weaver->weave(desc.texture.width, desc.texture.height);
 
                 // Check if the descriptor heap offset is set. If it is, we have to reset the descriptor heaps to ensure the ReShade overlay can render.
