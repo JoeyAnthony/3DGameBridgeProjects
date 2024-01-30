@@ -40,6 +40,7 @@ static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
 static bool effects_are_active = false;
 static bool sr_initialized = false;
+static bool effects_are_active = false;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
@@ -347,8 +348,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
 
-        reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
-        reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_overlay(nullptr, &draw_status_overlay);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
