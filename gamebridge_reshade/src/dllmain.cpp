@@ -38,7 +38,7 @@ static const std::string depth_3D_shader_name = "SuperDepth3D";
 static const std::string fxaa_shader_name = "FXAA";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
-static bool sr_initialized = false;
+static bool effects_are_active = false;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
@@ -178,21 +178,11 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
 }
 
 static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
-    bool printStatusInWeaver = true;
-    std::string status_string = "Status: \n";
-    if (sr_context == nullptr) {
-        // Unable to connect to the SR Service. Fall back to drawing the overlay UI ourselves.
-        status_string += "INACTIVE - NO SR SERVICE DETECTED, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nwww.srappstore.com\n";
-        printStatusInWeaver = false;
-    } else if (weaver_implementation) {
+    if (weaver_implementation) {
         weaver_implementation->draw_status_overlay(runtime);
     } else {
         // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
-        status_string += "INACTIVE - UNSUPPORTED GRAPHICS API\n";
-        printStatusInWeaver = false;
-    }
-    if (!printStatusInWeaver) {
-        ImGui::TextUnformatted(status_string.c_str());
+        ImGui::TextUnformatted("Status: INACTIVE - UNSUPPORTED GRAPHICS API");
     }
 }
 
@@ -226,11 +216,11 @@ static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
     }
 }
 
-static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    if(!sr_initialized) {
-        return;
-    }
+static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = false;
+}
 
+static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     std::map<shortcutType, bool> hot_key_list;
 
     //Check if certain hotkeys are being pressed
@@ -240,34 +230,22 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
 
-    weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+    if (effects_are_active) {
+        weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+    }
 }
 
-static bool init_sr() {
+static void init_sr() {
     //Construct SR Context and senses
     if (sr_context == nullptr) {
-        try {
-            sr_context = new SR::SRContext;
-        }
-        catch (SR::ServerNotAvailableException& ex) {
-            // Unable to construct SR Context.
-            reshade::log_message(reshade::log_level::error, "Unable to connect to the SR Service, make sure the SR Platform is installed and running.");
-            sr_initialized = false;
-            return false;
-        }
+        sr_context = new SR::SRContext;
         lens_hint = SR::SwitchableLensHint::create(*sr_context);
         sr_context->initialize();
     }
-
-    // Only register these ReShade event callbacks when we have a valid SR Service, otherwise the app may crash.
-    sr_initialized = true;
-    return true;
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
-    if (!init_sr()) {
-        return;
-    }
+    init_sr();
 
     //Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
     //Register some standard hotkeys
@@ -310,6 +288,10 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     weaver_implementation->on_init_effect_runtime(runtime);
 }
 
+static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::api::effect_technique technique, reshade::api::command_list *cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = true;
+}
+
 static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     if(weaver_implementation != nullptr) {
         weaver_implementation->on_destroy_swapchain(swapchain);
@@ -329,9 +311,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             return FALSE;
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
-        reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
+        reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
+        reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
+        reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
+
         reshade::register_overlay(nullptr, &draw_status_overlay);
 
         //reshade::register_overlay("Test", &draw_debug_overlay);
