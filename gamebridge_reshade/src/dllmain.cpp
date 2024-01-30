@@ -39,6 +39,7 @@ static const std::string sr_shader_name = "SR";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
 static bool effects_are_active = false;
+static bool sr_initialized = false;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
@@ -231,6 +232,10 @@ static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, resh
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    if(!sr_initialized) {
+        return;
+    }
+
     std::map<shortcutType, bool> hot_key_list;
 
     //Check if certain hotkeys are being pressed
@@ -255,6 +260,7 @@ static bool init_sr() {
         catch (SR::ServerNotAvailableException& ex) {
             // Unable to construct SR Context.
             reshade::log_message(reshade::log_level::error, "Unable to connect to the SR Service, make sure the SR Platform is installed and running.");
+            sr_initialized = false;
             return false;
         }
         lens_hint = SR::SwitchableLensHint::create(*sr_context);
@@ -262,9 +268,7 @@ static bool init_sr() {
     }
 
     // Only register these ReShade event callbacks when we have a valid SR Service, otherwise the app may crash.
-    reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
-    reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
-
+    sr_initialized = true;
     return true;
 }
 
@@ -341,6 +345,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
+        reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+        reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
 
         reshade::register_overlay(nullptr, &draw_status_overlay);
