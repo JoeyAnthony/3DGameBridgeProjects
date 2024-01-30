@@ -38,6 +38,7 @@ static const std::string depth_3D_shader_name = "SuperDepth3D";
 static const std::string fxaa_shader_name = "FXAA";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
+static bool effects_are_active = false;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
@@ -215,6 +216,10 @@ static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
     }
 }
 
+static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = false;
+}
+
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     std::map<shortcutType, bool> hot_key_list;
 
@@ -225,7 +230,9 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
 
-    weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+    if (effects_are_active) {
+        weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+    }
 }
 
 static void init_sr() {
@@ -281,6 +288,10 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     weaver_implementation->on_init_effect_runtime(runtime);
 }
 
+static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::api::effect_technique technique, reshade::api::command_list *cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = true;
+}
+
 static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     if(weaver_implementation != nullptr) {
         weaver_implementation->on_destroy_swapchain(swapchain);
@@ -300,9 +311,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             return FALSE;
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
+        reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
+        reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
 
         reshade::register_overlay(nullptr, &draw_status_overlay);
 
