@@ -193,7 +193,7 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
         printStatusInWeaver = false;
     }
     if (!printStatusInWeaver) {
-        ImGui::TextUnformatted(status_string.c_str());
+        ImGui::TextColored(ImColor(240,100,100), "%s", status_string.c_str());
     }
 }
 
