@@ -342,12 +342,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
+        reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
-        reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
-        reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
-        reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
 
         reshade::register_overlay(nullptr, &draw_status_overlay);
 
