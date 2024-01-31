@@ -35,7 +35,7 @@ HotKeyManager* hotKey_manager = nullptr;
 
 //Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static const std::string depth_3D_shader_name = "SuperDepth3D";
-static const std::string fxaa_shader_name = "FXAA";
+static const std::string sr_shader_name = "SR";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
 static bool effects_are_active = false;
@@ -199,20 +199,20 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
 }
 
 static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
-    vector<reshade::api::effect_technique> fxaaTechnique = {};
+    vector<reshade::api::effect_technique> sr_technique = {};
 
     // Todo: This is not a nice way of forcing on_finish_effects to trigger. Maybe make a dummy shader that you always turn on instead (or use a different callback)
-    // Toggle FXAA.fx on
-    enumerate_techniques(runtime, [&fxaaTechnique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
-        if (!name.compare(fxaa_shader_name)) {
-            reshade::log_message(reshade::log_level::info, "Found FXAA.fx shader!");
-            fxaaTechnique.push_back(technique);
+    // Toggle SR.fx on
+    enumerate_techniques(runtime, [&sr_technique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
+        if (!name.compare(sr_shader_name)) {
+            reshade::log_message(reshade::log_level::info, "Found SR.fx shader!");
+            sr_technique.push_back(technique);
         }
-        });
+    });
 
-    for (int effectIterator = 0; effectIterator < fxaaTechnique.size(); effectIterator++) {
-        runtime->set_technique_state(fxaaTechnique[effectIterator], true);
-        reshade::log_message(reshade::log_level::info, "Toggled FXAA to ensure on_finish_effects gets called.");
+    for (int effectIterator = 0; effectIterator < sr_technique.size(); effectIterator++) {
+        runtime->set_technique_state(sr_technique[effectIterator], true);
+        reshade::log_message(reshade::log_level::info, "Toggled SR to ensure on_finish_effects gets called.");
     }
 }
 
