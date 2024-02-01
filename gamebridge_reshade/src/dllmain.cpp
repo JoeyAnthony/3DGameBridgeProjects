@@ -185,13 +185,16 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
         // Unable to connect to the SR Service. Fall back to drawing the overlay UI ourselves.
         status_string += "INACTIVE - NO SR SERVICE DETECTED, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nwww.srappstore.com\n";
         printStatusInWeaver = false;
-    } else if (weaver_implementation) {
+    }
+    else if (weaver_implementation) {
         weaver_implementation->draw_status_overlay(runtime);
-    } else {
+    }
+    else {
         // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
         status_string += "INACTIVE - UNSUPPORTED GRAPHICS API\n";
         printStatusInWeaver = false;
     }
+
     if (!printStatusInWeaver) {
         ImGui::TextColored(ImColor(240,100,100), "%s", status_string.c_str());
     }
