@@ -32,6 +32,8 @@ public:
     int32_t reshade_version_nr_minor = 0;
     int32_t reshade_version_nr_patch = 0;
 
+    int32_t get_concatinated_reshade_version();
+
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void draw_settings_overlay(reshade::api::effect_runtime* runtime) = 0;

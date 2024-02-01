@@ -33,19 +33,12 @@ class DirectX12Weaver: public IGraphicsApi {
     float view_separation = 0.f;
     float vertical_shift = 0.f;
 
-    size_t descriptor_heap_impl_offset_in_bytes = -1;
-    // This must be updated for every new version of ReShade as it can change when the class layout changes!
-    // [key] int32_t represents the version number of ReShade without the periods. [value] int32_t represents the offset in bytes inside the class.
-    const std::map<int32_t, int32_t> known_descriptor_heap_offsets_by_version = {
-            {600, 80},
-    };
-
     reshade::api::command_list* command_list;
     reshade::api::resource_view game_frame_buffer;
 
-    std::vector<reshade::api::resource> effect_copy_resources;
     std::vector<Int32XY> effect_copy_resource_res;
-    bool effect_copy_resources_initialized = false;
+    reshade::api::resource effect_frame_copy;
+    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
     std::vector<Destroy_Resource_Data> to_destroy;
 
@@ -53,12 +46,10 @@ class DirectX12Weaver: public IGraphicsApi {
     void set_latency_mode(LatencyModes mode);
 
 public:
+    bool resize_buffer_failed = false;
     explicit DirectX12Weaver(SR::SRContext* context);
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
-    bool init_effect_copy_resources(reshade::api::effect_runtime* runtime);
-    bool destroy_effect_copy_resources();
-    bool create_effect_copy_resource(reshade::api::effect_runtime* runtime, uint32_t back_buffer_index);
-    int32_t determine_offset_for_descriptor_heap();
+    bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
 
     // Inherited via IGraphicsApi
     void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;

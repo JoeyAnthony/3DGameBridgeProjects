@@ -35,9 +35,10 @@ HotKeyManager* hotKey_manager = nullptr;
 
 //Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static const std::string depth_3D_shader_name = "SuperDepth3D";
-static const std::string fxaa_shader_name = "FXAA";
+static const std::string sr_shader_name = "SR";
 static char g_charBuffer[CHAR_BUFFER_SIZE];
 static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
+static bool effects_are_active = false;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
@@ -198,21 +199,25 @@ static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
 }
 
 static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
-    vector<reshade::api::effect_technique> fxaaTechnique = {};
+    vector<reshade::api::effect_technique> sr_technique = {};
 
     // Todo: This is not a nice way of forcing on_finish_effects to trigger. Maybe make a dummy shader that you always turn on instead (or use a different callback)
-    // Toggle FXAA.fx on
-    enumerate_techniques(runtime, [&fxaaTechnique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
-        if (!name.compare(fxaa_shader_name)) {
-            reshade::log_message(reshade::log_level::info, "Found FXAA.fx shader!");
-            fxaaTechnique.push_back(technique);
+    // Toggle SR.fx on
+    enumerate_techniques(runtime, [&sr_technique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
+        if (!name.compare(sr_shader_name)) {
+            reshade::log_message(reshade::log_level::info, "Found SR.fx shader!");
+            sr_technique.push_back(technique);
         }
-        });
+    });
 
-    for (int effectIterator = 0; effectIterator < fxaaTechnique.size(); effectIterator++) {
-        runtime->set_technique_state(fxaaTechnique[effectIterator], true);
-        reshade::log_message(reshade::log_level::info, "Toggled FXAA to ensure on_finish_effects gets called.");
+    for (int effectIterator = 0; effectIterator < sr_technique.size(); effectIterator++) {
+        runtime->set_technique_state(sr_technique[effectIterator], true);
+        reshade::log_message(reshade::log_level::info, "Toggled SR to ensure on_finish_effects gets called.");
     }
+}
+
+static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = false;
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
@@ -225,7 +230,10 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
 
-    weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+    // Todo: This workaround should be removed in the next ReShade version (> v6.0.1)
+    if (effects_are_active) {
+        weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+    }
 }
 
 static void init_sr() {
@@ -281,6 +289,10 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     weaver_implementation->on_init_effect_runtime(runtime);
 }
 
+static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::api::effect_technique technique, reshade::api::command_list *cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = true;
+}
+
 static void on_destroy_swapchain(reshade::api::swapchain *swapchain) {
     if(weaver_implementation != nullptr) {
         weaver_implementation->on_destroy_swapchain(swapchain);
@@ -300,9 +312,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             return FALSE;
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
+        reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
         reshade::register_event<reshade::addon_event::destroy_swapchain>(&on_destroy_swapchain);
+        reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
 
         reshade::register_overlay(nullptr, &draw_status_overlay);
 
