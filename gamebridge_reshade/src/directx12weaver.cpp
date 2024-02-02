@@ -5,9 +5,6 @@
  * Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Modifications to the source code must be disclosed publicly.
  */
 
-#ifdef GET_DESCRIPTOR_OFFSET_FROM_RESHADE_SOURCE
-#include "reshade/source/d3d12/d3d12_impl_command_list.hpp"
-#endif
 #include "directx12weaver.h"
 #include <sstream>
 
@@ -179,7 +176,6 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
                 // Weave to back buffer
                 cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
-                //weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
                 weaver->weave(desc.texture.width, desc.texture.height);
 
                 // Check if the descriptor heap offset is set. If it is, we have to reset the descriptor heaps to ensure the ReShade overlay can render.
