@@ -188,14 +188,6 @@ void DirectX9Weaver::do_weave(bool doWeave)
     weaving_enabled = doWeave;
 }
 
-// Called before IDirect3DDevice9::Reset
-void DirectX9Weaver::on_destroy_swapchain(reshade::api::swapchain *swapchain) {
-    if (weaver) {
-        // Todo: Remove this
-        //weaver->invalidateDeviceObjects();
-    }
-}
-
 bool DirectX9Weaver::set_latency_in_frames(int32_t numberOfFrames) {
     if (weaver_initialized) {
         if (numberOfFrames < 0) {
