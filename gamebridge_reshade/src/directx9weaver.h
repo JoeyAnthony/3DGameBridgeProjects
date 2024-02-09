@@ -44,14 +44,12 @@ public:
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
     bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
 
-
     // Inherited via IGraphicsApi
     void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
     void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) override;
     void draw_settings_overlay(reshade::api::effect_runtime* runtime) override;
     void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
-    void on_destroy_swapchain(reshade::api::swapchain *swapchain) override;
     void do_weave(bool doWeave) override;
     bool set_latency_in_frames(int32_t numberOfFrames) override;
     bool set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) override;

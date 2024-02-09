@@ -43,9 +43,6 @@ public:
     virtual void do_weave(bool doWeave) = 0;
     virtual ~IGraphicsApi() = default;
 
-    // Only used for dx9
-    virtual void on_destroy_swapchain(reshade::api::swapchain *swapchain) {};
-
     virtual LatencyModes get_latency_mode() = 0;
 
     // The two methods below return true if the latency was succesfully set, they return false if their current latency mode does not permit them to set the latency.

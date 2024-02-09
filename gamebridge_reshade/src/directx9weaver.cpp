@@ -131,12 +131,18 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
 
         //Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            // Invalidate weaver device objects before resizing the resource.
+            weaver->invalidateDeviceObjects();
+
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d9_device->destroy_resource(effect_frame_copy);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
                 reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
             }
+
+            // Restore weaver device objects after resizing the resource.
+            weaver->restoreDeviceObjects();
 
             // Set newly create buffer as input
             weaver->setInputFrameBuffer((IDirect3DTexture9*)effect_frame_copy.handle);
@@ -179,13 +185,6 @@ void DirectX9Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtim
 void DirectX9Weaver::do_weave(bool doWeave)
 {
     weaving_enabled = doWeave;
-}
-
-// Called before IDirect3DDevice9::Reset
-void DirectX9Weaver::on_destroy_swapchain(reshade::api::swapchain *swapchain) {
-    if (weaver) {
-        weaver->invalidateDeviceObjects();
-    }
 }
 
 bool DirectX9Weaver::set_latency_in_frames(int32_t numberOfFrames) {
