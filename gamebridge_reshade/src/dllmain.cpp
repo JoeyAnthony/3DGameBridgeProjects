@@ -171,6 +171,16 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
                 //Log the current mode:
                 reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
             }
+        case shortcutType::toggle_weave_on_shader:
+            // Here we switch between weaving on_render_technique when we see SR.fx and weaving on_finish_effects as usual
+            if (i->second) {
+                weaver_implementation->weaveOnShader = true;
+                reshade::log_message(reshade::log_level::info, "Current weaver timing set to: weave when SuperDepth3D.fx is finished");
+            }
+            else {
+                weaver_implementation->weaveOnShader = false;
+                reshade::log_message(reshade::log_level::info, "Current weaver timing set to: weave when all effects are finished");
+            }
 
         default:
             break;
@@ -234,12 +244,27 @@ static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, resh
     effects_are_active = false;
 }
 
+static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::api::effect_technique technique, reshade::api::command_list *cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = true;
+    if (weaver_implementation->weaveOnShader) {
+        g_charBufferSize = CHAR_BUFFER_SIZE;
+        runtime->get_technique_name(technique, g_charBuffer, &g_charBufferSize);
+        string name(g_charBuffer);
+        if (!name.compare(depth_3D_shader_name)) {
+            weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+        }
+    }
+}
+
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     if(!sr_initialized) {
         return;
     }
 
     std::map<shortcutType, bool> hot_key_list;
+
+    // Make a local copy of the weaveOnShader so that when it's updated by the hotkey, it will not weave twice on the same frame.
+    bool weaveOnShaderLocal = weaver_implementation->weaveOnShader;
 
     //Check if certain hotkeys are being pressed
     if (hotKey_manager != nullptr) {
@@ -249,7 +274,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
     }
 
     // Todo: This workaround should be removed in the next ReShade version (> v6.0.1)
-    if (effects_are_active) {
+    if (effects_are_active && !weaveOnShaderLocal) {
         weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
     }
 }
@@ -319,10 +344,6 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     }
 
     weaver_implementation->on_init_effect_runtime(runtime);
-}
-
-static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::api::effect_technique technique, reshade::api::command_list *cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    effects_are_active = true;
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,

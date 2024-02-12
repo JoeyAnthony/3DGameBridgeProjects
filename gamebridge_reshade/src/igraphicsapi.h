@@ -34,6 +34,8 @@ public:
 
     int32_t get_concatinated_reshade_version();
 
+    bool weaveOnShader = false;
+
     virtual void draw_debug_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) = 0;
     virtual void draw_settings_overlay(reshade::api::effect_runtime* runtime) = 0;
