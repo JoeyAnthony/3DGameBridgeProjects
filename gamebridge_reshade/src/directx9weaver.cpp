@@ -91,6 +91,15 @@ void DirectX9Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) 
         latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
     }
     ImGui::TextUnformatted(latencyModeDisplay.c_str());
+
+    // Log when we are weaving
+    std::string weavingTimingDisplay = "Weaving timing: ";
+    if(weaveOnShader) {
+        weavingTimingDisplay += "after SuperDepth3D shader is drawn";
+    } else {
+        weavingTimingDisplay += "after all ReShade effects are finished";
+    }
+    ImGui::TextUnformatted(weavingTimingDisplay.c_str());
 }
 
 void DirectX9Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)

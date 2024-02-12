@@ -16,11 +16,13 @@ HotKeyManager::HotKeyManager()
     HotKey toggle3D = HotKey(false, shortcutType::toggle_3D, 0x33, false, false, true);
     HotKey toggleLensAnd3D = HotKey(false, shortcutType::toggle_lens_and_3D, 0x34, false, false, true);
     HotKey toggleLatencyMode = HotKey(false, shortcutType::toggle_latency_mode, 0x35, false, false, true);
+    HotKey toggleWeaveOnShader = HotKey(false, shortcutType::toggle_weave_on_shader, 0x36, false, false, true);
     registered_hot_keys.push_back(toggleSRKey);
     registered_hot_keys.push_back(toggleLensKey);
     registered_hot_keys.push_back(toggle3D);
     registered_hot_keys.push_back(toggleLensAnd3D);
     registered_hot_keys.push_back(toggleLatencyMode);
+    registered_hot_keys.push_back(toggleWeaveOnShader);
 }
 
 bool checkModifierKeys(HotKey hotKey, reshade::api::effect_runtime* runtime) {
