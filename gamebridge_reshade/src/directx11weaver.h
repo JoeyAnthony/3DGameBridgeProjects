@@ -27,10 +27,12 @@ class DirectX11Weaver: public IGraphicsApi {
     SR::PredictingDX11Weaver* weaver = nullptr;
     reshade::api::device* d3d11_device = nullptr;
 
+    bool use_srgb_rtv = true;
     bool g_popup_window_visible = false;
     float view_separation = 0.f;
     float vertical_shift = 0.f;
 
+    reshade::api::format current_buffer_format;
     reshade::api::command_list* command_list;
     reshade::api::resource effect_frame_copy;
     reshade::api::resource_view effect_frame_copy_srv;

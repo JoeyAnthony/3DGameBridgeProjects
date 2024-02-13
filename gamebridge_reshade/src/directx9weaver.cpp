@@ -120,8 +120,18 @@ void DirectX9Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtime
 }
 
 void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    reshade::api::resource rtv_resource = d3d9_device->get_resource_from_view(rtv);
+    reshade::api::resource_view chosen_rtv;
+
+    if (use_srgb_rtv) {
+        chosen_rtv = rtv_srgb;
+    } else {
+        chosen_rtv = rtv;
+    }
+
+    reshade::api::resource rtv_resource = d3d9_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = d3d9_device->get_resource_desc(rtv_resource);
+
+    current_buffer_format = desc.texture.format;
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
@@ -133,6 +143,14 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             // Invalidate weaver device objects before resizing the resource.
             weaver->invalidateDeviceObjects();
+
+            // Check buffer format and see if it's in the list of known problematic ones. Change to SRGB rtv if so.
+            if ((std::find(problematic_color_formats.begin(), problematic_color_formats.end(), desc.texture.format) != problematic_color_formats.end())) {
+                // Problematic format detected, switch to SRGB buffer.
+                use_srgb_rtv = true;
+            } else {
+                use_srgb_rtv = false;
+            }
 
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d9_device->destroy_resource(effect_frame_copy);
@@ -156,7 +174,7 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
                 cmd_list->copy_resource(rtv_resource, effect_frame_copy);
 
                 // Bind back buffer as render target
-                cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
+                cmd_list->bind_render_targets_and_depth_stencil(1, &chosen_rtv);
 
                 // Weave to back buffer
                 weaver->weave(desc.texture.width, desc.texture.height);

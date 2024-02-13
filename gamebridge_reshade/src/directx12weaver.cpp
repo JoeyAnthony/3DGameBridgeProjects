@@ -6,7 +6,6 @@
  */
 
 #include "directx12weaver.h"
-#include <sstream>
 
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
 {
@@ -85,6 +84,10 @@ void DirectX12Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
         latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
     }
     ImGui::TextUnformatted(latencyModeDisplay.c_str());
+
+    // Todo: Remove
+    std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
+    ImGui::TextUnformatted(s.c_str());
 }
 
 void DirectX12Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
@@ -135,9 +138,19 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     return true;
 }
 
-void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) {
-    reshade::api::resource rtv_resource = d3d12_device->get_resource_from_view(rtv);
+void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    reshade::api::resource_view chosen_rtv;
+
+    if (use_srgb_rtv) {
+        chosen_rtv = rtv_srgb;
+    } else {
+        chosen_rtv = rtv;
+    }
+
+    reshade::api::resource rtv_resource = d3d12_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = d3d12_device->get_resource_desc(rtv_resource);
+
+    current_buffer_format = desc.texture.format;
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
@@ -147,6 +160,15 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
         // Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            // Check buffer format and see if it's in the list of known problematic ones. Change to SRGB rtv if so.
+            if ((std::find(problematic_color_formats.begin(), problematic_color_formats.end(), desc.texture.format) != problematic_color_formats.end())) {
+                // Problematic format detected, switch to SRGB buffer.
+                use_srgb_rtv = true;
+            } else {
+                use_srgb_rtv = false;
+            }
+
+
             // TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
             // Destroy the resource only when the GPU is finished drawing.
             runtime->get_command_queue()->wait_idle();
@@ -172,7 +194,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 cmd_list->barrier(rtv_resource, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::render_target);
 
                 // Bind back buffer as render target
-                cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
+                cmd_list->bind_render_targets_and_depth_stencil(1, &chosen_rtv);
 
                 // Weave to back buffer
                 cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
@@ -185,7 +207,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     }
     else {
         create_effect_copy_buffer(desc);
-        if (init_weaver(runtime, effect_frame_copy, d3d12_device->get_resource_from_view(rtv))) {
+        if (init_weaver(runtime, effect_frame_copy, d3d12_device->get_resource_from_view(chosen_rtv))) {
             //Set command list and input frame buffer again to make sure they are correct
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
