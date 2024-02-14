@@ -143,7 +143,7 @@ void DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
     reshade::api::resource rtv_resource = d3d10_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = d3d10_device->get_resource_desc(rtv_resource);
 
-    test = desc.texture.format;
+    current_buffer_format = desc.texture.format;
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
