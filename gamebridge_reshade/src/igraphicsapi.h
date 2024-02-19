@@ -9,7 +9,7 @@
 #include "pch.h"
 
 // List of color formats that require color linearization in order restore the correct gamma.
-const std::list<reshade::api::format> problematic_color_formats {
+const std::list<reshade::api::format> srgb_color_formats {
     reshade::api::format::r8g8b8a8_unorm_srgb,
 };
 

@@ -145,7 +145,7 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
             weaver->invalidateDeviceObjects();
 
             // Check buffer format and see if it's in the list of known problematic ones. Change to SRGB rtv if so.
-            if ((std::find(problematic_color_formats.begin(), problematic_color_formats.end(), desc.texture.format) != problematic_color_formats.end())) {
+            if ((std::find(srgb_color_formats.begin(), srgb_color_formats.end(), desc.texture.format) != srgb_color_formats.end())) {
                 // Problematic format detected, switch to SRGB buffer.
                 use_srgb_rtv = true;
             } else {
