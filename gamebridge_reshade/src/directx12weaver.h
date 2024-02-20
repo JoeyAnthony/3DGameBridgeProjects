@@ -34,7 +34,7 @@ class DirectX12Weaver: public IGraphicsApi {
     float view_separation = 0.f;
     float vertical_shift = 0.f;
 
-    reshade::api::format current_buffer_format;
+    reshade::api::format current_buffer_format = reshade::api::format::unknown;
     reshade::api::command_list* command_list;
     reshade::api::resource_view game_frame_buffer;
 

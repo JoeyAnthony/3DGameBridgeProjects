@@ -87,10 +87,15 @@ void DirectX9Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) 
     std::string latencyModeDisplay = "Latency mode: ";
     if(current_latency_mode == LatencyModes::framerateAdaptive) {
         latencyModeDisplay += "IN " + std::to_string(lastLatencyFrameTimeSet) + " MICROSECONDS";
-    } else {
+    }
+    else {
         latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
     }
     ImGui::TextUnformatted(latencyModeDisplay.c_str());
+
+    // Log the buffer type, this can be removed once we've tested a larger amount of games.
+    std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
+    ImGui::TextUnformatted(s.c_str());
 }
 
 void DirectX9Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
@@ -124,14 +129,13 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
 
     if (use_srgb_rtv) {
         chosen_rtv = rtv_srgb;
-    } else {
+    }
+    else {
         chosen_rtv = rtv;
     }
 
     reshade::api::resource rtv_resource = d3d9_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = d3d9_device->get_resource_desc(rtv_resource);
-
-    current_buffer_format = desc.texture.format;
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
@@ -141,14 +145,18 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
 
         //Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            // Update current buffer format
+            current_buffer_format = desc.texture.format;
+
             // Invalidate weaver device objects before resizing the resource.
             weaver->invalidateDeviceObjects();
 
             // Check buffer format and see if it's in the list of known problematic ones. Change to SRGB rtv if so.
             if ((std::find(srgb_color_formats.begin(), srgb_color_formats.end(), desc.texture.format) != srgb_color_formats.end())) {
-                // Problematic format detected, switch to SRGB buffer.
+                // SRGB format detected, switch to SRGB buffer.
                 use_srgb_rtv = true;
-            } else {
+            }
+            else {
                 use_srgb_rtv = false;
             }
 
@@ -209,7 +217,8 @@ bool DirectX9Weaver::set_latency_in_frames(int32_t numberOfFrames) {
     if (weaver_initialized) {
         if (numberOfFrames < 0) {
             set_latency_mode(LatencyModes::latencyInFramesAutomatic);
-        } else {
+        }
+        else {
             set_latency_mode(LatencyModes::latencyInFrames);
             weaver->setLatencyInFrames(numberOfFrames);
         }
