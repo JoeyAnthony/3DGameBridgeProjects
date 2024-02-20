@@ -122,10 +122,15 @@ void DirectX11Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
     std::string latencyModeDisplay = "Latency mode: ";
     if(current_latency_mode == LatencyModes::framerateAdaptive) {
         latencyModeDisplay += "IN " + std::to_string(lastLatencyFrameTimeSet) + " MICROSECONDS";
-    } else {
+    }
+    else {
         latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
     }
     ImGui::TextUnformatted(latencyModeDisplay.c_str());
+
+    // Log the buffer type, this can be removed once we've tested a larger amount of games.
+    std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
+    ImGui::TextUnformatted(s.c_str());
 }
 
 void DirectX11Weaver::draw_sr_settings_overlay(reshade::api::effect_runtime* runtime)
@@ -140,7 +145,16 @@ void DirectX11Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtim
 }
 
 void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    reshade::api::resource rtv_resource = d3d11_device->get_resource_from_view(rtv);
+    reshade::api::resource_view chosen_rtv;
+
+    if (use_srgb_rtv) {
+        chosen_rtv = rtv_srgb;
+    }
+    else {
+        chosen_rtv = rtv;
+    }
+
+    reshade::api::resource rtv_resource = d3d11_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = d3d11_device->get_resource_desc(rtv_resource);
 
     if (weaver_initialized) {
@@ -151,6 +165,18 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
         //Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
+            // Update current buffer format
+            current_buffer_format = desc.texture.format;
+
+            // Check buffer format and see if it's in the list of known problematic ones. Change to SRGB rtv if so.
+            if ((std::find(srgb_color_formats.begin(), srgb_color_formats.end(), desc.texture.format) != srgb_color_formats.end())) {
+                // SRGB format detected, switch to SRGB buffer.
+                use_srgb_rtv = true;
+            }
+            else {
+                use_srgb_rtv = false;
+            }
+
             //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d11_device->destroy_resource(effect_frame_copy);
             d3d11_device->destroy_resource_view(effect_frame_copy_srv);
@@ -171,7 +197,7 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 cmd_list->copy_resource(rtv_resource, effect_frame_copy);
 
                 // Bind back buffer as render target
-                cmd_list->bind_render_targets_and_depth_stencil(1, &rtv);
+                cmd_list->bind_render_targets_and_depth_stencil(1, &chosen_rtv);
 
                 // Weave to back buffer
                 weaver->weave(desc.texture.width, desc.texture.height);
@@ -207,7 +233,8 @@ bool DirectX11Weaver::set_latency_in_frames(int32_t numberOfFrames) {
     if (weaver_initialized) {
         if (numberOfFrames < 0) {
             set_latency_mode(LatencyModes::latencyInFramesAutomatic);
-        } else {
+        }
+        else {
             set_latency_mode(LatencyModes::latencyInFrames);
             weaver->setLatencyInFrames(numberOfFrames);
         }

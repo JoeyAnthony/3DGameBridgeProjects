@@ -29,10 +29,12 @@ class DirectX12Weaver: public IGraphicsApi {
     SR::PredictingDX12Weaver* weaver = nullptr;
     reshade::api::device* d3d12_device = nullptr;
 
+    bool use_srgb_rtv = false;
     bool g_popup_window_visible = false;
     float view_separation = 0.f;
     float vertical_shift = 0.f;
 
+    reshade::api::format current_buffer_format = reshade::api::format::unknown;
     reshade::api::command_list* command_list;
     reshade::api::resource_view game_frame_buffer;
 
@@ -55,7 +57,7 @@ public:
     void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
     void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) override;
     void draw_settings_overlay(reshade::api::effect_runtime* runtime) override;
-    void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) override;
+    void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     void do_weave(bool doWeave) override;
     bool set_latency_in_frames(int32_t numberOfFrames) override;

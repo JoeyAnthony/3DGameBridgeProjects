@@ -8,6 +8,11 @@
 #pragma once
 #include "pch.h"
 
+// List of color formats that require color linearization in order restore the correct gamma.
+const std::list<reshade::api::format> srgb_color_formats {
+    reshade::api::format::r8g8b8a8_unorm_srgb,
+};
+
 const uint32_t DEFAULT_WEAVER_LATENCY = 40000;
 // framerateAdaptive = provide an amount of time in microseconds in between weave() calls.
 // latencyInFrames = provide an amount of buffers or "frames" between the application and presenting to the screen.

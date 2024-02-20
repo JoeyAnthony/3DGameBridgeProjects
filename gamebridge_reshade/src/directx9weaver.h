@@ -31,9 +31,11 @@ class DirectX9Weaver: public IGraphicsApi {
     float view_separation = 0.f;
     float vertical_shift = 0.f;
 
+    reshade::api::format current_buffer_format = reshade::api::format::unknown;
     reshade::api::command_list* command_list{};
     reshade::api::resource effect_frame_copy{};
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
+    bool use_srgb_rtv = true;
     bool resize_buffer_failed = false;
 
     LatencyModes current_latency_mode = LatencyModes::framerateAdaptive;
