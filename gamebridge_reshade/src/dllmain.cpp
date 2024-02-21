@@ -110,10 +110,10 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
 
     for (i = hot_key_list.begin(); i != hot_key_list.end(); i++) {
         switch (i->first) {
-        case shortcutType::toggle_SR:
+        case shortcutType::TOGGLE_SR:
             //Here we want to completely disable all SR related functions including the eye tracker, weaver, context etc.
             break;
-        case shortcutType::toggle_lens:
+        case shortcutType::TOGGLE_LENS:
             //Here we want to toggle to the lens and toggle weaving
             if (i->second) {
                 lens_hint->enable();
@@ -126,7 +126,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
                 weaver_implementation->do_weave(false);
             }
             break;
-        case shortcutType::toggle_3D:
+        case shortcutType::TOGGLE_3D:
             //Here we want to toggle Depth3D or any other 3D effect we use to create our second eye image.
             enumerate_techniques(runtime, [&togglable_3D_effects](reshade::api::effect_runtime *runtime,
                                                                   reshade::api::effect_technique technique,
@@ -145,17 +145,17 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
                 }
             }
             break;
-        case shortcutType::toggle_lens_and_3D:
+        case shortcutType::TOGGLE_LENS_AND_3D:
             //Todo: This should look at the current state of the lens toggle and 3D toggle, then, flip those.This toggle having its own state isn't great.
             if (i->second) {
-                toggle_map = {{shortcutType::toggle_lens, true}, {shortcutType::toggle_3D, true} };
+                toggle_map = {{shortcutType::TOGGLE_LENS, true}, {shortcutType::TOGGLE_3D, true} };
             }
             else {
-                toggle_map = {{shortcutType::toggle_lens, false}, {shortcutType::toggle_3D, false} };
+                toggle_map = {{shortcutType::TOGGLE_LENS, false}, {shortcutType::TOGGLE_3D, false} };
             }
                 execute_hot_key_function_by_type(toggle_map, runtime);
             break;
-        case shortcutType::toggle_latency_mode:
+        case shortcutType::TOGGLE_LATENCY_MODE:
             //Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
             if (i->second) {
                 // Set the latency in frames to -1 to use ReShade's swap_chain buffer count.
@@ -166,7 +166,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
             else {
                 // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
-                weaver_implementation->set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
+                weaver_implementation->set_latency_frametime_adaptive(g_default_weaver_latency);
 
                 //Log the current mode:
                 reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
@@ -200,18 +200,6 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     }
 }
 
-static void draw_debug_overlay(reshade::api::effect_runtime* runtime) {
-    //weaver_implementation->draw_debug_overlay(runtime);
-}
-
-static void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) {
-    //weaver_implementation->draw_sr_settings_overlay(runtime);
-}
-
-static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
-    //weaver_implementation->draw_settings_overlay(runtime);
-}
-
 static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
     vector<reshade::api::effect_technique> sr_technique = {};
 
@@ -235,7 +223,7 @@ static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, resh
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    if(!sr_initialized) {
+    if (!sr_initialized) {
         return;
     }
 
@@ -345,15 +333,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_overlay(nullptr, &draw_status_overlay);
 
-        //reshade::register_overlay("Test", &draw_debug_overlay);
-        //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
-        //reshade::log_message(3, "registered: draw_sr_settings_overlay");
-
         break;
     case DLL_PROCESS_DETACH:
         reshade::unregister_addon(hModule);
-        //reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(on_reshade_finish_effects);
-        //reshade::unregister_event<reshade::addon_event::init_effect_runtime>(on_init_effect_runtime);
         break;
     }
     return TRUE;

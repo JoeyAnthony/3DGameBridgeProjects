@@ -6,58 +6,68 @@
  */
 
 #pragma once
-#include "pch.h"
-
-// Directx
-#include <d3d10_1.h>
-#include <d3d10.h>
-#include <DirectXMath.h>
 
 // Weaver
 #include "sr/weaver/dx10weaver.h"
-
 // srReshade
 #include "igraphicsapi.h"
+#include "pch.h"
+
+// Directx
+#include <DirectXMath.h>
 
 class DirectX10Weaver: public IGraphicsApi {
-    uint32_t lastLatencyFrameTimeSet = DEFAULT_WEAVER_LATENCY;
+    uint32_t last_latency_frame_time_set = g_default_weaver_latency;
+    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
     bool weaver_initialized = false;
     bool weaving_enabled = false;
-    SR::SRContext* sr_context;
-    SR::PredictingDX10Weaver* weaver = nullptr;
-    reshade::api::device* d3d10_device = nullptr;
-
+    bool popup_window_visible = false;
+    bool resize_buffer_failed = false;
     bool use_srgb_rtv = true;
-    bool g_popup_window_visible = false;
+
     float view_separation = 0.f;
     float vertical_shift = 0.f;
 
+    SR::SRContext* sr_context;
+    SR::PredictingDX10Weaver* weaver = nullptr;
+
+    reshade::api::device* d3d10_device = nullptr;
     reshade::api::format current_buffer_format = reshade::api::format::unknown;
     reshade::api::command_list* command_list{};
     reshade::api::resource effect_frame_copy{};
     reshade::api::resource_view effect_frame_copy_srv{};
-    uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
-    bool resize_buffer_failed = false;
 
-    LatencyModes current_latency_mode = LatencyModes::framerateAdaptive;
+    LatencyModes current_latency_mode = LatencyModes::FRAMERATE_ADAPTIVE;
+
+    /// \brief Private function to set the internal latency mode of the weaver
+    /// \param mode The latency mode to persist
     void set_latency_mode(LatencyModes mode);
 
 public:
+    /// \brief Explicit constructor
+    /// \param context Pointer to an already initialized SRContext
     explicit DirectX10Weaver(SR::SRContext* context);
+
+    /// \brief Initialized the SR weaver appropriate for the graphics API
+    /// \param runtime Represents the reshade effect runtime
+    /// \param rtv Represents the current render target view
+    /// \param cmd_list Represents the current command list from ReShade
+    /// \return A bool representing if the weaver was initialized successfully
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
+
+    /// \brief Method that creates a copy of the RTV so we can weave on it
+    /// \param effect_resource_desc ReShade resource representing the currently selected RTV
+    /// \return A bool respresenting if the effect frame copy was successful
     bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
 
 
     // Inherited via IGraphicsApi
-    void draw_debug_overlay(reshade::api::effect_runtime* runtime) override;
-    void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) override;
-    void draw_settings_overlay(reshade::api::effect_runtime* runtime) override;
+    void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
     void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
-    void do_weave(bool doWeave) override;
-    bool set_latency_in_frames(int32_t numberOfFrames) override;
-    bool set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) override;
-    void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
+    void do_weave(bool do_weave) override;
+    bool set_latency_in_frames(int32_t number_of_frames) override;
+    bool set_latency_frametime_adaptive(uint32_t frametime_in_microseconds) override;
     LatencyModes get_latency_mode() override;
 };

@@ -7,9 +7,8 @@
 
 #include "directx12weaver.h"
 
-DirectX12Weaver::DirectX12Weaver(SR::SRContext* context)
-{
-    //Set context here.
+DirectX12Weaver::DirectX12Weaver(SR::SRContext* context) {
+    // Set context here.
     sr_context = context;
     weaving_enabled = true;
 }
@@ -26,21 +25,21 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         return false;
     }
 
-    ID3D12CommandAllocator* CommandAllocator;
-    dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&CommandAllocator));
-    if (CommandAllocator == nullptr) {
+    ID3D12CommandAllocator* command_allocator;
+    dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocator));
+    if (command_allocator == nullptr) {
         reshade::log_message(reshade::log_level::info, "Couldn't ceate command allocator");
         return false;
     }
 
     // Describe and create the command queue.
-    ID3D12CommandQueue* CommandQueue;
-    D3D12_COMMAND_QUEUE_DESC QueueDesc = {};
-    QueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    QueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    ID3D12CommandQueue* command_queue;
+    D3D12_COMMAND_QUEUE_DESC queue_desc = {};
+    queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-    dev->CreateCommandQueue(&QueueDesc, IID_PPV_ARGS(&CommandQueue));
-    if (CommandQueue == nullptr)
+    dev->CreateCommandQueue(&queue_desc, IID_PPV_ARGS(&command_queue));
+    if (command_queue == nullptr)
     {
         reshade::log_message(reshade::log_level::info, "Couldn't create command queue");
         return false;
@@ -49,15 +48,14 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
     ID3D12Resource* native_back_buffer = (ID3D12Resource*)back_buffer.handle;
     try {
-        weaver = new SR::PredictingDX12Weaver(*sr_context, dev, CommandAllocator, CommandQueue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
         // Set mode to latency in frames by default.
-        set_latency_mode(LatencyModes::framerateAdaptive);
-        set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
-        std::string latencyLog = "Current latency mode set to: STATIC " + std::to_string(DEFAULT_WEAVER_LATENCY) + " Microseconds";
-        reshade::log_message(reshade::log_level::info, latencyLog.c_str());
+        set_latency_frametime_adaptive(g_default_weaver_latency);
+        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(g_default_weaver_latency) + " Microseconds";
+        reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
     catch (std::exception& e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -77,44 +75,18 @@ void DirectX12Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
     ImGui::TextUnformatted("Status: ACTIVE");
 
     // Log the latency mode
-    std::string latencyModeDisplay = "Latency mode: ";
-    if(current_latency_mode == LatencyModes::framerateAdaptive) {
-        latencyModeDisplay += "IN " + std::to_string(lastLatencyFrameTimeSet) + " MICROSECONDS";
+    std::string latency_mode_display = "Latency mode: ";
+    if (current_latency_mode == LatencyModes::FRAMERATE_ADAPTIVE) {
+        latency_mode_display += "IN " + std::to_string(last_latency_frame_time_set) + " MICROSECONDS";
     }
     else {
-        latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
+        latency_mode_display += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
     }
-    ImGui::TextUnformatted(latencyModeDisplay.c_str());
+    ImGui::TextUnformatted(latency_mode_display.c_str());
 
     // Log the buffer type, this can be removed once we've tested a larger amount of games.
     std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
     ImGui::TextUnformatted(s.c_str());
-}
-
-void DirectX12Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
-{
-    ImGui::TextUnformatted("Some text");
-
-    if (ImGui::Button("Press me to open an additional popup window"))
-        g_popup_window_visible = true;
-
-    if (g_popup_window_visible)
-    {
-        ImGui::Begin("Popup", &g_popup_window_visible);
-        ImGui::TextUnformatted("Some other text");
-        ImGui::End();
-    }
-}
-
-void DirectX12Weaver::draw_sr_settings_overlay(reshade::api::effect_runtime* runtime)
-{
-    ImGui::Checkbox("Turn on SR", &g_popup_window_visible);
-    ImGui::SliderFloat("View Separation", &view_separation, -50.f, 50.f);
-    ImGui::SliderFloat("Vertical Shift", &vertical_shift, -50.f, 50.f);
-}
-
-void DirectX12Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtime)
-{
 }
 
 bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc) {
@@ -154,7 +126,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
-        if(get_latency_mode() == LatencyModes::latencyInFramesAutomatic) {
+        if (get_latency_mode() == LatencyModes::LATENCY_IN_FRAMES_AUTOMATIC) {
             weaver->setLatencyInFrames(runtime->get_back_buffer_count()); // Set the latency with which the weaver should do prediction.
         }
 
@@ -172,8 +144,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
                 use_srgb_rtv = false;
             }
 
-
-            // TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
+            // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
             // Destroy the resource only when the GPU is finished drawing.
             runtime->get_command_queue()->wait_idle();
             d3d12_device->destroy_resource(effect_frame_copy);
@@ -230,64 +201,29 @@ void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
     d3d12_device = runtime->get_device();
 }
 
-void DirectX12Weaver::do_weave(bool doWeave)
-{
-    weaving_enabled = doWeave;
+void DirectX12Weaver::do_weave(bool do_weave) {
+    weaving_enabled = do_weave;
 }
 
-/**
- * Find the closest element to a given value in a sorted array.
- *
- * @param sorted_array A sorted vector of integers.
- * @param target_value The value to find the closest element to.
- * @return The closest element in the array to the target value.
- * @throws std::invalid_argument if the array is empty.
- */
-int32_t find_closest(const std::vector<int32_t>& sorted_array, int target_value) {
-    // Check if the array is empty
-    if (sorted_array.empty()) {
-        throw std::invalid_argument("Unable to find closest, array is empty.");
-    }
-
-    // Use binary search to find the lower bound of the target value
-    const auto lower_bound = std::lower_bound(sorted_array.begin(), sorted_array.end(), target_value);
-
-    // Initialize the answer with the closest value found so far
-    int32_t closest_value = (lower_bound != sorted_array.end()) ? *lower_bound : sorted_array.back();
-
-    // Check if there is a predecessor to the lower bound
-    if (lower_bound != sorted_array.begin()) {
-        auto predecessor = lower_bound - 1;
-
-        // Update the answer if the predecessor is closer to the target value
-        if (std::abs(closest_value - target_value) > std::abs(*predecessor - target_value)) {
-            closest_value = *predecessor;
-        }
-    }
-
-    // Return the closest value found
-    return closest_value;
-}
-
-bool DirectX12Weaver::set_latency_in_frames(int32_t numberOfFrames) {
+bool DirectX12Weaver::set_latency_in_frames(int32_t number_of_frames) {
     if (weaver_initialized) {
-        if (numberOfFrames < 0) {
-            set_latency_mode(LatencyModes::latencyInFramesAutomatic);
+        if (number_of_frames < 0) {
+            set_latency_mode(LatencyModes::LATENCY_IN_FRAMES_AUTOMATIC);
         }
         else {
-            set_latency_mode(LatencyModes::latencyInFrames);
-            weaver->setLatencyInFrames(numberOfFrames);
+            set_latency_mode(LatencyModes::LATENCY_IN_FRAMES);
+            weaver->setLatencyInFrames(number_of_frames);
         }
         return true;
     }
     return false;
 }
 
-bool DirectX12Weaver::set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) {
+bool DirectX12Weaver::set_latency_frametime_adaptive(uint32_t frametime_in_microseconds) {
     if (weaver_initialized) {
-        set_latency_mode(LatencyModes::framerateAdaptive);
-        weaver->setLatency(frametimeInMicroseconds);
-        lastLatencyFrameTimeSet = frametimeInMicroseconds;
+        set_latency_mode(LatencyModes::FRAMERATE_ADAPTIVE);
+        weaver->setLatency(frametime_in_microseconds);
+        last_latency_frame_time_set = frametime_in_microseconds;
         return true;
     }
     return false;
