@@ -44,6 +44,10 @@ class DirectX12Weaver: public IGraphicsApi {
     /// \param mode The latency mode to persist
     void set_latency_mode(LatencyModes mode);
 
+    /// \brief Checks the current rtv buffer color format and chooses the correct rtv for weaving based on that.
+    /// \param desc Represents the current ReShade resource view
+    void DirectX12Weaver::check_color_format(reshade::api::resource_desc desc);
+
 public:
     /// \brief Explicit constructor
     /// \param context Pointer to an already initialized SRContext

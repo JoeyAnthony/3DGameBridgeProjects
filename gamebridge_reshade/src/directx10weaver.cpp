@@ -131,14 +131,8 @@ void DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
             // Update current buffer format
             current_buffer_format = desc.texture.format;
 
-            // Check buffer format and see if it's in the list of known problematic ones. Change to SRGB rtv if so.
-            if ((std::find(srgb_color_formats.begin(), srgb_color_formats.end(), desc.texture.format) != srgb_color_formats.end())) {
-                // SRGB format detected, switch to SRGB buffer.
-                use_srgb_rtv = true;
-            }
-            else {
-                use_srgb_rtv = false;
-            }
+            // Update color format settings
+            check_color_format(desc);
 
             // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d10_device->destroy_resource(effect_frame_copy);
@@ -168,6 +162,12 @@ void DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         }
     }
     else {
+        // Set current buffer format
+        current_buffer_format = desc.texture.format;
+
+        // Set color format settings
+        check_color_format(desc);
+
         create_effect_copy_buffer(desc);
         if (init_weaver(runtime, effect_frame_copy, cmd_list)) {
             // Set context and input frame buffer again to make sure they are correct
@@ -217,6 +217,17 @@ bool DirectX10Weaver::set_latency_frametime_adaptive(uint32_t frametime_in_micro
 
 void DirectX10Weaver::set_latency_mode(LatencyModes mode) {
     current_latency_mode = mode;
+}
+
+void DirectX10Weaver::check_color_format(reshade::api::resource_desc desc) {
+    // Check buffer format and see if it's in the list of known SRGB ones. Change to SRGB rtv if so.
+    if ((std::find(srgb_color_formats.begin(), srgb_color_formats.end(), desc.texture.format) != srgb_color_formats.end())) {
+        // SRGB format detected, switch to SRGB buffer.
+        use_srgb_rtv = true;
+    }
+    else {
+        use_srgb_rtv = false;
+    }
 }
 
 LatencyModes DirectX10Weaver::get_latency_mode() {

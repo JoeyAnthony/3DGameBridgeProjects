@@ -24,7 +24,7 @@ class DirectX9Weaver: public IGraphicsApi {
     bool weaving_enabled = false;
     bool popup_window_visible = false;
     bool resize_buffer_failed = false;
-    bool use_srgb_rtv = true;
+    bool use_srgb_rtv = false;
 
     float view_separation = 0.f;
     float vertical_shift = 0.f;
@@ -43,6 +43,10 @@ class DirectX9Weaver: public IGraphicsApi {
     /// \brief Private function to set the internal latency mode of the weaver
     /// \param mode The latency mode to persist
     void set_latency_mode(LatencyModes mode);
+
+    /// \brief Checks the current rtv buffer color format and chooses the correct rtv for weaving based on that.
+    /// \param desc Represents the current ReShade resource view
+    void DirectX9Weaver::check_color_format(reshade::api::resource_desc desc);
 
 public:
     /// \brief Explicit constructor
