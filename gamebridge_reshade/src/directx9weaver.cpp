@@ -126,7 +126,7 @@ void DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* run
             // Update color format settings.
             check_color_format(desc);
 
-            //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
+            // TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d9_device->destroy_resource(effect_frame_copy);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
                 reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");

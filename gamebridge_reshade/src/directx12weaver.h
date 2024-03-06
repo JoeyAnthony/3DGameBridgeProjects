@@ -44,7 +44,7 @@ class DirectX12Weaver: public IGraphicsApi {
     /// \param mode The latency mode to persist
     void set_latency_mode(LatencyModes mode);
 
-    /// \brief Checks the current rtv buffer color format and chooses the correct rtv for weaving based on that.
+    /// \brief Checks the current color format of the RTV's back buffer and chooses the correct buffer from ReShade for weaving based on that.
     /// \param desc Represents the current ReShade resource view
     void DirectX12Weaver::check_color_format(reshade::api::resource_desc desc);
 
@@ -55,8 +55,8 @@ public:
 
     /// \brief Initialized the SR weaver appropriate for the graphics API
     /// \param runtime Represents the reshade effect runtime
-    /// \param rtv Represents the current render target view
-    /// \param back_buffer Represents the current back buffer from ReShade
+    /// \param rtv Represents the buffer that the weaver uses as a source to weave with
+    /// \param back_buffer Represents the current back buffer from ReShade, this is used by the weaver as output location
     /// \return A bool representing if the weaver was initialized successfully
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
 

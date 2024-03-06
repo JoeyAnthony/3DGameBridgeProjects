@@ -192,7 +192,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
         create_effect_copy_buffer(desc);
         if (init_weaver(runtime, effect_frame_copy, d3d12_device->get_resource_from_view(chosen_rtv))) {
-            //Set command list and input frame buffer again to make sure they are correct
+            // Set command list and input frame buffer again to make sure they are correct
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
         }

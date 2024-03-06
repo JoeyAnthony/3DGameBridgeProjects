@@ -51,9 +51,9 @@ std::map<shortcutType, bool> HotKeyManager::check_hot_keys(reshade::api::effect_
     // This might be pretty slow but for now it will do since we only ever have 3 hotkeys.
     for (int i = 0; i < registered_hot_keys.size(); i++) {
         if (runtime->is_key_pressed(registered_hot_keys[i].get_key())) {
-            //Hotkey is being pressed, now check for the modifier keys.
+            // Hotkey is being pressed, now check for the modifier keys.
             if (check_modifier_keys(registered_hot_keys[i], runtime)) {
-                //All conditions are met, execute hotkey logic.
+                // All conditions are met, execute hotkey logic.
                 registered_hot_keys[i].toggle_hot_key();
                 toggled_hot_keys[registered_hot_keys[i].get_type()] = registered_hot_keys[i].get_enabled();
             }
