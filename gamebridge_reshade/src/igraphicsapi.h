@@ -20,12 +20,6 @@ const uint32_t g_default_weaver_latency = 40000;
 // latencyInFramesAutomatic = gets the amount of buffers or "frames" from the backbuffer using the ReShade api every frame.
 enum LatencyModes { FRAMERATE_ADAPTIVE, LATENCY_IN_FRAMES, LATENCY_IN_FRAMES_AUTOMATIC };
 
-struct Int32XY
-{
-    uint32_t x = 0;
-    uint32_t y = 0;
-};
-
 struct Destroy_Resource_Data
 {
     reshade::api::resource resource;
@@ -71,19 +65,15 @@ public:
     virtual ~IGraphicsApi() = default;
 
     /// \brief Sets the weaver latency mode to latency in frames.
-    ///
     /// This does NOT look at the current framerate or frametime, it is best used when you are able to consistently reach your monitor's VSYNC
     /// Sets the latency mode to latencyInFramesAutomatic if number_of_frames is negative.
-    ///
     /// \param number_of_frames The amount of frames or "buffers" between the application and the moment they are presented on-screen. If set to -1, this will use the back buffer count taken from the ReShade API automatically
     /// \return Returns true if the latency was succesfully set, returns false if its current latency mode does not permit it to set the latency.
     virtual bool set_latency_in_frames(int32_t number_of_frames) = 0;
 
     /// \brief Sets the weaver latency to a static number of microseconds
-    ///
     /// This method can be called every frame with the current frametime
     /// The default is 40000 microseconds which is optimized for 60FPS VSYNCED gameplay
-    ///
     /// \param frametime_in_microseconds The amount of microseconds it takes for a frame to be rendered and shown on screen. This is used for eye tracking prediction so accuracy is key.
     /// \return Returns true if the latency was succesfully set, returns false if its current latency mode does not permit it to set the latency.
     virtual bool set_latency_frametime_adaptive(uint32_t frametime_in_microseconds) = 0;

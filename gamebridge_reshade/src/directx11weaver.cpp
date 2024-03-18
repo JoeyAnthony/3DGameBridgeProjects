@@ -7,7 +7,8 @@
 
 #include "directx11weaver.h"
 
-#include <numeric>
+// Directx
+#include <DirectXMath.h>
 
 DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
     // Set context here.

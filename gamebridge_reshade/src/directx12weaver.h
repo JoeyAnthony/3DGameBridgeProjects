@@ -13,9 +13,6 @@
 #include "igraphicsapi.h"
 #include "pch.h"
 
-// Directx
-#include <DirectXMath.h>
-
 class DirectX12Weaver: public IGraphicsApi {
     uint32_t last_latency_frame_time_set = g_default_weaver_latency;
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
@@ -56,12 +53,12 @@ public:
     /// \brief Initialized the SR weaver appropriate for the graphics API
     /// \param runtime Represents the reshade effect runtime
     /// \param rtv Represents the buffer that the weaver uses as a source to weave with
-    /// \param back_buffer Represents the current back buffer from ReShade, this is used by the weaver as output location
+    /// \param back_buffer Represents the current back buffer from ReShade
     /// \return A bool representing if the weaver was initialized successfully
     bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
 
-    /// \brief Method that creates a copy of the RTV so we can weave on it
-    /// \param effect_resource_desc ReShade resource representing the currently selected RTV
+    /// \brief Creates and reset the effect copy resource so it is similar to the back buffer resource, then use it as weaver input.
+    /// \param effect_resource_desc ReShade resource representing the currently selected back buffer description
     /// \return A bool respresenting if the effect frame copy was successful
     bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
 

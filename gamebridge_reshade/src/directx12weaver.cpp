@@ -7,6 +7,9 @@
 
 #include "directx12weaver.h"
 
+// Directx
+#include <DirectXMath.h>
+
 DirectX12Weaver::DirectX12Weaver(SR::SRContext* context) {
     // Set context here.
     sr_context = context;
