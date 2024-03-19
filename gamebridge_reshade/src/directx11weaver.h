@@ -14,7 +14,7 @@
 #include "pch.h"
 
 class DirectX11Weaver: public IGraphicsApi {
-    uint32_t last_latency_frame_time_set = g_default_weaver_latency;
+    uint32_t last_latency_frame_time_set = default_weaver_latency;
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
     bool weaver_initialized = false;

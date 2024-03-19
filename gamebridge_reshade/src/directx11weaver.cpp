@@ -82,8 +82,8 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
         // Set mode to latency in frames by default.
-        set_latency_frametime_adaptive(g_default_weaver_latency);
-        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(g_default_weaver_latency) + " Microseconds";
+        set_latency_frametime_adaptive(default_weaver_latency);
+        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
         reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
     catch (std::exception &e) {

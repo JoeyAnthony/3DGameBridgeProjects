@@ -36,8 +36,8 @@ HotKeyManager* hotKey_manager = nullptr;
 // Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static const std::string depth_3D_shader_name = "SuperDepth3D";
 static const std::string sr_shader_name = "SR";
-static char g_charBuffer[CHAR_BUFFER_SIZE];
-static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
+static char char_buffer[CHAR_BUFFER_SIZE];
+static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool effects_are_active = false;
 static bool sr_initialized = false;
 
@@ -94,9 +94,9 @@ vector<size_t> get_module_version_info(LPCWSTR moduleName) {
 static void enumerate_techniques(reshade::api::effect_runtime* runtime, std::function<void(reshade::api::effect_runtime*, reshade::api::effect_technique, string&)> func)
 {
     runtime->enumerate_techniques(nullptr, [func](reshade::api::effect_runtime* rt, reshade::api::effect_technique technique) {
-        g_charBufferSize = CHAR_BUFFER_SIZE;
-        rt->get_technique_name(technique, g_charBuffer, &g_charBufferSize);
-        string name(g_charBuffer);
+        char_buffer_size = CHAR_BUFFER_SIZE;
+        rt->get_technique_name(technique, char_buffer, &char_buffer_size);
+        string name(char_buffer);
         func(rt, technique, name);
         });
 }
@@ -166,7 +166,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
             else {
                 // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
-                weaver_implementation->set_latency_frametime_adaptive(g_default_weaver_latency);
+                weaver_implementation->set_latency_frametime_adaptive(default_weaver_latency);
 
                 // Log the current mode:
                 reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
