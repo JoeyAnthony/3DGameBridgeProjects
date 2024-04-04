@@ -17,7 +17,7 @@
 #define IMGUI_DISABLE_INCLUDE_IMCONFIG_H
 #define ImTextureID unsigned long long // Change ImGui texture ID type to that of a 'reshade::api::resource_view' handle
 
-// add headers that you want to pre-compile here
+// Add headers that you want to pre-compile here
 #include "framework.h"
 
 // Reshade
@@ -27,13 +27,12 @@
 // SR
 #include "sr/sense/eyetracker/eyetracker.h"
 #include "sr/sense/core/inputstream.h"
-//#include "sr/sense/system/systemsense.h"
 //#include "sr/sense/system/systemevent.h" //Systemsense causes many warnings
 #include "sr/sense/display/switchablehint.h"
 #include "sr/utility/exception.h"
 #include "sr/types.h"
 
 // Global shortcut definition
-enum shortcutType { toggle_SR, toggle_lens, toggle_3D, toggle_lens_and_3D, toggle_latency_mode };
+enum shortcutType { TOGGLE_SR, TOGGLE_LENS, TOGGLE_3D, TOGGLE_LENS_AND_3D, TOGGLE_LATENCY_MODE };
 
 #endif //PCH_H

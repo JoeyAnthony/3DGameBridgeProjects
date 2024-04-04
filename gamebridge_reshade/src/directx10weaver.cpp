@@ -7,14 +7,16 @@
 
 #include "directx10weaver.h"
 
+// Directx
+#include <DirectXMath.h>
+
 DirectX10Weaver::DirectX10Weaver(SR::SRContext* context) {
-    //Set context here.
+    // Set context here.
     sr_context = context;
     weaving_enabled = true;
 }
 
-bool DirectX10Weaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc)
-{
+bool DirectX10Weaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc) {
     reshade::api::resource_desc desc = effect_resource_desc;
     desc.type = reshade::api::resource_type::texture_2d;
     desc.heap = reshade::api::memory_heap::gpu_only;
@@ -68,17 +70,16 @@ bool DirectX10Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
 
     try {
         weaver = new SR::PredictingDX10Weaver(*sr_context, dev, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
-        weaver->setInputFrameBuffer((ID3D10ShaderResourceView*)rtv.handle); //resourceview of the buffer
+        weaver->setInputFrameBuffer((ID3D10ShaderResourceView*)rtv.handle); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
         // Set mode to latency in frames by default.
-        set_latency_mode(LatencyModes::framerateAdaptive);
-        set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
-        std::string latencyLog = "Current latency mode set to: STATIC " + std::to_string(DEFAULT_WEAVER_LATENCY) + " Microseconds";
-        reshade::log_message(reshade::log_level::info, latencyLog.c_str());
+        set_latency_frametime_adaptive(default_weaver_latency);
+        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
+        reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
-    catch (std::exception e) {
+    catch (std::exception &e) {
         reshade::log_message(reshade::log_level::info, e.what());
         return false;
     }
@@ -97,8 +98,8 @@ void DirectX10Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
 
     // Log the latency mode
     std::string latencyModeDisplay = "Latency mode: ";
-    if(current_latency_mode == LatencyModes::framerateAdaptive) {
-        latencyModeDisplay += "IN " + std::to_string(lastLatencyFrameTimeSet) + " MICROSECONDS";
+    if (current_latency_mode == LatencyModes::FRAMERATE_ADAPTIVE) {
+        latencyModeDisplay += "IN " + std::to_string(last_latency_frame_time_set) + " MICROSECONDS";
     }
     else {
         latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
@@ -108,32 +109,6 @@ void DirectX10Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
     // Log the buffer type, this can be removed once we've tested a larger amount of games.
     std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
     ImGui::TextUnformatted(s.c_str());
-}
-
-void DirectX10Weaver::draw_debug_overlay(reshade::api::effect_runtime* runtime)
-{
-    ImGui::TextUnformatted("Some text");
-
-    if (ImGui::Button("Press me to open an additional popup window"))
-        g_popup_window_visible = true;
-
-    if (g_popup_window_visible)
-    {
-        ImGui::Begin("Popup", &g_popup_window_visible);
-        ImGui::TextUnformatted("Some other text");
-        ImGui::End();
-    }
-}
-
-void DirectX10Weaver::draw_sr_settings_overlay(reshade::api::effect_runtime* runtime)
-{
-    ImGui::Checkbox("Turn on SR", &g_popup_window_visible);
-    ImGui::SliderFloat("View Separation", &view_separation, -50.f, 50.f);
-    ImGui::SliderFloat("Vertical Shift", &vertical_shift, -50.f, 50.f);
-}
-
-void DirectX10Weaver::draw_settings_overlay(reshade::api::effect_runtime* runtime)
-{
 }
 
 void DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
@@ -150,25 +125,19 @@ void DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
-        if(get_latency_mode() == LatencyModes::latencyInFramesAutomatic) {
+        if (get_latency_mode() == LatencyModes::LATENCY_IN_FRAMES_AUTOMATIC) {
             weaver->setLatencyInFrames(runtime->get_back_buffer_count()); // Set the latency with which the weaver should do prediction.
         }
 
-        //Check texture size
+        // Check texture size
         if (desc.texture.width != effect_frame_copy_x || desc.texture.height != effect_frame_copy_y) {
             // Update current buffer format
             current_buffer_format = desc.texture.format;
 
-            // Check buffer format and see if it's in the list of known problematic ones. Change to SRGB rtv if so.
-            if ((std::find(srgb_color_formats.begin(), srgb_color_formats.end(), desc.texture.format) != srgb_color_formats.end())) {
-                // SRGB format detected, switch to SRGB buffer.
-                use_srgb_rtv = true;
-            }
-            else {
-                use_srgb_rtv = false;
-            }
+            // Update color format settings
+            check_color_format(desc);
 
-            //TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
+            // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d10_device->destroy_resource(effect_frame_copy);
             d3d10_device->destroy_resource_view(effect_frame_copy_srv);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
@@ -196,6 +165,12 @@ void DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         }
     }
     else {
+        // Set current buffer format
+        current_buffer_format = desc.texture.format;
+
+        // Set color format settings
+        check_color_format(desc);
+
         create_effect_copy_buffer(desc);
         if (init_weaver(runtime, effect_frame_copy, cmd_list)) {
             // Set context and input frame buffer again to make sure they are correct
@@ -214,30 +189,30 @@ void DirectX10Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runti
     d3d10_device = runtime->get_device();
 }
 
-void DirectX10Weaver::do_weave(bool doWeave)
+void DirectX10Weaver::do_weave(bool do_weave)
 {
-    weaving_enabled = doWeave;
+    weaving_enabled = do_weave;
 }
 
-bool DirectX10Weaver::set_latency_in_frames(int32_t numberOfFrames) {
+bool DirectX10Weaver::set_latency_in_frames(int32_t number_of_frames) {
     if (weaver_initialized) {
-        if (numberOfFrames < 0) {
-            set_latency_mode(LatencyModes::latencyInFramesAutomatic);
+        if (number_of_frames < 0) {
+            set_latency_mode(LatencyModes::LATENCY_IN_FRAMES_AUTOMATIC);
         }
         else {
-            set_latency_mode(LatencyModes::latencyInFrames);
-            weaver->setLatencyInFrames(numberOfFrames);
+            set_latency_mode(LatencyModes::LATENCY_IN_FRAMES);
+            weaver->setLatencyInFrames(number_of_frames);
         }
         return true;
     }
     return false;
 }
 
-bool DirectX10Weaver::set_latency_framerate_adaptive(uint32_t frametimeInMicroseconds) {
+bool DirectX10Weaver::set_latency_frametime_adaptive(uint32_t frametime_in_microseconds) {
     if (weaver_initialized) {
-        set_latency_mode(LatencyModes::framerateAdaptive);
-        weaver->setLatency(frametimeInMicroseconds);
-        lastLatencyFrameTimeSet = frametimeInMicroseconds;
+        set_latency_mode(LatencyModes::FRAMERATE_ADAPTIVE);
+        weaver->setLatency(frametime_in_microseconds);
+        last_latency_frame_time_set = frametime_in_microseconds;
         return true;
     }
     return false;
@@ -245,6 +220,17 @@ bool DirectX10Weaver::set_latency_framerate_adaptive(uint32_t frametimeInMicrose
 
 void DirectX10Weaver::set_latency_mode(LatencyModes mode) {
     current_latency_mode = mode;
+}
+
+void DirectX10Weaver::check_color_format(reshade::api::resource_desc desc) {
+    // Check buffer format and see if it's in the list of known SRGB ones. Change to SRGB rtv if so.
+    if ((std::find(srgb_color_formats.begin(), srgb_color_formats.end(), desc.texture.format) != srgb_color_formats.end())) {
+        // SRGB format detected, switch to SRGB buffer.
+        use_srgb_rtv = true;
+    }
+    else {
+        use_srgb_rtv = false;
+    }
 }
 
 LatencyModes DirectX10Weaver::get_latency_mode() {

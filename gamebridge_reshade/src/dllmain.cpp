@@ -33,11 +33,11 @@ SR::SRContext* sr_context = nullptr;
 SR::SwitchableLensHint* lens_hint = nullptr;
 HotKeyManager* hotKey_manager = nullptr;
 
-//Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
+// Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static const std::string depth_3D_shader_name = "SuperDepth3D";
 static const std::string sr_shader_name = "SR";
-static char g_charBuffer[CHAR_BUFFER_SIZE];
-static size_t g_charBufferSize = CHAR_BUFFER_SIZE;
+static char char_buffer[CHAR_BUFFER_SIZE];
+static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool effects_are_active = false;
 static bool sr_initialized = false;
 
@@ -94,15 +94,15 @@ vector<size_t> get_module_version_info(LPCWSTR moduleName) {
 static void enumerate_techniques(reshade::api::effect_runtime* runtime, std::function<void(reshade::api::effect_runtime*, reshade::api::effect_technique, string&)> func)
 {
     runtime->enumerate_techniques(nullptr, [func](reshade::api::effect_runtime* rt, reshade::api::effect_technique technique) {
-        g_charBufferSize = CHAR_BUFFER_SIZE;
-        rt->get_technique_name(technique, g_charBuffer, &g_charBufferSize);
-        string name(g_charBuffer);
+        char_buffer_size = CHAR_BUFFER_SIZE;
+        rt->get_technique_name(technique, char_buffer, &char_buffer_size);
+        string name(char_buffer);
         func(rt, technique, name);
         });
 }
 
-//Todo: Move this function outside of the dllmain. 
-//It was placed here because it needed access to the SRContext but it should be moved to another class for cleanliness sake.
+// Todo: Move this function outside of the dllmain.
+// It was placed here because it needed access to the SRContext but it should be moved to another class for cleanliness sake.
 static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_key_list, reshade::api::effect_runtime* runtime) {
     std::map<shortcutType, bool>::iterator i;
     vector<reshade::api::effect_technique> togglable_3D_effects = {};
@@ -110,24 +110,24 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
 
     for (i = hot_key_list.begin(); i != hot_key_list.end(); i++) {
         switch (i->first) {
-        case shortcutType::toggle_SR:
-            //Here we want to completely disable all SR related functions including the eye tracker, weaver, context etc.
+        case shortcutType::TOGGLE_SR:
+            // Here we want to completely disable all SR related functions including the eye tracker, weaver, context etc.
             break;
-        case shortcutType::toggle_lens:
-            //Here we want to toggle to the lens and toggle weaving
+        case shortcutType::TOGGLE_LENS:
+            // Here we want to toggle to the lens and toggle weaving
             if (i->second) {
                 lens_hint->enable();
-                //Bypass weave() call
+                // Bypass weave() call
                 weaver_implementation->do_weave(true);
             }
             else {
                 lens_hint->disable();
-                //Bypass weave() call
+                // Bypass weave() call
                 weaver_implementation->do_weave(false);
             }
             break;
-        case shortcutType::toggle_3D:
-            //Here we want to toggle Depth3D or any other 3D effect we use to create our second eye image.
+        case shortcutType::TOGGLE_3D:
+            // Here we want to toggle Depth3D or any other 3D effect we use to create our second eye image.
             enumerate_techniques(runtime, [&togglable_3D_effects](reshade::api::effect_runtime *runtime,
                                                                   reshade::api::effect_technique technique,
                                                                   string &name) {
@@ -145,18 +145,18 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
                 }
             }
             break;
-        case shortcutType::toggle_lens_and_3D:
-            //Todo: This should look at the current state of the lens toggle and 3D toggle, then, flip those.This toggle having its own state isn't great.
+        case shortcutType::TOGGLE_LENS_AND_3D:
+            // Todo: This should look at the current state of the lens toggle and 3D toggle, then, flip those.This toggle having its own state isn't great.
             if (i->second) {
-                toggle_map = {{shortcutType::toggle_lens, true}, {shortcutType::toggle_3D, true} };
+                toggle_map = {{shortcutType::TOGGLE_LENS, true}, {shortcutType::TOGGLE_3D, true} };
             }
             else {
-                toggle_map = {{shortcutType::toggle_lens, false}, {shortcutType::toggle_3D, false} };
+                toggle_map = {{shortcutType::TOGGLE_LENS, false}, {shortcutType::TOGGLE_3D, false} };
             }
                 execute_hot_key_function_by_type(toggle_map, runtime);
             break;
-        case shortcutType::toggle_latency_mode:
-            //Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
+        case shortcutType::TOGGLE_LATENCY_MODE:
+            // Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
             if (i->second) {
                 // Set the latency in frames to -1 to use ReShade's swap_chain buffer count.
                 weaver_implementation->set_latency_in_frames(-1);
@@ -166,9 +166,9 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
             else {
                 // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
-                weaver_implementation->set_latency_framerate_adaptive(DEFAULT_WEAVER_LATENCY);
+                weaver_implementation->set_latency_frametime_adaptive(default_weaver_latency);
 
-                //Log the current mode:
+                // Log the current mode:
                 reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
             }
 
@@ -200,18 +200,6 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     }
 }
 
-static void draw_debug_overlay(reshade::api::effect_runtime* runtime) {
-    //weaver_implementation->draw_debug_overlay(runtime);
-}
-
-static void draw_sr_settings_overlay(reshade::api::effect_runtime* runtime) {
-    //weaver_implementation->draw_sr_settings_overlay(runtime);
-}
-
-static void draw_settings_overlay(reshade::api::effect_runtime* runtime) {
-    //weaver_implementation->draw_settings_overlay(runtime);
-}
-
 static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
     vector<reshade::api::effect_technique> sr_technique = {};
 
@@ -235,15 +223,15 @@ static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, resh
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    if(!sr_initialized) {
+    if (!sr_initialized) {
         return;
     }
 
     std::map<shortcutType, bool> hot_key_list;
 
-    //Check if certain hotkeys are being pressed
+    // Check if certain hotkeys are being pressed
     if (hotKey_manager != nullptr) {
-        //Find out which hotkeys have changed their toggled state, then execute their respective code.
+        // Find out which hotkeys have changed their toggled state, then execute their respective code.
         hot_key_list = hotKey_manager->check_hot_keys(runtime, sr_context);
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
@@ -255,7 +243,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
 }
 
 static bool init_sr() {
-    //Construct SR Context and senses
+    // Construct SR Context and senses
     if (sr_context == nullptr) {
         try {
             sr_context = new SR::SRContext;
@@ -280,13 +268,13 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         return;
     }
 
-    //Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
-    //Register some standard hotkeys
+    // Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
+    // Register some standard hotkeys
     if (hotKey_manager == nullptr) {
         hotKey_manager = new HotKeyManager();
     }
 
-    //Then, check the active graphics API and pass it a new context.
+    // Then, check the active graphics API and pass it a new context.
     if (weaver_implementation == nullptr) {
         switch (runtime->get_device()->get_api()) {
             case reshade::api::device_api::d3d9:
@@ -345,15 +333,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         reshade::register_overlay(nullptr, &draw_status_overlay);
 
-        //reshade::register_overlay("Test", &draw_debug_overlay);
-        //reshade::register_overlay(nullptr, &draw_sr_settings_overlay);
-        //reshade::log_message(3, "registered: draw_sr_settings_overlay");
-
         break;
     case DLL_PROCESS_DETACH:
         reshade::unregister_addon(hModule);
-        //reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(on_reshade_finish_effects);
-        //reshade::unregister_event<reshade::addon_event::init_effect_runtime>(on_init_effect_runtime);
         break;
     }
     return TRUE;
