@@ -1,4 +1,7 @@
 # 3D Game Bridge Projects
+> This project, initially started as a passion project, has spun-off from Leia Inc and is now standalone.
+Thanks again to Leia Inc and former Dimenco for their support, we still strive to get SR in the hands of as many people as possible out of love for the technology.
+
 This repository contains projects implementing a Game Bridge API or otherwise related to Game Bridge.
 
 ## Projects:
