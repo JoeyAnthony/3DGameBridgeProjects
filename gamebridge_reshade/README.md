@@ -1,7 +1,7 @@
 # SimulatedRealityInjector
 
 ## Summary
-Implements LeiaSR SDK into ReShade to allow for conversion of SBS content to be turned into 3D on LeiaSR displays from any brand or OEM.
+Enables Reshade for Leia SR devices from any brand or OEM using the LeiaSR SDK to allow for conversion of SBS content into 3D.
 
 ## Installation
 Download the latest binary release from the tags section on GitHub and follow the installation instructions hosted here: <br/>
