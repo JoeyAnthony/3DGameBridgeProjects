@@ -325,6 +325,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         if (!reshade::register_addon(hModule))
             return FALSE;
 
+        // Load delayed SR DLLs
+
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
         reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
