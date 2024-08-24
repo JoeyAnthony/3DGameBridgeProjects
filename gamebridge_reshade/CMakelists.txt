@@ -20,6 +20,8 @@ add_library(${PROJECT_NAME} SHARED
     src/hotkey.h
     src/hotkeymanager.cpp
     src/hotkeymanager.h
+    src/delayLoader.h
+    src/pathGetter.h
 )
 
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -62,7 +64,22 @@ if(NOT ${ADDON_COPY_DIR} STREQUAL "")
 	message("Addon will be copied to ${ADDON_COPY_DIR}")
 endif()
 
+#target_link_libraries(${PROJECT_NAME} PRIVATE
+#    simulatedreality
+#    srDirectX${BUILD_PLATFORM}::srDirectX
+#)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    simulatedreality
-    srDirectX${BUILD_PLATFORM}::srDirectX
+		delayimp
+		simulatedreality
+		srDirectX${BUILD_PLATFORM}::srDirectX
 )
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:simulatedreality.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDisplays.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityFaceTrackers.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:DimencoWeaving.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:glog.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:opencv_world343.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDirectX.dll")
