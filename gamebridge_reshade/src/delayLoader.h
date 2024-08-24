@@ -22,17 +22,6 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
             // that will be used instead, thereby bypassing the rest
             // of the helper.
 
-            // Check if the DLL in question is one we want to delayed load.
-            std::string requested_dll = pdli->szDll;
-            for (int i = 0; i < sr_dll_names.size(); i++) {
-                if (sr_dll_names[i].find(requested_dll) != std::string::npos) {
-                    // DLL matches one we want to load, let's load it
-                    auto path_getter = PathGetter();
-                    std::string sr_bin_path = path_getter.getSRBinPath();
-                    LoadLibraryA((requested_dll + ".dll").c_str());
-                }
-            }
-
             break;
 
         case dliNotePreLoadLibrary:
@@ -40,6 +29,20 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
             // If you want to return control to the helper, return 0.
             // Otherwise, return your own HMODULE to be used by the
             // helper instead of having it call LoadLibrary itself.
+
+            // Check if the DLL in question is one we want to delayed load.
+            std::string requested_dll = pdli->szDll;
+            for (int i = 0; i < sr_dll_names.size(); i++) {
+                if (sr_dll_names[i].find(requested_dll) != std::string::npos) {
+                    // DLL matches one we want to load, let's load it
+                    auto path_getter = PathGetter();
+                    std::string sr_bin_path = path_getter.getSRBinPath();
+                    HMODULE hModule LoadLibraryA((requested_dll + ".dll").c_str());
+                    if (hModule) {
+                        return (FARPROC)hModule;
+                    }
+                }
+            }
 
             break;
 
