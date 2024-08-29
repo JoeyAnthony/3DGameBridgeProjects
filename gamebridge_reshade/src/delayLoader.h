@@ -7,7 +7,6 @@
 #include <Windows.h>
 #include <delayimp.h>
 
-static bool allDLLsLoaded = true;
 // Todo: This can just be a single string instead, checking this for each DLL seems horribly inefficient.
 std::vector<std::string> sr_dll_names = {"Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll"};
 
@@ -38,8 +37,6 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
                     const DWORD errorCode = GetLastError();
                     if (errorCode == ERROR_MOD_NOT_FOUND) {
                         std::cout << "Module not found (ERROR_MOD_NOT_FOUND)" << std::endl;
-                        allDLLsLoaded = false;
-                        // Todo: Stop the addon somehow and put it in an inactive state + display an error message.
                         return 0;
                     }
                     if (hModule) {
