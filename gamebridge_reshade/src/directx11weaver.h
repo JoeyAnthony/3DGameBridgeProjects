@@ -17,7 +17,6 @@ class DirectX11Weaver: public IGraphicsApi {
     uint32_t last_latency_frame_time_set = default_weaver_latency;
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
-    bool sr_ddls_loaded = true;
     bool weaver_initialized = false;
     bool weaving_enabled = false;
     bool popup_window_visible = false;
@@ -55,8 +54,9 @@ public:
     /// \param runtime Represents the reshade effect runtime
     /// \param rtv Represents the current render target view
     /// \param cmd_list Represents the current command list from ReShade
-    /// \return A bool representing if the weaver was initialized successfully
-    bool init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list);
+    /// \return An enum representing the return code
+    ReturnCodes init_weaver(reshade::api::effect_runtime *runtime, reshade::api::resource rtv,
+                    reshade::api::command_list *cmd_list);
 
     /// \brief Creates and reset the effect copy resource so it is similar to the back buffer resource, then use it as weaver input.
     /// \param effect_resource_desc ReShade resource representing the currently selected back buffer description
@@ -66,7 +66,7 @@ public:
 
     // Inherited via IGraphicsApi
     void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
-    void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
+    ReturnCodes on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     void do_weave(bool do_weave) override;
     bool set_latency_in_frames(int32_t number_of_frames) override;

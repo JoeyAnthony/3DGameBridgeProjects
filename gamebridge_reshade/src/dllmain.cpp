@@ -245,7 +245,11 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
 
     // Todo: This workaround should be removed in the next ReShade version (> v6.0.1)
     if (effects_are_active) {
-        weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+        if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb)) {
+            dll_failed_to_load = true;
+            // Unsubscribe from all events:
+            deregisterCallbacks();
+        }
     }
 }
 
@@ -320,6 +324,14 @@ static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::
     effects_are_active = true;
 }
 
+void deregisterCallbacks() {
+    reshade::unregister_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
+    reshade::unregister_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
+    reshade::unregister_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
+    reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+    reshade::unregister_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
+}
+
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
@@ -331,8 +343,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
         if (!reshade::register_addon(hModule))
             return FALSE;
-
-        // Load delayed SR DLLs
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);

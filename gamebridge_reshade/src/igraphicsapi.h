@@ -19,6 +19,10 @@ const uint32_t default_weaver_latency = 40000;
 // latencyInFrames = provide an amount of buffers or "frames" between the application and presenting to the screen.
 // latencyInFramesAutomatic = gets the amount of buffers or "frames" from the backbuffer using the ReShade api every frame.
 enum LatencyModes { FRAMERATE_ADAPTIVE, LATENCY_IN_FRAMES, LATENCY_IN_FRAMES_AUTOMATIC };
+// success = the method completed as expected
+// failure = the method failed in an unexpected and generic way
+// dllNotLoaded = the method failed due to an SR DLL not being present during delayed loading
+enum ReturnCodes { SUCCESS, GENERAL_FAIL, DLL_NOT_LOADED };
 
 struct Destroy_Resource_Data
 {
@@ -47,7 +51,8 @@ public:
     /// \param cmd_list Represents the current command list from ReShade
     /// \param rtv Represents the current render target view
     /// \param rtv_srgb Represents the current render target view with the srgb color format
-    virtual void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) = 0;
+    /// \return An enum representing the state of the method's completion
+    virtual ReturnCodes on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) = 0;
 
     /// \brief Method responsible for initializing SR related variables required for weaving
     /// \param runtime Represents the reshade effect runtime
