@@ -4,18 +4,17 @@
 
 #pragma once
 
-#include "directx10weaver.h"
-#include "pathGetter.h"
-
 #include <Windows.h>
 #include <delayimp.h>
 
+static bool allDLLsLoaded = true;
 // Todo: This can just be a single string instead, checking this for each DLL seems horribly inefficient.
 std::vector<std::string> sr_dll_names = {"Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll"};
 
 FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
+    std::string requested_dll;
     switch (dliNotify) {
-        case dliStartProcessing :
+        case dliStartProcessing:
 
             // If you want to return control to the helper, return 0.
             // Otherwise, return a pointer to a FARPROC helper function
@@ -31,15 +30,20 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
             // helper instead of having it call LoadLibrary itself.
 
             // Check if the DLL in question is one we want to delayed load.
-            std::string requested_dll = pdli->szDll;
+            requested_dll = pdli->szDll;
             for (int i = 0; i < sr_dll_names.size(); i++) {
                 if (sr_dll_names[i].find(requested_dll) != std::string::npos) {
                     // DLL matches one we want to load, let's load it
-                    auto path_getter = PathGetter();
-                    std::string sr_bin_path = path_getter.getSRBinPath();
-                    HMODULE hModule LoadLibraryA((requested_dll + ".dll").c_str());
+                    const HMODULE hModule = LoadLibraryA((requested_dll + ".dll").c_str());
+                    const DWORD errorCode = GetLastError();
+                    if (errorCode == ERROR_MOD_NOT_FOUND) {
+                        std::cout << "Module not found (ERROR_MOD_NOT_FOUND)" << std::endl;
+                        allDLLsLoaded = false;
+                        // Todo: Stop the addon somehow and put it in an inactive state + display an error message.
+                        return 0;
+                    }
                     if (hModule) {
-                        return (FARPROC)hModule;
+                        return reinterpret_cast<FARPROC>(hModule);
                     }
                 }
             }
@@ -65,6 +69,7 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
             // the alternate DLL. The helper will continue execution with
             // this alternate DLL and attempt to find the
             // requested entrypoint via GetProcAddress.
+            throw std::runtime_error("Failed to load library");
 
             break;
 

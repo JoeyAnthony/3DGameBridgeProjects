@@ -17,6 +17,7 @@ class DirectX11Weaver: public IGraphicsApi {
     uint32_t last_latency_frame_time_set = default_weaver_latency;
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
+    bool sr_ddls_loaded = true;
     bool weaver_initialized = false;
     bool weaving_enabled = false;
     bool popup_window_visible = false;

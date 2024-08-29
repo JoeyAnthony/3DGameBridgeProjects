@@ -16,6 +16,7 @@
 #include "hotkeymanager.h"
 #include "directx10weaver.h"
 #include "directx9weaver.h"
+#include "delayLoader.h"
 
 #include <chrono>
 #include <functional>
@@ -34,6 +35,7 @@ SR::SwitchableLensHint* lens_hint = nullptr;
 HotKeyManager* hotKey_manager = nullptr;
 
 // Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
+static bool dll_failed_to_load = false;
 static const std::string depth_3D_shader_name = "SuperDepth3D";
 static const std::string sr_shader_name = "SR";
 static char char_buffer[CHAR_BUFFER_SIZE];
@@ -183,7 +185,12 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     std::string status_string = "Status: \n";
     if (sr_context == nullptr) {
         // Unable to connect to the SR Service. Fall back to drawing the overlay UI ourselves.
-        status_string += "INACTIVE - NO SR SERVICE DETECTED, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nwww.srappstore.com\n";
+        status_string += "INACTIVE - NO SR SERVICE DETECTED, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n";
+        printStatusInWeaver = false;
+    }
+    else if (dll_failed_to_load) {
+        // Unable to load at least one of the SR DLLs
+        status_string += "INACTIVE - UNABLE TO LOAD ALL SR DLLS, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n";
         printStatusInWeaver = false;
     }
     else if (weaver_implementation) {

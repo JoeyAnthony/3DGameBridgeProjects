@@ -54,6 +54,11 @@ bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_des
 }
 
 bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list) {
+    if (!sr_ddls_loaded) {
+        // Trick the addon into
+        return false;
+    }
+
     if (weaver_initialized) {
         return weaver_initialized;
     }
@@ -89,6 +94,14 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     catch (std::exception &e) {
         reshade::log_message(reshade::log_level::info, e.what());
         return false;
+    }
+    catch (std::runtime_error &e) {
+        if (e.what() == "Failed to load library") {
+            // Todo: Disable the addon since we are missing an SR DLL.
+            // Todo: Set the error message in the overlay to INACTIVE with reason "SR Platform not found, please (re)install it".
+            // Todo: Do this by chaning the method signature of this method to an int for error codes and then the dllmain can set dll_failed_to_load to true.
+            sr_ddls_loaded = false;
+        }
     }
     catch (...) {
         reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
