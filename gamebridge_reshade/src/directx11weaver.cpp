@@ -87,17 +87,14 @@ ReturnCodes DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, 
         std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
         reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
+    catch (std::runtime_error &e) {
+        if (std::strcmp(e.what(), "Failed to load library") == 0) {
+            return DLL_NOT_LOADED;
+        }
+    }
     catch (std::exception &e) {
         reshade::log_message(reshade::log_level::info, e.what());
         return GENERAL_FAIL;
-    }
-    catch (std::runtime_error &e) {
-        if (e.what() == "Failed to load library") {
-            // Todo: Disable the addon since we are missing an SR DLL.
-            // Todo: Set the error message in the overlay to INACTIVE with reason "SR Platform not found, please (re)install it".
-            // Todo: Do this by changing the method signature of this method to an int for error codes and then the dllmain can set dll_failed_to_load to true.
-            return DLL_NOT_LOADED;
-        }
     }
     catch (...) {
         reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
@@ -194,10 +191,8 @@ ReturnCodes DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runt
             // Set context and input frame buffer again to make sure they are correct
             weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
             weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
-            return SUCCESS;
         }
         else if (result == DLL_NOT_LOADED) {
-            // Todo: Make sure we stop attempting to re-initialize here.
             return DLL_NOT_LOADED;
         }
         else {
@@ -207,6 +202,7 @@ ReturnCodes DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runt
             return GENERAL_FAIL;
         }
     }
+    return SUCCESS;
 }
 
 void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {

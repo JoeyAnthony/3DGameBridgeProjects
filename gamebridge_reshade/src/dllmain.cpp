@@ -23,7 +23,6 @@
 #include <thread>
 #include <vector>
 #include <iostream>
-#include <unordered_map>
 
 #define CHAR_BUFFER_SIZE 256
 
@@ -45,10 +44,7 @@ static bool sr_initialized = false;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
-struct DeviceDataContainer {
-    reshade::api::effect_runtime* current_runtime = nullptr;
-    unordered_map<std::string, bool> all_enabled_techniques;
-};
+void deregisterCallbacksOnDllLoadFailure();
 
 // Function to get the version information of a module
 vector<size_t> get_module_version_info(LPCWSTR moduleName) {
@@ -183,14 +179,14 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
 static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     bool printStatusInWeaver = true;
     std::string status_string = "Status: \n";
-    if (sr_context == nullptr) {
-        // Unable to connect to the SR Service. Fall back to drawing the overlay UI ourselves.
-        status_string += "INACTIVE - NO SR SERVICE DETECTED, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n";
-        printStatusInWeaver = false;
-    }
-    else if (dll_failed_to_load) {
+    if (dll_failed_to_load) {
         // Unable to load at least one of the SR DLLs
         status_string += "INACTIVE - UNABLE TO LOAD ALL SR DLLS, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n";
+        printStatusInWeaver = false;
+    }
+    else if (sr_context == nullptr) {
+        // Unable to connect to the SR Service. Fall back to drawing the overlay UI ourselves.
+        status_string += "INACTIVE - NO SR SERVICE DETECTED, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n";
         printStatusInWeaver = false;
     }
     else if (weaver_implementation) {
@@ -245,10 +241,8 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
 
     // Todo: This workaround should be removed in the next ReShade version (> v6.0.1)
     if (effects_are_active) {
-        if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb)) {
-            dll_failed_to_load = true;
-            // Unsubscribe from all events:
-            deregisterCallbacks();
+        if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
+            deregisterCallbacksOnDllLoadFailure();
         }
     }
 }
@@ -259,13 +253,27 @@ static bool init_sr() {
         try {
             sr_context = new SR::SRContext;
         }
+        catch (std::runtime_error &e) {
+            if (std::strcmp(e.what(), "Failed to load library") == 0) {
+                deregisterCallbacksOnDllLoadFailure();
+                return false;
+            }
+        }
         catch (SR::ServerNotAvailableException& ex) {
             // Unable to construct SR Context.
             reshade::log_message(reshade::log_level::error, "Unable to connect to the SR Service, make sure the SR Platform is installed and running.");
             sr_initialized = false;
             return false;
         }
-        lens_hint = SR::SwitchableLensHint::create(*sr_context);
+        try {
+            lens_hint = SR::SwitchableLensHint::create(*sr_context);
+        }
+        catch (std::runtime_error &e) {
+            if (std::strcmp(e.what(), "Failed to load library") == 0) {
+                deregisterCallbacksOnDllLoadFailure();
+                return false;
+            }
+        }
         sr_context->initialize();
     }
 
@@ -275,6 +283,7 @@ static bool init_sr() {
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
+    // Catch any runtime_error which points to not all required DLLs being present.
     if (!init_sr()) {
         return;
     }
@@ -285,24 +294,33 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         hotKey_manager = new HotKeyManager();
     }
 
-    // Then, check the active graphics API and pass it a new context.
-    if (weaver_implementation == nullptr) {
-        switch (runtime->get_device()->get_api()) {
-            case reshade::api::device_api::d3d9:
-                weaver_implementation = new DirectX9Weaver(sr_context);
-                break;
-            case reshade::api::device_api::d3d10:
-                weaver_implementation = new DirectX10Weaver(sr_context);
-                break;
-            case reshade::api::device_api::d3d11:
-                weaver_implementation = new DirectX11Weaver(sr_context);
-                break;
-            case reshade::api::device_api::d3d12:
-                weaver_implementation = new DirectX12Weaver(sr_context);
-                break;
-            default:
-                reshade::log_message(reshade::log_level::warning, "Unable to determine graphics API, it may not be supported. Becoming inactive.");
-                break;
+    try {
+        // Then, check the active graphics API and pass it a new context.
+        if (weaver_implementation == nullptr) {
+            switch (runtime->get_device()->get_api()) {
+                case reshade::api::device_api::d3d9:
+                    weaver_implementation = new DirectX9Weaver(sr_context);
+                    break;
+                case reshade::api::device_api::d3d10:
+                    weaver_implementation = new DirectX10Weaver(sr_context);
+                    break;
+                case reshade::api::device_api::d3d11:
+                    weaver_implementation = new DirectX11Weaver(sr_context);
+                    break;
+                case reshade::api::device_api::d3d12:
+                    weaver_implementation = new DirectX12Weaver(sr_context);
+                    break;
+                default:
+                    reshade::log_message(reshade::log_level::warning,
+                                         "Unable to determine graphics API, it may not be supported. Becoming inactive.");
+                    break;
+            }
+        }
+    }
+    catch (std::runtime_error &e) {
+        if (std::strcmp(e.what(), "Failed to load library") == 0) {
+            deregisterCallbacksOnDllLoadFailure();
+            return;
         }
     }
 
@@ -324,11 +342,15 @@ static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::
     effects_are_active = true;
 }
 
-void deregisterCallbacks() {
+void deregisterCallbacksOnDllLoadFailure() {
+    // Mark the dll_failed_to_load status
+    dll_failed_to_load = true;
+
+    // Unregister all events
+    reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
     reshade::unregister_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
     reshade::unregister_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
     reshade::unregister_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
-    reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
     reshade::unregister_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
 }
 
