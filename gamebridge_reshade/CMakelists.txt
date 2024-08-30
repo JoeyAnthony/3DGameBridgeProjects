@@ -72,4 +72,3 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDirectX${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:opencv_world343.dll")
- target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:glog.dll")
