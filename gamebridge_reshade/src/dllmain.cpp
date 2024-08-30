@@ -39,7 +39,6 @@ static const std::string depth_3D_shader_name = "SuperDepth3D";
 static const std::string sr_shader_name = "SR";
 static char char_buffer[CHAR_BUFFER_SIZE];
 static size_t char_buffer_size = CHAR_BUFFER_SIZE;
-static bool effects_are_active = false;
 static bool sr_initialized = false;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
@@ -221,10 +220,6 @@ static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
     }
 }
 
-static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    effects_are_active = false;
-}
-
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     if (!sr_initialized) {
         return;
@@ -239,11 +234,8 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
 
-    // Todo: This workaround should be removed in the next ReShade version (> v6.0.1)
-    if (effects_are_active) {
-        if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
-            deregisterCallbacksOnDllLoadFailure();
-        }
+    if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
+        deregisterCallbacksOnDllLoadFailure();
     }
 }
 
@@ -338,10 +330,6 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     weaver_implementation->on_init_effect_runtime(runtime);
 }
 
-static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::api::effect_technique technique, reshade::api::command_list *cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    effects_are_active = true;
-}
-
 void deregisterCallbacksOnDllLoadFailure() {
     // Mark the dll_failed_to_load status
     dll_failed_to_load = true;
@@ -349,8 +337,6 @@ void deregisterCallbacksOnDllLoadFailure() {
     // Unregister all events
     reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
     reshade::unregister_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
-    reshade::unregister_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
-    reshade::unregister_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
     reshade::unregister_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
 }
 
@@ -367,8 +353,6 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             return FALSE;
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
-        reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
-        reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::reshade_reloaded_effects>(&on_reshade_reload_effects);
 

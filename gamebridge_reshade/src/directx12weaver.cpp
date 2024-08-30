@@ -170,6 +170,7 @@ ReturnCodes DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runt
         }
         else {
             if (weaving_enabled) {
+                reshade::log_message(reshade::log_level::info, "WEAVING ENABLED");
                 weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
 
                 // Create copy of the effect buffer
@@ -182,9 +183,13 @@ ReturnCodes DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runt
                 // Bind back buffer as render target
                 cmd_list->bind_render_targets_and_depth_stencil(1, &chosen_rtv);
 
+                reshade::log_message(reshade::log_level::info, "READY TO WEAVE");
+
                 // Weave to back buffer
                 cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
                 weaver->weave(desc.texture.width, desc.texture.height);
+
+                reshade::log_message(reshade::log_level::info, "WEAVED");
 
                 // Check if the descriptor heap offset is set. If it is, we have to reset the descriptor heaps to ensure the ReShade overlay can render.
                 cmd_list->bind_descriptor_tables(reshade::api::shader_stage::all, reshade::api::pipeline_layout {}, 0, 0, nullptr);
