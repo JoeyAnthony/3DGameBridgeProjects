@@ -240,11 +240,11 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
     }
 
     // Todo: This workaround should be removed in the next ReShade version (> v6.0.1)
-    if (effects_are_active) {
+    //if (effects_are_active) {
         if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
             deregisterCallbacksOnDllLoadFailure();
         }
-    }
+    //}
 }
 
 static bool init_sr() {
