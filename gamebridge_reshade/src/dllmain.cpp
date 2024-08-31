@@ -144,13 +144,13 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             break;
         case shortcutType::TOGGLE_LENS_AND_3D:
             // Todo: This should look at the current state of the lens toggle and 3D toggle, then, flip those.This toggle having its own state isn't great.
-            if (i->second) {
-                toggle_map = {{shortcutType::TOGGLE_LENS, true}, {shortcutType::TOGGLE_3D, true} };
-            }
-            else {
+            if (lens_hint != nullptr && lens_hint->isEnabled()) {
                 toggle_map = {{shortcutType::TOGGLE_LENS, false}, {shortcutType::TOGGLE_3D, false} };
             }
-                execute_hot_key_function_by_type(toggle_map, runtime);
+            else {
+                toggle_map = {{shortcutType::TOGGLE_LENS, true}, {shortcutType::TOGGLE_3D, true} };
+            }
+            execute_hot_key_function_by_type(toggle_map, runtime);
             break;
         case shortcutType::TOGGLE_LATENCY_MODE:
             // Here we want to toggle the eye tracker latency mode between framerate-adaptive and latency-in-frames.
@@ -216,7 +216,6 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
 
-    // Todo: This is a workaround for an ongoing issue in DX12, it's fine to keep it enabled as we're going to be added to the installer soon.
     if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
         deregisterCallbacksOnDllLoadFailure();
     }
