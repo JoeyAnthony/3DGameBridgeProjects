@@ -55,7 +55,7 @@ public:
     /// \param rtv Represents the buffer that the weaver uses as a source to weave with
     /// \param back_buffer Represents the current back buffer from ReShade
     /// \return A bool representing if the weaver was initialized successfully
-    ReturnCodes init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
+    GbResult init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer);
 
     /// \brief Creates and reset the effect copy resource so it is similar to the back buffer resource, then use it as weaver input.
     /// \param effect_resource_desc ReShade resource representing the currently selected back buffer description
@@ -64,7 +64,7 @@ public:
 
     // Inherited via IGraphicsApi
     void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
-    ReturnCodes on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) override;
+    GbResult on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     void do_weave(bool do_weave) override;
     bool set_latency_in_frames(int32_t number_of_frames) override;

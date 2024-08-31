@@ -1,14 +1,16 @@
-//
-// Created by BramTeurlings on 22-8-2024.
-//
+/*
+ * This file falls under the GNU General Public License v3.0 license: See the LICENSE.txt in the root of this project for more info.
+ * Summary:
+ * Permissions of this strong copyleft license are conditioned on making available complete source code of licensed works and modifications, which include larger works using a licensed work, under the same license.
+ * Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Modifications to the source code must be disclosed publicly.
+ */
 
 #pragma once
 
 #include <Windows.h>
 #include <delayimp.h>
 
-// Todo: This can just be a single string instead, checking this for each DLL seems horribly inefficient.
-std::vector<std::string> sr_dll_names = {"Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll"};
+std::array<std::string, 12> sr_dll_names = {"Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll"};
 
 FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
     std::string requested_dll;
@@ -31,7 +33,7 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
             // Check if the DLL in question is one we want to delayed load.
             requested_dll = pdli->szDll;
             for (int i = 0; i < sr_dll_names.size(); i++) {
-                if (sr_dll_names[i].find(requested_dll) != std::string::npos) {
+                if (std::strcmp(sr_dll_names[i].c_str(), requested_dll.c_str()) == 0) {
                     // DLL matches one we want to load, let's load it
                     const HMODULE hModule = LoadLibraryA((requested_dll + ".dll").c_str());
                     const DWORD errorCode = GetLastError();

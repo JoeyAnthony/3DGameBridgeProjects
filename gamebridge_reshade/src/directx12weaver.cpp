@@ -16,7 +16,7 @@ DirectX12Weaver::DirectX12Weaver(SR::SRContext* context) {
     weaving_enabled = true;
 }
 
-ReturnCodes DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
+GbResult DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
     if (weaver_initialized) {
         return SUCCESS;
     }
@@ -119,7 +119,7 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     return true;
 }
 
-ReturnCodes DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+GbResult DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     reshade::api::resource_view chosen_rtv;
 
     if (use_srgb_rtv) {
@@ -131,6 +131,15 @@ ReturnCodes DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runt
 
     reshade::api::resource rtv_resource = d3d12_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = d3d12_device->get_resource_desc(rtv_resource);
+
+    // Bind a viewport for the weaver in case there isn't one defined already. This happens when no effects are enabled in ReShade.
+    const reshade::api::viewport viewport = {
+            0.0f, 0.0f,
+            static_cast<float>(desc.texture.width),
+            static_cast<float>(desc.texture.height),
+            0.0f, 1.0f
+    };
+    cmd_list->bind_viewports(0, 1, &viewport);
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
@@ -170,6 +179,7 @@ ReturnCodes DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runt
         }
         else {
             if (weaving_enabled) {
+                cmd_list->bind_descriptor_tables(reshade::api::shader_stage::all, reshade::api::pipeline_layout {}, 0, 0, nullptr);
                 weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
 
                 // Create copy of the effect buffer
@@ -184,6 +194,7 @@ ReturnCodes DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runt
 
                 // Weave to back buffer
                 cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
+
                 weaver->weave(desc.texture.width, desc.texture.height);
 
                 // Check if the descriptor heap offset is set. If it is, we have to reset the descriptor heaps to ensure the ReShade overlay can render.
@@ -199,7 +210,7 @@ ReturnCodes DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runt
         check_color_format(desc);
 
         create_effect_copy_buffer(desc);
-        ReturnCodes result = init_weaver(runtime, effect_frame_copy, d3d12_device->get_resource_from_view(chosen_rtv));
+        GbResult result = init_weaver(runtime, effect_frame_copy, d3d12_device->get_resource_from_view(chosen_rtv));
         if (result == SUCCESS) {
             // Set command list and input frame buffer again to make sure they are correct
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());

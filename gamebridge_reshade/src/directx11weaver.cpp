@@ -53,8 +53,8 @@ bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     return true;
 }
 
-ReturnCodes DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, reshade::api::resource rtv,
-                                 reshade::api::command_list *cmd_list) {
+GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, reshade::api::resource rtv,
+                                      reshade::api::command_list *cmd_list) {
     if (weaver_initialized) {
         return SUCCESS;
     }
@@ -124,7 +124,7 @@ void DirectX11Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
     ImGui::TextUnformatted(s.c_str());
 }
 
-ReturnCodes DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+GbResult DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     reshade::api::resource_view chosen_rtv;
 
     if (use_srgb_rtv) {
@@ -186,7 +186,7 @@ ReturnCodes DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runt
         check_color_format(desc);
 
         create_effect_copy_buffer(desc);
-        ReturnCodes result = init_weaver(runtime, effect_frame_copy, cmd_list);
+        GbResult result = init_weaver(runtime, effect_frame_copy, cmd_list);
         if (result == SUCCESS) {
             // Set context and input frame buffer again to make sure they are correct
             weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
