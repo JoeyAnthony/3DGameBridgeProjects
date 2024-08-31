@@ -206,7 +206,7 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
 static void on_reshade_reload_effects(reshade::api::effect_runtime* runtime) {
     vector<reshade::api::effect_technique> sr_technique = {};
 
-    // Todo: This is not a nice way of forcing on_finish_effects to trigger. Maybe make a dummy shader that you always turn on instead (or use a different callback)
+    // Todo: This is not a nice way of making sure we can weave in the on_finish_effects callback. The addon now depends on SR.fx for DX12.
     // Toggle SR.fx on
     enumerate_techniques(runtime, [&sr_technique](reshade::api::effect_runtime* runtime, reshade::api::effect_technique technique, string& name) {
         if (!name.compare(sr_shader_name)) {
