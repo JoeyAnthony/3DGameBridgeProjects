@@ -33,7 +33,7 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
             // Check if the DLL in question is one we want to delayed load.
             requested_dll = pdli->szDll;
             for (int i = 0; i < sr_dll_names.size(); i++) {
-                if (std::strcmp(sr_dll_names[i].c_str(), requested_dll.c_str()) == 0) {
+                if (sr_dll_names[i] == requested_dll) {
                     // DLL matches one we want to load, let's load it
                     const HMODULE hModule = LoadLibraryA((requested_dll + ".dll").c_str());
                     const DWORD errorCode = GetLastError();
