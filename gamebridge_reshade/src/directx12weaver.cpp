@@ -16,23 +16,23 @@ DirectX12Weaver::DirectX12Weaver(SR::SRContext* context) {
     weaving_enabled = true;
 }
 
-bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
+GbResult DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::resource back_buffer) {
     if (weaver_initialized) {
-        return weaver_initialized;
+        return SUCCESS;
     }
 
     // See if we can get a command allocator from reshade
     ID3D12Device* dev = ((ID3D12Device*)d3d12_device->get_native());
     if (!dev) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device");
-        return false;
+        return GENERAL_FAIL;
     }
 
     ID3D12CommandAllocator* command_allocator;
     dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocator));
     if (command_allocator == nullptr) {
         reshade::log_message(reshade::log_level::info, "Couldn't ceate command allocator");
-        return false;
+        return GENERAL_FAIL;
     }
 
     // Describe and create the command queue.
@@ -45,7 +45,7 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
     if (command_queue == nullptr)
     {
         reshade::log_message(reshade::log_level::info, "Couldn't create command queue");
-        return false;
+        return GENERAL_FAIL;
     }
 
     ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
@@ -60,17 +60,22 @@ bool DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
         reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
+    catch (std::runtime_error &e) {
+        if (std::strcmp(e.what(), "Failed to load library") == 0) {
+            return DLL_NOT_LOADED;
+        }
+    }
     catch (std::exception& e) {
         reshade::log_message(reshade::log_level::info, e.what());
-        return false;
+        return GENERAL_FAIL;
     }
     catch (...) {
         reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
-        return false;
+        return GENERAL_FAIL;
     }
 
     weaver_initialized = true;
-    return weaver_initialized;
+    return SUCCESS;
 }
 
 void DirectX12Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
@@ -114,7 +119,7 @@ bool DirectX12Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     return true;
 }
 
-void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+GbResult DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     reshade::api::resource_view chosen_rtv;
 
     if (use_srgb_rtv) {
@@ -126,6 +131,15 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
     reshade::api::resource rtv_resource = d3d12_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = d3d12_device->get_resource_desc(rtv_resource);
+
+    // Bind a viewport for the weaver in case there isn't one defined already. This happens when no effects are enabled in ReShade.
+    const reshade::api::viewport viewport = {
+            0.0f, 0.0f,
+            static_cast<float>(desc.texture.width),
+            static_cast<float>(desc.texture.height),
+            0.0f, 1.0f
+    };
+    cmd_list->bind_viewports(0, 1, &viewport);
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
@@ -165,6 +179,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         }
         else {
             if (weaving_enabled) {
+                cmd_list->bind_descriptor_tables(reshade::api::shader_stage::all, reshade::api::pipeline_layout {}, 0, 0, nullptr);
                 weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
 
                 // Create copy of the effect buffer
@@ -179,6 +194,7 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
 
                 // Weave to back buffer
                 cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::unordered_access);
+
                 weaver->weave(desc.texture.width, desc.texture.height);
 
                 // Check if the descriptor heap offset is set. If it is, we have to reset the descriptor heaps to ensure the ReShade overlay can render.
@@ -194,19 +210,24 @@ void DirectX12Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         check_color_format(desc);
 
         create_effect_copy_buffer(desc);
-        if (init_weaver(runtime, effect_frame_copy, d3d12_device->get_resource_from_view(chosen_rtv))) {
+        GbResult result = init_weaver(runtime, effect_frame_copy, d3d12_device->get_resource_from_view(chosen_rtv));
+        if (result == SUCCESS) {
             // Set command list and input frame buffer again to make sure they are correct
             weaver->setCommandList((ID3D12GraphicsCommandList*)cmd_list->get_native());
             weaver->setInputFrameBuffer((ID3D12Resource*)effect_frame_copy.handle);
+        }
+        else if (result == DLL_NOT_LOADED) {
+            return DLL_NOT_LOADED;
         }
         else {
             // When buffer creation succeeds and this fails, delete the created buffer after waiting for the GPU to finish.
             runtime->get_command_queue()->wait_idle();
             d3d12_device->destroy_resource(effect_frame_copy);
             reshade::log_message(reshade::log_level::info, "Failed to initialize weaver");
-            return;
+            return GENERAL_FAIL;
         }
     }
+    return SUCCESS;
 }
 
 void DirectX12Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {

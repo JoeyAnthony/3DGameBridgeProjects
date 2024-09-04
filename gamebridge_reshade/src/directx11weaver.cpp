@@ -53,9 +53,10 @@ bool DirectX11Weaver::create_effect_copy_buffer(const reshade::api::resource_des
     return true;
 }
 
-bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade::api::resource rtv, reshade::api::command_list* cmd_list) {
+GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, reshade::api::resource rtv,
+                                      reshade::api::command_list *cmd_list) {
     if (weaver_initialized) {
-        return weaver_initialized;
+        return SUCCESS;
     }
 
     delete weaver;
@@ -66,12 +67,12 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
 
     if (!dev) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device");
-        return false;
+        return GENERAL_FAIL;
     }
 
     if (!context) {
         reshade::log_message(reshade::log_level::info, "Couldn't get a device context");
-        return false;
+        return GENERAL_FAIL;
     }
 
     try {
@@ -86,17 +87,22 @@ bool DirectX11Weaver::init_weaver(reshade::api::effect_runtime* runtime, reshade
         std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
         reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
+    catch (std::runtime_error &e) {
+        if (std::strcmp(e.what(), "Failed to load library") == 0) {
+            return DLL_NOT_LOADED;
+        }
+    }
     catch (std::exception &e) {
         reshade::log_message(reshade::log_level::info, e.what());
-        return false;
+        return GENERAL_FAIL;
     }
     catch (...) {
         reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
-        return false;
+        return GENERAL_FAIL;
     }
 
     weaver_initialized = true;
-    return weaver_initialized;
+    return SUCCESS;
 }
 
 void DirectX11Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
@@ -118,7 +124,7 @@ void DirectX11Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
     ImGui::TextUnformatted(s.c_str());
 }
 
-void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+GbResult DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     reshade::api::resource_view chosen_rtv;
 
     if (use_srgb_rtv) {
@@ -180,18 +186,23 @@ void DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* ru
         check_color_format(desc);
 
         create_effect_copy_buffer(desc);
-        if (init_weaver(runtime, effect_frame_copy, cmd_list)) {
+        GbResult result = init_weaver(runtime, effect_frame_copy, cmd_list);
+        if (result == SUCCESS) {
             // Set context and input frame buffer again to make sure they are correct
             weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
             weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)effect_frame_copy_srv.handle);
+        }
+        else if (result == DLL_NOT_LOADED) {
+            return DLL_NOT_LOADED;
         }
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
             d3d11_device->destroy_resource(effect_frame_copy);
             reshade::log_message(reshade::log_level::info, "Failed to initialize weaver");
-            return;
+            return GENERAL_FAIL;
         }
     }
+    return SUCCESS;
 }
 
 void DirectX11Weaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
