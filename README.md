@@ -9,6 +9,9 @@ This repository contains projects implementing a Game Bridge API or otherwise re
 ### Game Bridge Reshade
 This is a ReShade addon that can add SR functionality to a game.
 
+#### Installation instructions
+You can find the installation instructions [here](INSTALL.md).
+
 # Building with cmake
 1. Clone project: `git clone https://github.com/JoeyAnthony/SimulatedRealityInjector.git`
 2. Fetch all submodules with: `git submodule update --init --recursive`
