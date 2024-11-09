@@ -85,8 +85,7 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
 
     try {
         weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
-//        weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
-        weaver->setInputFrameBuffer(frameBufferID, renderedTextureID); // Resourceview of the buffer
+        weaver->setInputFrameBuffer(renderedTextureID, frameBufferID); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
@@ -168,7 +167,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             // Update color format settings
             check_color_format(desc);
 
-            // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
+            // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
             gl_device->destroy_resource(effect_frame_copy);
             gl_device->destroy_resource_view(effect_frame_copy_srv);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
@@ -185,7 +184,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             renderedTextureID = static_cast<GLuint>(rtv.handle);
 
             // Set newly create buffer as input
-            weaver->setInputFrameBuffer(frameBufferID, renderedTextureID);
+            weaver->setInputFrameBuffer(renderedTextureID, frameBufferID);
             reshade::log_message(reshade::log_level::info, "Buffer size changed");
         }
         else {
@@ -224,7 +223,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             // Ensure the RTV is compatible with OpenGL and cast to GLuint
             renderedTextureID = static_cast<GLuint>(rtv.handle);
 
-            weaver->setInputFrameBuffer(frameBufferID, renderedTextureID);
+            weaver->setInputFrameBuffer(renderedTextureID, frameBufferID);
         }
         else if (result == DLL_NOT_LOADED) {
             return DLL_NOT_LOADED;
