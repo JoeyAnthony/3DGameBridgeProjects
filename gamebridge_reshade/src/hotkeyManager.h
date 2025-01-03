@@ -14,7 +14,7 @@
 
 class HotKeyManager {
 public:
-    HotKeyManager();
+    explicit HotKeyManager(reshade::api::effect_runtime* runtime);
     std::map<shortcutType, bool> check_hot_keys(reshade::api::effect_runtime* runtime, SR::SRContext* context);
     // Todo: Implement a way to edit and create now hotkeys?
     void edit_hot_key(uint8_t hot_key_id);
@@ -22,4 +22,16 @@ public:
 private:
     // Todo: We should define these in a .ini file eventually.
     std::vector<HotKey> registered_hot_keys;
+
+    // Keys are stored in the config like so:
+    // [3DGameBridge]
+    // toggle_sr_key=0x31;shift;alt;ctrl
+    // toggle_sr_key=0x31;ctrl
+    // toggle_sr_key=0x31;
+    //
+    // The following keys are available: toggle_sr_key, toggle_lens_key, toggle_3d_key, toggle_lens_and_3d_key, toggle_latency_mode_key
+    //
+    // Method to read a specific key from the ReShade config.
+    // Returns an instance of the hotkey class based on the read config values.
+    HotKey read_from_config(bool default_enabled, std::string key, shortcutType shortcut);
 };
