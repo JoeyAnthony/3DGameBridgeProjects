@@ -18,9 +18,10 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
     desc.type = reshade::api::resource_type::texture_2d;
     desc.heap = reshade::api::memory_heap::gpu_only;
     desc.usage = reshade::api::resource_usage::copy_dest;
+    desc.texture.format = reshade::api::format::r8g8b8a8_unorm; // Format matching the back buffer Todo: Check if this always works!
 
     // Create buffer to store a copy of the effect frame
-    reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::shader_resource);
+    reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::shader_resource);
     if (!gl_device->create_resource(copy_rsc_desc, nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy)) {
         gl_device->destroy_resource(effect_frame_copy);
 
@@ -41,6 +42,20 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_y = 0;
 
         reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
+        return false;
+    }
+
+    // Create a sampler descriptor
+    reshade::api::sampler_desc sampler_desc = {};
+    sampler_desc.filter = reshade::api::filter_mode::min_mag_mip_linear; // Linear filtering for min, mag, and mip
+    sampler_desc.address_u = reshade::api::texture_address_mode::clamp; // Clamp wrapping in the U direction
+    sampler_desc.address_v = reshade::api::texture_address_mode::clamp; // Clamp wrapping in the V direction
+    sampler_desc.address_w = reshade::api::texture_address_mode::clamp; // Clamp wrapping in the W direction (if applicable)
+
+    // Create a sampler handle
+    reshade::api::sampler sampler;
+    if (!gl_device->create_sampler(sampler_desc, &sampler)) {
+        reshade::log_message(reshade::log_level::error, "Failed to create sampler for texture filtering");
         return false;
     }
 
@@ -86,6 +101,7 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
     try {
         weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
         weaver->setInputFrameBuffer(renderedTextureID, frameBufferID); // Resourceview of the buffer
+//        weaver->setInputFrameBuffer(frameBufferID, renderedTextureID); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
@@ -143,15 +159,17 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
 
     reshade::api::resource rtv_resource = gl_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = gl_device->get_resource_desc(rtv_resource);
+    reshade::api::resource rtv_resource2 = runtime->get_back_buffer(0);
+    reshade::api::resource_desc desc2 = gl_device->get_resource_desc(rtv_resource2);
 
     // Bind a viewport for the weaver in case there isn't one defined already. This happens when no effects are enabled in ReShade.
-    const reshade::api::viewport viewport = {
-            0.0f, 0.0f,
-            static_cast<float>(desc.texture.width),
-            static_cast<float>(desc.texture.height),
-            0.0f, 1.0f
-    };
-    cmd_list->bind_viewports(0, 1, &viewport);
+//    const reshade::api::viewport viewport = {
+//            0.0f, 0.0f,
+//            static_cast<float>(desc.texture.width),
+//            static_cast<float>(desc.texture.height),
+//            0.0f, 1.0f
+//    };
+//    cmd_list->bind_viewports(0, 1, &viewport);
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
@@ -181,10 +199,11 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
 
             GLuint renderedTextureID;
             // Ensure the RTV is compatible with OpenGL and cast to GLuint
-            renderedTextureID = static_cast<GLuint>(rtv.handle);
+            renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
 
             // Set newly create buffer as input
             weaver->setInputFrameBuffer(renderedTextureID, frameBufferID);
+//            weaver->setInputFrameBuffer(frameBufferID, renderedTextureID);
             reshade::log_message(reshade::log_level::info, "Buffer size changed");
         }
         else {
@@ -198,7 +217,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 cmd_list->bind_render_targets_and_depth_stencil(1, &chosen_rtv);
 
                 // Weave to back buffer
-                weaver->weave(desc.texture.width, desc.texture.height);
+                weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
             }
         }
     }
@@ -221,9 +240,10 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
 
             GLuint renderedTextureID;
             // Ensure the RTV is compatible with OpenGL and cast to GLuint
-            renderedTextureID = static_cast<GLuint>(rtv.handle);
+            renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
 
             weaver->setInputFrameBuffer(renderedTextureID, frameBufferID);
+//            weaver->setInputFrameBuffer(frameBufferID, renderedTextureID);
         }
         else if (result == DLL_NOT_LOADED) {
             return DLL_NOT_LOADED;
