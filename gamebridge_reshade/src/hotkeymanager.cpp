@@ -62,15 +62,24 @@ HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& 
         }
         return created_key;
     }
+    throw std::runtime_error("Unable to read key from config");
 }
 
 HotKeyManager::HotKeyManager(reshade::api::effect_runtime* runtime) {
     // Create some default hotkeys.
-    registered_hot_keys.push_back(read_from_config(true, "toggle_sr_key", TOGGLE_SR));
-    registered_hot_keys.push_back(read_from_config(false, "toggle_lens_key", TOGGLE_LENS));
-    registered_hot_keys.push_back(read_from_config(false, "toggle_3d_key", TOGGLE_3D));
-    registered_hot_keys.push_back(read_from_config(false, "toggle_lens_and_3d_key", TOGGLE_LENS_AND_3D));
-    registered_hot_keys.push_back(read_from_config(false, "toggle_latency_mode_key", TOGGLE_LATENCY_MODE));
+    try {
+        registered_hot_keys.push_back(read_from_config(true, "toggle_sr_key", TOGGLE_SR));
+        registered_hot_keys.push_back(read_from_config(false, "toggle_lens_key", TOGGLE_LENS));
+        registered_hot_keys.push_back(read_from_config(false, "toggle_3d_key", TOGGLE_3D));
+        registered_hot_keys.push_back(read_from_config(false, "toggle_lens_and_3d_key", TOGGLE_LENS_AND_3D));
+        registered_hot_keys.push_back(read_from_config(false, "toggle_latency_mode_key", TOGGLE_LATENCY_MODE));
+    }
+    catch (std::runtime_error &e) {
+        // Couldn't find the config value, let's write the default in the .ini
+        std::string error_msg = "Unable to find hotkey config in ReShade.ini: Now writing defaults...";
+        reshade::log_message(reshade::log_level::warning, error_msg.c_str());
+        write_missing_hotkeys();
+    }
 }
 
 bool check_modifier_keys(HotKey hotKey, reshade::api::effect_runtime* runtime) {
@@ -116,4 +125,32 @@ std::map<shortcutType, bool> HotKeyManager::check_hot_keys(reshade::api::effect_
 
 void HotKeyManager::edit_hot_key(uint8_t hot_key_id) {
 
+}
+
+void HotKeyManager::write_missing_hotkeys() {
+    size_t value_size = 0;
+    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_sr_key", nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_sr_key", "0x31\;ctrl");
+    }
+    value_size = 0;
+    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_lens_key", nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_lens_key", "0x32\;ctrl");
+    }
+    value_size = 0;
+    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_3d_key", nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_3d_key", "0x33\;ctrl");
+    }
+    value_size = 0;
+    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_lens_and_3d_key", nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_lens_and_3d_key", "0x34\;ctrl");
+    }
+    value_size = 0;
+    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_latency_mode_key", nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_latency_mode_key", "0x35\;ctrl");
+    }
 }
