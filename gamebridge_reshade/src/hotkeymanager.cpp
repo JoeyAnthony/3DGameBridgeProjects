@@ -69,16 +69,17 @@ HotKeyManager::HotKeyManager(reshade::api::effect_runtime* runtime) {
     // Create some default hotkeys.
     try {
         registered_hot_keys.push_back(read_from_config(true, "toggle_sr_key", TOGGLE_SR));
-        registered_hot_keys.push_back(read_from_config(false, "toggle_lens_key", TOGGLE_LENS));
+        registered_hot_keys.push_back(read_from_config(true, "toggle_lens_key", TOGGLE_LENS));
         registered_hot_keys.push_back(read_from_config(false, "toggle_3d_key", TOGGLE_3D));
         registered_hot_keys.push_back(read_from_config(false, "toggle_lens_and_3d_key", TOGGLE_LENS_AND_3D));
         registered_hot_keys.push_back(read_from_config(false, "toggle_latency_mode_key", TOGGLE_LATENCY_MODE));
     }
     catch (std::runtime_error &e) {
         // Couldn't find the config value, let's write the default in the .ini
-        std::string error_msg = "Unable to find hotkey config in ReShade.ini: Now writing defaults...";
+        std::string error_msg = "Unable to find hotkey config in ReShade.ini: Now writing/loading defaults...";
         reshade::log_message(reshade::log_level::warning, error_msg.c_str());
         write_missing_hotkeys();
+        load_default_hotkeys();
     }
 }
 
@@ -153,4 +154,13 @@ void HotKeyManager::write_missing_hotkeys() {
     if (value_size <= 0) {
         reshade::set_config_value(nullptr, "3DGameBridge", "toggle_latency_mode_key", "0x35\;ctrl");
     }
+}
+
+void HotKeyManager::load_default_hotkeys() {
+    registered_hot_keys.erase(registered_hot_keys.begin(), registered_hot_keys.end());
+    registered_hot_keys.push_back(HotKey(true, shortcutType::TOGGLE_SR, 0x31, false, false, true));
+    registered_hot_keys.push_back(HotKey(true, shortcutType::TOGGLE_LENS, 0x32, false, false, true));
+    registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_3D, 0x33, false, false, true));
+    registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_LENS_AND_3D, 0x34, false, false, true));
+    registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_LATENCY_MODE, 0x35, false, false, true));
 }
