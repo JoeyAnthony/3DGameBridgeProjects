@@ -266,7 +266,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     // Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
     // Register some standard hotkeys
     if (hotKey_manager == nullptr) {
-        hotKey_manager = new HotKeyManager(runtime);
+        hotKey_manager = new HotKeyManager();
     }
 
     try {
