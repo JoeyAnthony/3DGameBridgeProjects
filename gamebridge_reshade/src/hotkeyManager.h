@@ -22,6 +22,9 @@ public:
 private:
     std::vector<HotKey> registered_hot_keys;
 
+    // Writes hotkeys if they are not present in the ReShade.ini file
+    static void write_missing_hotkeys();
+
     // Helper function to split off unwanted '\0' characters from vector arrays for easy processing.
     static void removeUnwantedNulls(std::vector<char>& vec);
 
