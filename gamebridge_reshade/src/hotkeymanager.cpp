@@ -7,23 +7,51 @@
 
 #include "hotkeyManager.h"
 
-HotKey HotKeyManager::read_from_config(bool default_enabled, std::string key, shortcutType shortcut) {
-    size_t value_size;
+void HotKeyManager::removeUnwantedNulls(std::vector<char>& vec) {
+    // Find the first occurrence of '\0'
+    auto firstNullIt = std::find(vec.begin(), vec.end(), '\0');
+
+    if (firstNullIt != vec.end()) {
+        // Check if the vector ends with only '\0' characters
+        if (std::all_of(firstNullIt, vec.end(), [](char c) { return c == '\0'; })) {
+            // The vector ends with only '\0', so preserve it as is
+            return;
+        }
+        // Otherwise, erase everything before the first group of '\0'
+        vec.erase(vec.begin(), firstNullIt + 1);
+    }
+}
+
+HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& key, shortcutType shortcut) {
+    size_t value_size = 0;
     reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), nullptr, &value_size);
     if (value_size > 0) {
-        // Get the value from the config
-        std::vector<char> value(value_size);
-        reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), value.data(), &value_size);
-        // Convert read value to lower case string
-        std::transform(value.begin(), value.end(), value.begin(),
-                       [](unsigned char c){ return std::tolower(c); });
-        std::string str(value.begin(), value.end());
-        // Create the hotkey
-        // Todo: Seems to preemptively split the input on the first ";" already.
-        int found_key = 0;
+        HotKey created_key;
         try {
-            // Todo: It should also work if there is not ";" in the config
-            found_key = std::stoi(str.substr(0, str.find(';')));
+            // Get the value from the config
+            std::vector<char> value(value_size);
+            reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), value.data(), &value_size);
+            // Remove unwanted '\0' characters as they confuse the string conversion.
+            removeUnwantedNulls(value);
+            // Convert read value to lower case string
+            std::transform(value.begin(), value.end(), value.begin(),
+                           [](unsigned char c){ return std::tolower(c); });
+            std::string str(value.begin(), value.end());
+            // Filter out the actual key, it's always the first value before the ';' delimiter or the only value before string ending
+            unsigned int found_key = 0;
+            size_t idx = str.find(';');
+            if (idx != std::string::npos) {
+                std::string key_string = str.substr(0, idx);
+                found_key = std::stoul(key_string, nullptr, 16);
+            } else {
+                idx = str.find('\0');
+                if (idx != std::string::npos) {
+                    std::string key_string = str.substr(0, idx);
+                    found_key = std::stoul(key_string, nullptr, 16);
+                }
+            }
+            // Create the hotkey
+            created_key = HotKey(default_enabled, shortcut, found_key, str.find("shift") != std::string::npos, str.find("alt") != std::string::npos, str.find("ctrl") != std::string::npos);
         }
         catch (...)
         {
@@ -32,26 +60,12 @@ HotKey HotKeyManager::read_from_config(bool default_enabled, std::string key, sh
             error_msg += ". Please ensure that you use the keycode table: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes";
             reshade::log_message(reshade::log_level::error, error_msg.c_str());
         }
-        HotKey created_key = HotKey(default_enabled, shortcut, found_key, str.find("shift") != std::string::npos, str.find("alt") != std::string::npos, str.find("ctrl") != str.find("shift") != std::string::npos);
         return created_key;
     }
 }
 
 HotKeyManager::HotKeyManager(reshade::api::effect_runtime* runtime) {
-    // Todo: Could be prettier
     // Create some default hotkeys.
-//    size_t value_size;
-//    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_sr_key", nullptr, &value_size);
-//    if (value_size > 0) {
-//        std::vector<char> value(value_size);
-//        reshade::get_config_value(nullptr, "3DGameBridge", "toggle_sr_key", value.data(), &value_size);
-//    }
-
-//    HotKey toggle_sr_key = HotKey(true, shortcutType::TOGGLE_SR, 0x31, false, false, true);
-//    HotKey toggle_lens_key = HotKey(true, shortcutType::TOGGLE_LENS, 0x32, false, false, true);
-//    HotKey toggle_3d = HotKey(false, shortcutType::TOGGLE_3D, 0x33, false, false, true);
-//    HotKey toggle_lens_and_3d = HotKey(false, shortcutType::TOGGLE_LENS_AND_3D, 0x34, false, false, true);
-//    HotKey toggle_latency_mode = HotKey(false, shortcutType::TOGGLE_LATENCY_MODE, 0x35, false, false, true);
     registered_hot_keys.push_back(read_from_config(true, "toggle_sr_key", TOGGLE_SR));
     registered_hot_keys.push_back(read_from_config(false, "toggle_lens_key", TOGGLE_LENS));
     registered_hot_keys.push_back(read_from_config(false, "toggle_3d_key", TOGGLE_3D));
