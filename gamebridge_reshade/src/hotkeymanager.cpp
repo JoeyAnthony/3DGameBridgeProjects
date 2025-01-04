@@ -65,7 +65,7 @@ HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& 
     throw std::runtime_error("Unable to read key from config");
 }
 
-HotKeyManager::HotKeyManager(reshade::api::effect_runtime* runtime) {
+HotKeyManager::HotKeyManager() {
     // Create some default hotkeys.
     try {
         registered_hot_keys.push_back(read_from_config(true, "toggle_sr_key", TOGGLE_SR));

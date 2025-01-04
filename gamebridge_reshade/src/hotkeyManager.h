@@ -14,7 +14,7 @@
 
 class HotKeyManager {
 public:
-    explicit HotKeyManager(reshade::api::effect_runtime* runtime);
+    HotKeyManager();
     std::map<shortcutType, bool> check_hot_keys(reshade::api::effect_runtime* runtime, SR::SRContext* context);
     // Todo: Implement a way to edit and create new hotkeys?
     void edit_hot_key(uint8_t hot_key_id);
