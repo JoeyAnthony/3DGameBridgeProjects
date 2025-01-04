@@ -68,7 +68,24 @@ This application currently has one QoL feature implemented which are the shortcu
 
     Stick to the default setting if you’re not sure.
 
-These shortcuts were mostly implemented for debugging, they might not be useful to everyone but I’ve included them here to avoid confusion. Later, these hotkeys are planned to be customizable, but they are static for this release.
+These shortcuts were mostly implemented for debugging, they might not be useful to everyone but I’ve included them here to avoid confusion.
+
+## Changing Shortcut Key Bindings
+When loading a game using Game Bridge and no shortcut bindings are found, the default ones will be loaded into the `ReShade.ini` file for that game.
+These bindings look like this:
+
+``` .ini
+[3DGameBridge]
+toggle_3d_key=0x33;ctrl
+toggle_latency_mode_key=0x35;ctrl
+toggle_lens_and_3d_key=0x34;ctrl
+toggle_lens_key=0x32;ctrl
+toggle_sr_key=0x31;ctrl;shift;alt
+```
+
+Key bindings are structured like this: `[hex_keycode];[modifier_key];[modifier_key];[modifier_key]`<br/>
+- The supported keycodes can be found in the "value" column [here](https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes).
+- The supported modifier keys are: `shift`, `ctrl` and `alt`
 
 ## 
 
