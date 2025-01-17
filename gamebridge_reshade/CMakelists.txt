@@ -23,6 +23,8 @@ add_library(${PROJECT_NAME} SHARED
     src/hotkeymanager.cpp
     src/hotkeymanager.h
     src/delayLoader.h
+	src/systemEventMonitor.cpp
+	src/systemEventMonitor.h
 )
 
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
