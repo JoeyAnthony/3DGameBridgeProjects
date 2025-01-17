@@ -25,6 +25,8 @@ add_library(${PROJECT_NAME} SHARED
     src/delayLoader.h
 	src/systemEventMonitor.cpp
 	src/systemEventMonitor.h
+	src/configManager.h
+	src/configManager.cpp
 )
 
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
