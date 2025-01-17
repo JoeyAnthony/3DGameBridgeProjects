@@ -43,7 +43,7 @@ class DirectX12Weaver: public IGraphicsApi {
 
     /// \brief Checks the current color format of the RTV's back buffer and chooses the correct buffer from ReShade for weaving based on that.
     /// \param desc Represents the current ReShade resource view
-    void DirectX12Weaver::check_color_format(reshade::api::resource_desc desc);
+    void check_color_format(reshade::api::resource_desc desc);
 
 public:
     /// \brief Explicit constructor
