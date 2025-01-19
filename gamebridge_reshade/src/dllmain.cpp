@@ -19,6 +19,7 @@
 #include "systemEventMonitor.h"
 #include "openglweaver.h"
 #include "delayLoader.h"
+#include "configManager.h"
 
 #include <chrono>
 #include <functional>
@@ -38,6 +39,7 @@ SR::SwitchableLensHint* lens_hint = nullptr;
 SR::SystemSense* system_sense;
 SystemEventMonitor sense_listener;
 HotKeyManager* hotKey_manager = nullptr;
+ConfigManager* config_manager = nullptr;
 
 // Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static bool dll_failed_to_load = false;
@@ -47,6 +49,8 @@ static char char_buffer[CHAR_BUFFER_SIZE];
 static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
+static bool user_lost_logic_enabled = false;
+static int user_lost_grace_period_duration_in_seconds = 3;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
@@ -224,21 +228,30 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
 
+    // Check if certain hotkeys are being pressed
+    if (config_manager != nullptr) {
+        // Todo: Update the state of the config based on if the user changed the setting in the UI
+        // write_config_value();
+        // Todo: Update the bool that sets whether to do the userlost logic
+    }
+
     // Check if user is still within view of the camera
-    if (sense_listener.isUserLost) {
-        if (!user_lost_grace_period_active) {
-            // Start the grace period timer
-            user_lost_timestamp = chrono::high_resolution_clock::now();
+    if (user_lost_logic_enabled){
+        if (sense_listener.isUserLost) {
+            if (!user_lost_grace_period_active) {
+                // Start the grace period timer
+                user_lost_timestamp = chrono::high_resolution_clock::now();
+            }
+            user_lost_grace_period_active = true;
+            // Todo: Make this timeout value configurable in config.ini
+            if (std::chrono::duration_cast<std::chrono::seconds>(chrono::high_resolution_clock::now() - user_lost_timestamp) > std::chrono::seconds(user_lost_grace_period_duration_in_seconds)) {
+                // Skip the weaving step by returning here
+                return;
+            }
+        } else {
+            // Todo: Do we have a way to not do this every frame?
+            user_lost_grace_period_active = false;
         }
-        user_lost_grace_period_active = true;
-        // Todo: Make this timeout value configurable in config.ini
-        if (std::chrono::duration_cast<std::chrono::seconds>(chrono::high_resolution_clock::now() - user_lost_timestamp) > std::chrono::seconds(3)) {
-            // Skip the weaving step by returning here
-            return;
-        }
-    } else {
-        // Todo: Do we have a way to not do this every frame?
-        user_lost_grace_period_active = false;
     }
 
     if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
@@ -289,10 +302,22 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         return;
     }
 
-    // Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
+    // Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
     // Register some standard hotkeys
     if (hotKey_manager == nullptr) {
         hotKey_manager = new HotKeyManager();
+    }
+    // Read config values from .ini
+    if (config_manager == nullptr) {
+        config_manager = new ConfigManager();
+        for (int i = 0; i < config_manager->registered_config_values.size(); i++) {
+            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present") {
+                user_lost_logic_enabled = config_manager->registered_config_values[i].bool_value;
+            }
+            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present_grace_duration_in_seconds") {
+                user_lost_grace_period_duration_in_seconds = config_manager->registered_config_values[i].int_value;
+            }
+        }
     }
 
     try {
