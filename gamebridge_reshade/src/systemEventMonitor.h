@@ -21,7 +21,7 @@ public:
 
     // Flag to indicate that context is no longer valid
     bool contextValid = true;
-    bool isUserLost = true;
+    bool isUserLost = false;
 
     void accept(const SR::SystemEvent& frame) override;
 };

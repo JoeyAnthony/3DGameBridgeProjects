@@ -20,7 +20,7 @@ public:
         bool bool_value;
 
         ConfigValue(std::string key, int intValue) : key(key), value_type(Type::Int), int_value(intValue) {}
-        ConfigValue(std::string key, const std::string& stringValue) : key(key), value_type(Type::String), string_value(stringValue) {}
+        ConfigValue(std::string key, std::string stringValue) : key(key), value_type(Type::String), string_value(std::move(stringValue)) {}
         ConfigValue(std::string key, bool boolValue) : key(key), value_type(Type::Bool), bool_value(boolValue) {}
         ConfigValue() : value_type(Type::None) {}
     };
@@ -44,7 +44,11 @@ public:
     // Returns an instance of the hotkey class based on the read config values.
     static ConfigValue read_from_config(const std::string& key);
 
+    static bool write_config_value(ConfigValue value);
+
     void load_default_config();
+
+    void reload_config();
 };
 
 

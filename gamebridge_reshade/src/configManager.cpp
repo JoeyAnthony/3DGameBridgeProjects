@@ -12,13 +12,24 @@
 
 #include "ConfigManager.h"
 
-ConfigManager::ConfigManager() {
-    // Todo: Check if we can read the config values we expect. Otherwise write defaults.
-    ConfigValue disable_3d_when_no_user_present = ConfigManager::read_from_config("disable_3d_when_no_user_present");
-    ConfigValue disable_3d_when_no_user_present_grace_duration = ConfigManager::read_from_config("disable_3d_when_no_user_present_grace_duration");
-    if (disable_3d_when_no_user_present.value_type == ConfigValue::Type::None || disable_3d_when_no_user_present_grace_duration.value_type == ConfigValue::Type::None) {
+void ConfigManager::reload_config() {
+    try {
+        registered_config_values.push_back(ConfigManager::read_from_config(
+                "disable_3d_when_no_user_present"));
+        registered_config_values.push_back(ConfigManager::read_from_config(
+                "disable_3d_when_no_user_present_grace_duration_in_seconds"));
+    } catch (std::runtime_error &e) {
+        // Couldn't find the config value, let's write the default in the .ini
+        std::string error_msg = "Unable to find config value in ReShade.ini: Now writing/loading defaults...";
+        reshade::log_message(reshade::log_level::warning, error_msg.c_str());
         write_missing_config_values();
+        load_default_config();
     }
+}
+
+ConfigManager::ConfigManager() {
+    // Check if we can read the config values we expect. Otherwise, write defaults.
+    reload_config();
 }
 
 void ConfigManager::write_missing_config_values() {
@@ -30,23 +41,13 @@ void ConfigManager::write_missing_config_values() {
     value_size = 0;
     reshade::get_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_grace_duration", nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_grace_duration_in_seconds", 3);
+        reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_grace_duration_in_seconds", "3");
     }
 }
 
 void removeUnwantedNulls(std::vector<char>& vec) {
     // Find the first occurrence of '\0'
-    auto firstNullIt = std::find(vec.begin(), vec.end(), '\0');
-
-    if (firstNullIt != vec.end()) {
-        // Check if the vector ends with only '\0' characters
-        if (std::all_of(firstNullIt, vec.end(), [](char c) { return c == '\0'; })) {
-            // The vector ends with only '\0', so preserve it as is
-            return;
-        }
-        // Otherwise, erase everything before the first group of '\0'
-        vec.erase(vec.begin(), firstNullIt + 1);
-    }
+    vec.erase(std::remove(vec.begin(), vec.end(), '\0'), vec.end());
 }
 
 ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &key) {
@@ -65,25 +66,25 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
             std::string str(value.begin(), value.end());
             // Try parsing as boolean
             if (str == "true") {
-                return ConfigValue(true);
+                return ConfigValue(key, true);
             }
             if (str == "false") {
-                return ConfigValue(false);
+                return ConfigValue(key, false);
             }
 
             // Try parsing as integer
             size_t idx = 0;
             int int_value = std::stoi(str, &idx);
             if (idx == str.length()) { // Entire string was a valid integer
-                return ConfigValue(int_value);
+                return ConfigValue(key, int_value);
             }
 
-            return ConfigValue(str);
+            return ConfigValue(key, str);
 
         }
         catch (...)
         {
-            std::string error_msg = "Unable to read hotkey from config file for config value: ";
+            std::string error_msg = "Unable to read value from config file for config value: ";
             error_msg += key;
             error_msg += ". Please read the addon documentation to find out what values are valid.";
             reshade::log_message(reshade::log_level::error, error_msg.c_str());
@@ -95,11 +96,30 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
 
 void ConfigManager::load_default_config() {
     registered_config_values.erase(registered_config_values.begin(), registered_config_values.end());
-    registered_config_values.push_back(ConfigValue());
-    registered_hot_keys.erase(registered_hot_keys.begin(), registered_hot_keys.end());
-    registered_hot_keys.push_back(HotKey(true, shortcutType::TOGGLE_SR, 0x31, false, false, true));
-    registered_hot_keys.push_back(HotKey(true, shortcutType::TOGGLE_LENS, 0x32, false, false, true));
-    registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_3D, 0x33, false, false, true));
-    registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_LENS_AND_3D, 0x34, false, false, true));
-    registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_LATENCY_MODE, 0x35, false, false, true));
+    registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present", false));
+    registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present_grace_duration", 3));
+}
+
+bool ConfigManager::write_config_value(ConfigManager::ConfigValue value) {
+    try {
+        switch (value.value_type) {
+            case ConfigValue::Type::String:
+                reshade::set_config_value(nullptr, "3DGameBridge", value.key.c_str(), value.string_value.c_str());
+                break;
+            case ConfigValue::Type::Bool:
+                reshade::set_config_value(nullptr, "3DGameBridge", value.key.c_str(), (value.bool_value) ? "true" : "false");
+                break;
+            case ConfigValue::Type::Int:
+                reshade::set_config_value(nullptr, "3DGameBridge", value.key.c_str(), std::to_string(value.int_value).c_str());
+                break;
+            default:
+                break;
+        }
+    } catch (std::runtime_error &e) {
+        std::string error_msg = "Unable to write config value in ReShade.ini, your config changed will not be saved for this session.";
+        reshade::log_message(reshade::log_level::warning, error_msg.c_str());
+        return false;
+    }
+
+    return true;
 }
