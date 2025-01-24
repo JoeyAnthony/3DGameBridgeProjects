@@ -9,6 +9,11 @@
 
 // Directx
 #include <DirectXMath.h>
+#include <sr/sense/system/systemsense.h>
+#include <sr/version_c.h>
+
+#include "directx10weaver.h"
+#include "VersionComparer.h"
 
 DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
     // Set context here.
@@ -82,9 +87,18 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
-        // Set mode to latency in frames by default.
-        set_latency_frametime_adaptive(default_weaver_latency);
-        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
+        // Todo: Check what version of SR we're on, if we're on 1.30 or up, switch to latency in frames.
+        std::string latency_log;
+
+        if (VersionComparer::isVersionNewer(getSRPlatformVersion(), 1, 30, 0)) {
+            set_latency_in_frames(-1);
+            latency_log = "Current latency mode set to: LATENCY_IN_FRAMES_AUTOMATIC";
+        } else {
+            // Set mode to latency in frames by default.
+            set_latency_frametime_adaptive(default_weaver_latency);
+            latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
+        }
+
         reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
     catch (std::runtime_error &e) {
@@ -106,6 +120,9 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
 }
 
 void DirectX11Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
+    // Todo: Check this every frame and update the logic based on its state, also write to config
+    bool user_presence_3d_toggle_checked = false;
+
     // Log activity status
     ImGui::TextUnformatted("Status: ACTIVE");
 
@@ -122,6 +139,22 @@ void DirectX11Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime)
     // Log the buffer type, this can be removed once we've tested a larger amount of games.
     std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
     ImGui::TextUnformatted(s.c_str());
+
+    // Draw a checkbox and check for changes
+    if (ImGui::Checkbox("User presence based 3D toggle", &user_presence_3d_toggle_checked))
+    {
+        // This block is executed when the checkbox value is toggled
+        if (user_presence_3d_toggle_checked)
+        {
+            reshade::log_message(reshade::log_level::info, "User based 3D checkbox enabled");
+            // Add your code to handle when the checkbox is checked
+        }
+        else
+        {
+            reshade::log_message(reshade::log_level::info, "User based 3D checkbox disabled");
+            // Add your code to handle when the checkbox is unchecked
+        }
+    }
 }
 
 GbResult DirectX11Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {

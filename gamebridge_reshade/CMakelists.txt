@@ -27,6 +27,8 @@ add_library(${PROJECT_NAME} SHARED
 	src/systemEventMonitor.h
 	src/configManager.h
 	src/configManager.cpp
+		src/versioncomparer.cpp
+		src/versioncomparer.h
 )
 
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
