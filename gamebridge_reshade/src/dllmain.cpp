@@ -49,6 +49,7 @@ static char char_buffer[CHAR_BUFFER_SIZE];
 static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
+// Todo: Read initial value from config
 static bool user_lost_logic_enabled = false;
 static int user_lost_grace_period_duration_in_seconds = 3;
 static chrono::steady_clock::time_point user_lost_timestamp;
@@ -236,6 +237,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
     }
 
     // Check if user is still within view of the camera
+    user_lost_logic_enabled = weaver_implementation->user_presence_3d_toggle_checked;
     if (user_lost_logic_enabled){
         if (sense_listener.isUserLost) {
             if (!user_lost_grace_period_active) {

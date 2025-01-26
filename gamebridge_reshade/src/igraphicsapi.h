@@ -38,6 +38,10 @@ public:
     int32_t reshade_version_nr_minor = 0;
     int32_t reshade_version_nr_patch = 0;
 
+    // Todo: Check this every frame and update the logic based on its state, also write to config
+    // Todo: Doxygen
+    bool user_presence_3d_toggle_checked = false;
+
     /// \brief Concatenates the reshade_version_nr_major/minor/patch into one number
     /// \return A concatenated ReShade version code without periods. Example: 580 (instead of 5.8.0)
     int32_t get_concatinated_reshade_version();
