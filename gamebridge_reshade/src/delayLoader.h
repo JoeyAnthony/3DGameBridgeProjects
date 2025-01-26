@@ -10,7 +10,7 @@
 #include <Windows.h>
 #include <delayimp.h>
 
-std::array<std::string, 12> sr_dll_names = {"Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll"};
+std::array<std::string, 14> sr_dll_names = {"simulatedreality.dll", "simulatedreality32.dll", "Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll"};
 
 FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
     std::string requested_dll;
@@ -39,6 +39,8 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
                     const DWORD errorCode = GetLastError();
                     if (errorCode == ERROR_MOD_NOT_FOUND) {
                         std::cout << "Module not found (ERROR_MOD_NOT_FOUND)" << std::endl;
+                        std::string error_msg = "Module could not be loaded: " + requested_dll;
+                        reshade::log_message(reshade::log_level::error, error_msg.c_str());
                         return 0;
                     }
                     if (hModule) {
