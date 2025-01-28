@@ -14,7 +14,6 @@
 #include "pch.h"
 
 class DirectX10Weaver: public IGraphicsApi {
-    uint32_t last_latency_frame_time_set = default_weaver_latency;
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
     bool weaver_initialized = false;
@@ -30,7 +29,6 @@ class DirectX10Weaver: public IGraphicsApi {
     SR::PredictingDX10Weaver* weaver = nullptr;
 
     reshade::api::device* d3d10_device = nullptr;
-    reshade::api::format current_buffer_format = reshade::api::format::unknown;
     reshade::api::command_list* command_list{};
     reshade::api::resource effect_frame_copy{};
     reshade::api::resource_view effect_frame_copy_srv{};
@@ -64,7 +62,6 @@ public:
 
 
     // Inherited via IGraphicsApi
-    void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
     GbResult on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
     void on_init_effect_runtime(reshade::api::effect_runtime* runtime) override;
     void do_weave(bool do_weave) override;

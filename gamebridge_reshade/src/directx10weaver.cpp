@@ -10,6 +10,8 @@
 // Directx
 #include <DirectXMath.h>
 
+#include "configManager.h"
+
 DirectX10Weaver::DirectX10Weaver(SR::SRContext* context) {
     // Set context here.
     sr_context = context;
@@ -58,6 +60,7 @@ GbResult DirectX10Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
         return SUCCESS;
     }
 
+    DirectX10Weaver::user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
     delete weaver;
     weaver = nullptr;
     reshade::api::resource_desc desc = d3d10_device->get_resource_desc(rtv);
@@ -75,14 +78,15 @@ GbResult DirectX10Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
         // Set mode to latency in frames by default.
-        set_latency_frametime_adaptive(default_weaver_latency);
-        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
+        set_latency_frametime_adaptive(weaver_latency_in_us);
+        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
         reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
     catch (std::runtime_error &e) {
         if (std::strcmp(e.what(), "Failed to load library") == 0) {
             return DLL_NOT_LOADED;
         }
+        return GENERAL_FAIL;
     }
     catch (std::exception &e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -95,25 +99,6 @@ GbResult DirectX10Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
 
     weaver_initialized = true;
     return SUCCESS;
-}
-
-void DirectX10Weaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
-    // Log activity status
-    ImGui::TextUnformatted("Status: ACTIVE");
-
-    // Log the latency mode
-    std::string latencyModeDisplay = "Latency mode: ";
-    if (current_latency_mode == LatencyModes::FRAMERATE_ADAPTIVE) {
-        latencyModeDisplay += "IN " + std::to_string(last_latency_frame_time_set) + " MICROSECONDS";
-    }
-    else {
-        latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
-    }
-    ImGui::TextUnformatted(latencyModeDisplay.c_str());
-
-    // Log the buffer type, this can be removed once we've tested a larger amount of games.
-    std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
-    ImGui::TextUnformatted(s.c_str());
 }
 
 GbResult DirectX10Weaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
@@ -222,7 +207,7 @@ bool DirectX10Weaver::set_latency_frametime_adaptive(uint32_t frametime_in_micro
     if (weaver_initialized) {
         set_latency_mode(LatencyModes::FRAMERATE_ADAPTIVE);
         weaver->setLatency(frametime_in_microseconds);
-        last_latency_frame_time_set = frametime_in_microseconds;
+        weaver_latency_in_us = frametime_in_microseconds;
         return true;
     }
     return false;

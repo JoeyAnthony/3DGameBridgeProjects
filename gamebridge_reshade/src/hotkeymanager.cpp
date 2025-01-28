@@ -72,7 +72,7 @@ HotKeyManager::HotKeyManager() {
         registered_hot_keys.push_back(read_from_config(true, "toggle_lens_key", TOGGLE_LENS));
         registered_hot_keys.push_back(read_from_config(false, "toggle_3d_key", TOGGLE_3D));
         registered_hot_keys.push_back(read_from_config(false, "toggle_lens_and_3d_key", TOGGLE_LENS_AND_3D));
-        registered_hot_keys.push_back(read_from_config(false, "toggle_latency_mode_key", TOGGLE_LATENCY_MODE));
+        registered_hot_keys.push_back(read_from_config(true, "toggle_latency_mode_key", TOGGLE_LATENCY_MODE));
     }
     catch (std::runtime_error &e) {
         // Couldn't find the config value, let's write the default in the .ini
