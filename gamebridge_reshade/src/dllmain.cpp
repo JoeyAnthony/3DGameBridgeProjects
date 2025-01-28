@@ -176,7 +176,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
             else {
                 // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
-                weaver_implementation->set_latency_frametime_adaptive(default_weaver_latency);
+                weaver_implementation->set_latency_frametime_adaptive(weaver_implementation->weaver_latency_in_us);
 
                 // Log the current mode:
                 reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
