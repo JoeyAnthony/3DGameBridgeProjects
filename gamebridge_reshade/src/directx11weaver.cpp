@@ -83,7 +83,6 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
     }
 
     try {
-        // Todo: Gets access violations when no SR screen is connected!
         weaver = new SR::PredictingDX11Weaver(*sr_context, dev, context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
         weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
         weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)rtv.handle); // Resourceview of the buffer
@@ -110,7 +109,7 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
     // Check what version of SR we're on, if we're on 1.30 or up, switch to latency in frames.
     std::string latency_log;
 
-    if (VersionComparer::isVersionNewer(getSRPlatformVersion(), 1, 30, 0)) {
+    if (VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 29, 999)) {
         set_latency_in_frames(-1);
         latency_log = "Current latency mode set to: LATENCY_IN_FRAMES_AUTOMATIC";
     } else {
