@@ -7,7 +7,7 @@
 
 #include "hotkeyManager.h"
 
-void HotKeyManager::removeUnwantedNulls(std::vector<char>& vec) {
+void HotKeyManager::remove_unwanted_nulls(std::vector<char>& vec) {
     // Find the first occurrence of '\0'
     auto firstNullIt = std::find(vec.begin(), vec.end(), '\0');
 
@@ -32,7 +32,7 @@ HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& 
             std::vector<char> value(value_size);
             reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), value.data(), &value_size);
             // Remove unwanted '\0' characters as they confuse the string conversion.
-            removeUnwantedNulls(value);
+            remove_unwanted_nulls(value);
             // Convert read value to lower case string
             std::transform(value.begin(), value.end(), value.begin(),
                            [](unsigned char c){ return std::tolower(c); });

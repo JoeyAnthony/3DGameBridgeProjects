@@ -5,17 +5,11 @@
  * Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Modifications to the source code must be disclosed publicly.
  */
 
-#ifndef VERSIONCOMPARER_H
-#define VERSIONCOMPARER_H
+#pragma once
 
-
+#include "pch.h"
 
 class VersionComparer {
 public:
-    static bool isVersionNewer(const char* versionString, int major, int minor, int patch);
-
+    static bool is_version_newer(const char* versionString, int major, int minor, int patch);
 };
-
-
-
-#endif //VERSIONCOMPARER_H

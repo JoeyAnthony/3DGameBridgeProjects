@@ -28,7 +28,7 @@ private:
     static void write_missing_hotkeys();
 
     // Helper function to split off unwanted '\0' characters from vector arrays for easy processing.
-    static void removeUnwantedNulls(std::vector<char>& vec);
+    static void remove_unwanted_nulls(std::vector<char>& vec);
 
     // Keys are stored in the config like so:
     // [3DGameBridge]

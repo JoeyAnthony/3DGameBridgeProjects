@@ -14,12 +14,13 @@
 
 void ConfigManager::reload_config() {
     try {
+        // Attempt to read config values from ReShade.ini
         registered_config_values.push_back(ConfigManager::read_from_config(
                 "disable_3d_when_no_user_present"));
         registered_config_values.push_back(ConfigManager::read_from_config(
                 "disable_3d_when_no_user_present_grace_duration_in_seconds"));
     } catch (std::runtime_error &e) {
-        // Couldn't find the config value, let's write the default in the .ini
+        // Couldn't find the config values, let's write the defaults in the .ini
         std::string error_msg = "Unable to find config value in ReShade.ini: Now writing/loading defaults...";
         reshade::log_message(reshade::log_level::warning, error_msg.c_str());
         write_missing_config_values();
@@ -45,7 +46,7 @@ void ConfigManager::write_missing_config_values() {
     }
 }
 
-void removeUnwantedNulls(std::vector<char>& vec) {
+void remove_unwanted_nulls(std::vector<char>& vec) {
     // Find the first occurrence of '\0'
     vec.erase(std::remove(vec.begin(), vec.end(), '\0'), vec.end());
 }
@@ -59,7 +60,7 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
             std::vector<char> value(value_size);
             reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), value.data(), &value_size);
             // Remove unwanted '\0' characters as they confuse the string conversion.
-            removeUnwantedNulls(value);
+            remove_unwanted_nulls(value);
             // Convert read value to lower case string
             std::transform(value.begin(), value.end(), value.begin(),
                            [](unsigned char c){ return std::tolower(c); });

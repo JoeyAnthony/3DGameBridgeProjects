@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-bool VersionComparer::isVersionNewer(const char *runningVersionString, int major, int minor, int patch) {
+bool VersionComparer::is_version_newer(const char *runningVersionString, int major, int minor, int patch) {
     // Parse the version string
     std::string version(runningVersionString);
     std::vector<int> versionParts;
@@ -29,8 +29,9 @@ bool VersionComparer::isVersionNewer(const char *runningVersionString, int major
 
     // Ensure we have at least MAJOR.MINOR.PATCH
     if (versionParts.size() < 3) {
-     // Todo: Replace with reshade log.
-     // std::cerr << "Invalid version format: " << version << std::endl;
+     std::string message = "Invalid SR version format: ";
+     message += version;
+     reshade::log_message(reshade::log_level::warning, message.c_str());
      return false;
     }
 

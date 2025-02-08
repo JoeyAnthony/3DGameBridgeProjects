@@ -39,9 +39,7 @@ FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
                     const DWORD errorCode = GetLastError();
                     if (errorCode == ERROR_MOD_NOT_FOUND) {
                         std::cout << "Module not found (ERROR_MOD_NOT_FOUND)" << std::endl;
-                        std::string error_msg = "Module could not be loaded: " + requested_dll;
-                        reshade::log_message(reshade::log_level::error, error_msg.c_str());
-                        return 0;
+                        return nullptr;
                     }
                     if (hModule) {
                         return reinterpret_cast<FARPROC>(hModule);

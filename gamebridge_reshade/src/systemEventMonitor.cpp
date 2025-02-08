@@ -15,24 +15,18 @@
 void SystemEventMonitor::accept(const SR::SystemEvent& frame) {
     switch (frame.eventType) {
         case SR_eventType::Info:
-        reshade::log_message(reshade::log_level::info, "Info");
-        break;
+            reshade::log_message(reshade::log_level::info, "Info");
+            break;
         case SR_eventType::ContextInvalid:
-        // std::string stuff
-        //     << frame.time << " "
-        //     << frame.message << "\n";
-        contextValid = false;
-        break;
-    case SR_eventType::UserLost:
-        // std::cout << "UserLost" << std::endl;
-        isUserLost = true;
-        break;
-    case SR_eventType::UserFound:
-        // std::cout << "UserFound" << std::endl;
-        isUserLost = false;
-        break;
-    default:
-        // std::cout << "Unknown event type" << std::endl;
-        break;
+            contextValid = false;
+            break;
+        case SR_eventType::UserLost:
+            isUserLost = true;
+            break;
+        case SR_eventType::UserFound:
+            isUserLost = false;
+            break;
+        default:
+            break;
     }
 }
