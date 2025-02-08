@@ -5,8 +5,8 @@
  * Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Modifications to the source code must be disclosed publicly.
  */
 
-#ifndef SYSTEMEVENTMONITOR_H
-#define SYSTEMEVENTMONITOR_H
+#pragma once
+
 #include <sr/sense/core/inputstream.h>
 #include <sr/sense/system/systemevent.h>
 #include <sr/sense/system/systemeventlistener.h>
@@ -25,5 +25,3 @@ public:
 
     void accept(const SR::SystemEvent& frame) override;
 };
-
-#endif //SYSTEMEVENTMONITOR_H

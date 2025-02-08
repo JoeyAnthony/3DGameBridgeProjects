@@ -156,7 +156,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
             break;
         case shortcutType::TOGGLE_LENS_AND_3D:
-            // Todo: This should look at the current state of the lens toggle and 3D toggle, then, flip those.This toggle having its own state isn't great.
+            // This looks at the current state of the lens and toggles it.
             if (lens_hint != nullptr && lens_hint->isEnabled()) {
                 toggle_map = {{shortcutType::TOGGLE_LENS, false}, {shortcutType::TOGGLE_3D, false} };
             }
@@ -238,20 +238,19 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
 
     // Check if user is still within view of the camera
     user_lost_logic_enabled = weaver_implementation->user_presence_3d_toggle_checked;
-    if (user_lost_logic_enabled){
+    if (user_lost_logic_enabled) {
         if (sense_listener.isUserLost) {
             if (!user_lost_grace_period_active) {
                 // Start the grace period timer
                 user_lost_timestamp = chrono::high_resolution_clock::now();
             }
             user_lost_grace_period_active = true;
-            // Todo: Make this timeout value configurable in config.ini
+            // Compare current timeout with grace period from config file
             if (std::chrono::duration_cast<std::chrono::seconds>(chrono::high_resolution_clock::now() - user_lost_timestamp) > std::chrono::seconds(user_lost_grace_period_duration_in_seconds)) {
                 // Skip the weaving step by returning here
                 return;
             }
         } else {
-            // Todo: Do we have a way to not do this every frame?
             user_lost_grace_period_active = false;
         }
     }
@@ -304,7 +303,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         return;
     }
 
-    // Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
+    // These hotkeys are reconfigurable from the ReShade.ini file
     // Register some standard hotkeys
     if (hotKey_manager == nullptr) {
         hotKey_manager = new HotKeyManager();

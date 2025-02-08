@@ -5,8 +5,8 @@
  * Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. Modifications to the source code must be disclosed publicly.
  */
 
-#ifndef CONFIGMANAGER_H
-#define CONFIGMANAGER_H
+#pragma once
+
 #include <string>
 
 class ConfigManager {
@@ -50,7 +50,3 @@ public:
 
     void reload_config();
 };
-
-
-
-#endif //CONFIGMANAGER_H
