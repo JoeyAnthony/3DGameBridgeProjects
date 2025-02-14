@@ -18,7 +18,7 @@ void ConfigManager::reload_config() {
         registered_config_values.push_back(ConfigManager::read_from_config(
                 "disable_3d_when_no_user_present"));
         registered_config_values.push_back(ConfigManager::read_from_config(
-                "disable_3d_when_no_user_present_grace_duration_in_seconds"));
+                "disable_3d_when_no_user_present_additional_grace_duration_in_ms"));
     } catch (std::runtime_error &e) {
         // Couldn't find the config values, let's write the defaults in the .ini
         std::string error_msg = "Unable to find config value in ReShade.ini: Now writing/loading defaults...";
@@ -40,9 +40,9 @@ void ConfigManager::write_missing_config_values() {
         reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present", "false");
     }
     value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_grace_duration", nullptr, &value_size);
+    reshade::get_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_additional_grace_duration_in_ms", nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_grace_duration_in_seconds", "3");
+        reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_additional_grace_duration_in_ms", "0");
     }
 }
 
@@ -98,7 +98,7 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
 void ConfigManager::load_default_config() {
     registered_config_values.erase(registered_config_values.begin(), registered_config_values.end());
     registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present", false));
-    registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present_grace_duration", 3));
+    registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present_additional_grace_duration_in_ms", 0));
 }
 
 bool ConfigManager::write_config_value(ConfigManager::ConfigValue value) {
