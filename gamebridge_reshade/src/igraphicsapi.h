@@ -8,6 +8,10 @@
 #pragma once
 
 #include "pch.h"
+#include "VersionComparer.h"
+#include "configManager.h"
+
+#include <sr/version_c.h>
 
 // List of color formats that require color linearization in order restore the correct gamma.
 const std::list<reshade::api::format> srgb_color_formats {

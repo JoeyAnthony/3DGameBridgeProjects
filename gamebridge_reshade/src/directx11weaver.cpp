@@ -7,15 +7,6 @@
 
 #include "directx11weaver.h"
 
-// Directx
-#include <DirectXMath.h>
-#include <sr/sense/system/systemsense.h>
-#include <sr/version_c.h>
-
-#include "configManager.h"
-#include "directx10weaver.h"
-#include "VersionComparer.h"
-
 DirectX11Weaver::DirectX11Weaver(SR::SRContext* context) {
     // Set context here.
     sr_context = context;
