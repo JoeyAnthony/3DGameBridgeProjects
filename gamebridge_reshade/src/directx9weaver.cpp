@@ -64,11 +64,6 @@ GbResult DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, resh
         weaver->setInputFrameBuffer((IDirect3DTexture9*)rtv.handle); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
-
-        // Set mode to latency in frames by default.
-        set_latency_frametime_adaptive(weaver_latency_in_us);
-        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
-        reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
     catch (std::runtime_error &e) {
         if (std::strcmp(e.what(), "Failed to load library") == 0) {
@@ -86,6 +81,21 @@ GbResult DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, resh
     }
 
     weaver_initialized = true;
+
+    // Check what version of SR we're on, if we're on 1.30 or up, switch to latency in frames.
+    std::string latency_log;
+
+    if (VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 29, 999)) {
+        set_latency_in_frames(-1);
+        latency_log = "Current latency mode set to: LATENCY_IN_FRAMES_AUTOMATIC";
+    } else {
+        // Set mode to latency in frames by default.
+        set_latency_frametime_adaptive(weaver_latency_in_us);
+        latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
+    }
+
+    reshade::log_message(reshade::log_level::info, latency_log.c_str());
+
     return SUCCESS;
 }
 
