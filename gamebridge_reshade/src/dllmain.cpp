@@ -49,9 +49,8 @@ static char char_buffer[CHAR_BUFFER_SIZE];
 static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
-// Todo: Read initial value from config
 static bool user_lost_logic_enabled = false;
-static int user_lost_grace_period_duration_in_seconds = 3;
+static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
@@ -246,7 +245,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
             }
             user_lost_grace_period_active = true;
             // Compare current timeout with grace period from config file
-            if (std::chrono::duration_cast<std::chrono::seconds>(chrono::high_resolution_clock::now() - user_lost_timestamp) > std::chrono::seconds(user_lost_grace_period_duration_in_seconds)) {
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(chrono::high_resolution_clock::now() - user_lost_timestamp) > std::chrono::milliseconds(user_lost_additional_grace_period_duration_in_ms)) {
                 // Skip the weaving step by returning here
                 return;
             }
@@ -315,8 +314,8 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
             if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present") {
                 user_lost_logic_enabled = config_manager->registered_config_values[i].bool_value;
             }
-            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present_grace_duration_in_seconds") {
-                user_lost_grace_period_duration_in_seconds = config_manager->registered_config_values[i].int_value;
+            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present_additional_grace_duration_in_ms") {
+                user_lost_additional_grace_period_duration_in_ms = config_manager->registered_config_values[i].int_value;
             }
         }
     }
