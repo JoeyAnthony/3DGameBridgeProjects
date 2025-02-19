@@ -100,8 +100,9 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
 
     try {
         weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
-        weaver->setInputFrameBuffer(renderedTextureID, frameBufferID); // Resourceview of the buffer
-//        weaver->setInputFrameBuffer(frameBufferID, renderedTextureID); // Resourceview of the buffer
+//        weaver->setInputFrameBuffer(renderedTextureID, frameBufferID); // Resourceview of the buffer
+        GLuint renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
+        weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
 
@@ -202,7 +203,8 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
 
             // Set newly create buffer as input
-            weaver->setInputFrameBuffer(renderedTextureID, frameBufferID);
+            renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
+            weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
 //            weaver->setInputFrameBuffer(frameBufferID, renderedTextureID);
             reshade::log_message(reshade::log_level::info, "Buffer size changed");
         }
@@ -242,7 +244,8 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             // Ensure the RTV is compatible with OpenGL and cast to GLuint
             renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
 
-            weaver->setInputFrameBuffer(renderedTextureID, frameBufferID);
+            renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
+            weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
 //            weaver->setInputFrameBuffer(frameBufferID, renderedTextureID);
         }
         else if (result == DLL_NOT_LOADED) {
