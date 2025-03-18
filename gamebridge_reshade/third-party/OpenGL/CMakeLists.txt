@@ -1,0 +1,4 @@
+add_library(${TARGET_GLHEADERS} INTERFACE)
+target_include_directories(${TARGET_GLHEADERS} INTERFACE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+)

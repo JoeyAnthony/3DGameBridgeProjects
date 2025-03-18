@@ -45,6 +45,10 @@ set(TARGET_RESHADE reshade)
 add_subdirectory(third-party/reshade)
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_RESHADE})
 
+set(TARGET_GLHEADERS OpenGL)
+add_subdirectory(third-party/opengl)
+target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_GLHEADERS})
+
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 find_package(srOpenGL REQUIRED)
@@ -71,6 +75,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 		simulatedreality
 		srDirectX${BUILD_PLATFORM}::srDirectX
 		srOpenGL${BUILD_PLATFORM}::srOpenGL
+		${CMAKE_CURRENT_SOURCE_DIR}/third-party/opengl/include/opengl/bin/Release/x64/glew32.dll
 )
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDisplays${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore${BUILD_PLATFORM}.dll")

@@ -6,6 +6,9 @@
  */
 
 #include "openglweaver.h"
+#include <opengl/include/GL/glew.h>
+
+#define GL_FRAMEBUFFER_BINDING            0x8CA6
 
 OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
     // Set context here.
@@ -96,12 +99,12 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
 
     GLuint renderedTextureID;
     // Ensure the RTV is compatible with OpenGL and cast to GLuint
-    renderedTextureID = static_cast<GLuint>(rtv.handle);
+    // renderedTextureID = static_cast<GLuint>(rtv.handle);
 
     try {
         weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
 //        weaver->setInputFrameBuffer(renderedTextureID, frameBufferID); // Resourceview of the buffer
-        GLuint renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
+        renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
         weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
@@ -200,7 +203,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
 
             GLuint renderedTextureID;
             // Ensure the RTV is compatible with OpenGL and cast to GLuint
-            renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
+            // renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
 
             // Set newly create buffer as input
             renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
@@ -215,8 +218,18 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 // Copy resource
                 cmd_list->copy_resource(rtv_resource, effect_frame_copy);
 
+                reshade::api::resource_view effect_frame_copy_rtv;
+
+                gl_device->create_resource_view(effect_frame_copy, reshade::api::resource_usage::render_target, gl_device->get_resource_view_desc(effect_frame_copy_srv), &effect_frame_copy_rtv);
+
                 // Bind back buffer as render target
-                cmd_list->bind_render_targets_and_depth_stencil(1, &chosen_rtv);
+                cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_rtv);
+
+                // Get the framebuffer ID
+                GLint framebufferId;
+                glGetIntegerv(GL_FRAMEBUFFER_BINDING, &framebufferId);
+                GLuint renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
+                weaver->setInputFrameBuffer(framebufferId, renderedTextureID); // Resourceview of the buffer
 
                 // Weave to back buffer
                 weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
@@ -242,7 +255,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
 
             GLuint renderedTextureID;
             // Ensure the RTV is compatible with OpenGL and cast to GLuint
-            renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
+            // renderedTextureID = static_cast<GLuint>(effect_frame_copy.handle);
 
             renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
             weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
