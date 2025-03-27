@@ -32,7 +32,9 @@ class OpenGLWeaver: public IGraphicsApi {
     reshade::api::device* gl_device = nullptr;
     reshade::api::command_list* command_list{};
     reshade::api::resource effect_frame_copy{};
+    reshade::api::resource effect_frame_copy_flipped{};
     reshade::api::resource_view effect_frame_copy_srv{};
+    reshade::api::resource_view effect_frame_copy_rtv{};
     reshade::api::format current_buffer_format = reshade::api::format::unknown;
 
     LatencyModes current_latency_mode = LatencyModes::FRAMERATE_ADAPTIVE;

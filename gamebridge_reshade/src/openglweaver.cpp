@@ -73,6 +73,22 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         return false;
     }
 
+    // Create flipped buffers to correct for ReShade's built-in OpenGL specific buffer flip after rendering effects
+    reshade::api::resource_desc flipped_copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::shader_resource);
+
+    if (!gl_device->create_resource(flipped_copy_rsc_desc, nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy_flipped)) {
+        gl_device->destroy_resource(effect_frame_copy_flipped);
+
+        effect_frame_copy_x = 0;
+        effect_frame_copy_y = 0;
+
+        reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
+        return GENERAL_FAIL;
+    }
+
+    reshade::api::resource_view_desc copy_rtv_desc(reshade::api::resource_view_type::texture_2d, flipped_copy_rsc_desc.texture.format, 0, flipped_copy_rsc_desc.texture.levels, 0, flipped_copy_rsc_desc.texture.depth_or_layers);
+    gl_device->create_resource_view(effect_frame_copy_flipped, reshade::api::resource_usage::render_target, copy_rtv_desc, &effect_frame_copy_rtv);
+
     effect_frame_copy_x = copy_rsc_desc.texture.width;
     effect_frame_copy_y = copy_rsc_desc.texture.height;
 
@@ -185,46 +201,17 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             resize_buffer_failed = false;
 
             if (weaving_enabled) {
-                // Todo: Move this to copy effect buffer, make sure they're also resized when the screen resizes.
-                // Copy resource flipped
+                // Copy resource flipped, ReShade supplies it upside down to us.
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, rtv_resource, effect_frame_copy);
-                //cmd_list->copy_resource(rtv_resource, effect_frame_copy);
-
-                // Create buffer to store a copy of the effect frame. At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
-                reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::shader_resource);
-                reshade::api::resource effect_frame_copy_flipped{};
-
-                if (!gl_device->create_resource(copy_rsc_desc, nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy_flipped)) {
-                    gl_device->destroy_resource(effect_frame_copy_flipped);
-
-                    effect_frame_copy_x = 0;
-                    effect_frame_copy_y = 0;
-
-                    reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
-                    return GENERAL_FAIL;
-                }
-
-                reshade::api::resource_view frame_copy_rtv{};
-                reshade::api::resource_view_desc copy_rtv_desc(reshade::api::resource_view_type::texture_2d, copy_rsc_desc.texture.format, 0, copy_rsc_desc.texture.levels, 0, copy_rsc_desc.texture.depth_or_layers);
-                gl_device->create_resource_view(effect_frame_copy_flipped, reshade::api::resource_usage::render_target, copy_rtv_desc, &frame_copy_rtv);
-
-                // Flip the buffer back for ReShade
-                //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::copy_source);
 
                 // Bind back buffer as render target
-                cmd_list->bind_render_targets_and_depth_stencil(1, &frame_copy_rtv);
+                cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_rtv);
 
                 // Weave to back buffer
                 weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
 
-                // Flip the resource back again
-                //flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy, effect_frame_copy);
-
+                // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, rtv_resource);
-//                cmd_list->barrier(effect_frame_copy_flipped, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::copy_source);
-//                cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::copy_dest);
-//                cmd_list->copy_resource(effect_frame_copy_flipped, effect_frame_copy);
-                //flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, effect_frame_copy);
             }
         }
     }
