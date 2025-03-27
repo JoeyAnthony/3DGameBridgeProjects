@@ -75,7 +75,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 		simulatedreality
 		srDirectX${BUILD_PLATFORM}::srDirectX
 		srOpenGL${BUILD_PLATFORM}::srOpenGL
-		${CMAKE_CURRENT_SOURCE_DIR}/third-party/opengl/include/opengl/bin/Release/x64/glew32.dll
+#		${CMAKE_CURRENT_SOURCE_DIR}/third-party/opengl/include/opengl/bin/Release/x64/glew32.dll
 )
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDisplays${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore${BUILD_PLATFORM}.dll")
