@@ -61,7 +61,7 @@ public:
     /// \brief Creates and reset the effect copy resource so it is similar to the back buffer resource, then use it as weaver input.
     /// \param effect_resource_desc ReShade resource representing the currently selected back buffer description
     /// \return A bool respresenting if the effect frame copy was successful
-    bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc);
+    bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc, reshade::api::command_list* cmd_list);
 
 
     // Inherited via IGraphicsApi

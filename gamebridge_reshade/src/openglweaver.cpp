@@ -13,7 +13,19 @@ OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
     weaving_enabled = true;
 }
 
-bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc) {
+void flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
+    // Flip the buffer
+    reshade::api::subresource_box vertically_flipped_box;
+    vertically_flipped_box.left = 0;
+    vertically_flipped_box.top = buffer_height; // Normally this would be 0 and bottom would be height
+    vertically_flipped_box.front = 0;
+    vertically_flipped_box.right = buffer_width;
+    vertically_flipped_box.bottom = 0;
+    vertically_flipped_box.back = 1;
+    cmd_list->copy_texture_region(source, 0, nullptr, dest, 0, &vertically_flipped_box, reshade::api::filter_mode::min_mag_mip_point);
+}
+
+bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc, reshade::api::command_list* cmd_list) {
     reshade::api::resource_desc desc = effect_resource_desc;
     desc.type = reshade::api::resource_type::texture_2d;
     desc.heap = reshade::api::memory_heap::gpu_only;
@@ -30,7 +42,7 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
+        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
         return false;
     }
 
@@ -158,7 +170,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
             gl_device->destroy_resource(effect_frame_copy);
             gl_device->destroy_resource_view(effect_frame_copy_srv);
-            if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
+            if (!create_effect_copy_buffer(desc, cmd_list) && !resize_buffer_failed) {
                 reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
             }
@@ -173,14 +185,46 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             resize_buffer_failed = false;
 
             if (weaving_enabled) {
-                // Copy resource
-                cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+                // Todo: Move this to copy effect buffer, make sure they're also resized when the screen resizes.
+                // Copy resource flipped
+                flip_buffer(desc.texture.height, desc.texture.width, cmd_list, rtv_resource, effect_frame_copy);
+                //cmd_list->copy_resource(rtv_resource, effect_frame_copy);
+
+                // Create buffer to store a copy of the effect frame. At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
+                reshade::api::resource_desc copy_rsc_desc(desc.texture.width, desc.texture.height, desc.texture.depth_or_layers, desc.texture.levels, desc.texture.format, 1, reshade::api::memory_heap::gpu_only, reshade::api::resource_usage::copy_dest | reshade::api::resource_usage::shader_resource);
+                reshade::api::resource effect_frame_copy_flipped{};
+
+                if (!gl_device->create_resource(copy_rsc_desc, nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy_flipped)) {
+                    gl_device->destroy_resource(effect_frame_copy_flipped);
+
+                    effect_frame_copy_x = 0;
+                    effect_frame_copy_y = 0;
+
+                    reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
+                    return GENERAL_FAIL;
+                }
+
+                reshade::api::resource_view frame_copy_rtv{};
+                reshade::api::resource_view_desc copy_rtv_desc(reshade::api::resource_view_type::texture_2d, copy_rsc_desc.texture.format, 0, copy_rsc_desc.texture.levels, 0, copy_rsc_desc.texture.depth_or_layers);
+                gl_device->create_resource_view(effect_frame_copy_flipped, reshade::api::resource_usage::render_target, copy_rtv_desc, &frame_copy_rtv);
+
+                // Flip the buffer back for ReShade
+                //cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::copy_source);
 
                 // Bind back buffer as render target
-                cmd_list->bind_render_targets_and_depth_stencil(1, &chosen_rtv);
+                cmd_list->bind_render_targets_and_depth_stencil(1, &frame_copy_rtv);
 
                 // Weave to back buffer
                 weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
+
+                // Flip the resource back again
+                //flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy, effect_frame_copy);
+
+                flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, rtv_resource);
+//                cmd_list->barrier(effect_frame_copy_flipped, reshade::api::resource_usage::copy_dest, reshade::api::resource_usage::copy_source);
+//                cmd_list->barrier(effect_frame_copy, reshade::api::resource_usage::copy_source, reshade::api::resource_usage::copy_dest);
+//                cmd_list->copy_resource(effect_frame_copy_flipped, effect_frame_copy);
+                //flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, effect_frame_copy);
             }
         }
     }
@@ -191,7 +235,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
         // Set color format settings
         check_color_format(desc);
 
-        create_effect_copy_buffer(desc);
+        create_effect_copy_buffer(desc, cmd_list);
         GbResult result = init_weaver(runtime, effect_frame_copy, cmd_list);
         if (result == SUCCESS) {
             GLuint renderedTextureID;
