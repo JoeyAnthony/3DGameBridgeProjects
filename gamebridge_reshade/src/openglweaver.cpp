@@ -166,8 +166,15 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
 
     reshade::api::resource rtv_resource = gl_device->get_resource_from_view(chosen_rtv);
     reshade::api::resource_desc desc = gl_device->get_resource_desc(rtv_resource);
-    reshade::api::resource rtv_resource2 = runtime->get_back_buffer(0);
-    reshade::api::resource_desc desc2 = gl_device->get_resource_desc(rtv_resource2);
+
+    // Bind a viewport for the weaver in case there isn't one defined already. This happens when no effects are enabled in ReShade.
+    const reshade::api::viewport viewport = {
+            0.0f, 0.0f,
+            static_cast<float>(desc.texture.width),
+            static_cast<float>(desc.texture.height),
+            0.0f, 1.0f
+    };
+    cmd_list->bind_viewports(0, 1, &viewport);
 
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
