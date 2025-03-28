@@ -13,7 +13,7 @@ This is a ReShade addon that can add SR functionality to a game.
 You can find the installation instructions [here](INSTALL.md).
 
 # Building with cmake
-1. Clone project: `git clone https://github.com/JoeyAnthony/SimulatedRealityInjector.git`
+1. Clone project: `git clone https://github.com/JoeyAnthony/3DGameBridgeProjects.git`
 2. Fetch all submodules with: `git submodule update --init --recursive`
 3. Install the Simulated Reality SDK
 3. Generate the project with Cmake
