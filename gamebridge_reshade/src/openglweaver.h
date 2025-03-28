@@ -65,6 +65,13 @@ public:
     /// \return A bool respresenting if the effect frame copy was successful
     bool create_effect_copy_buffer(const reshade::api::resource_desc& effect_resource_desc, reshade::api::command_list* cmd_list);
 
+    /// \brief Takes a source buffer and copies it vertically flipped into the destination buffer with a given width and height. Both the `source` and `dest` buffers must be the same size.
+    /// \param buffer_height Represents the height of the buffer to copy
+    /// \param buffer_width Represents the width of the buffer to copy
+    /// \param cmd_list The active command list to append the copy command to
+    /// \param source The source buffer from which to copy data
+    /// \param dest The destination buffer to copy data to
+    static void flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list *cmd_list, reshade::api::resource source, reshade::api::resource dest);
 
     // Inherited via IGraphicsApi
     void draw_status_overlay(reshade::api::effect_runtime *runtime) override;

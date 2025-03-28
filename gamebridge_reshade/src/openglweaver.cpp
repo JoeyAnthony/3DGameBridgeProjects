@@ -13,11 +13,10 @@ OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
     weaving_enabled = true;
 }
 
-void flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
-    // Flip the buffer
+void OpenGLWeaver::flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
     reshade::api::subresource_box vertically_flipped_box;
     vertically_flipped_box.left = 0;
-    vertically_flipped_box.top = buffer_height; // Normally this would be 0 and bottom would be height
+    vertically_flipped_box.top = buffer_height; // Normally this would be 0 and bottom would be height if you are not trying to flip vertically
     vertically_flipped_box.front = 0;
     vertically_flipped_box.right = buffer_width;
     vertically_flipped_box.bottom = 0;
@@ -82,7 +81,7 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating te effect frame copy");
+        reshade::log_message(reshade::log_level::info, "Failed creating the flipped effect frame copy");
         return GENERAL_FAIL;
     }
 
@@ -254,8 +253,7 @@ void OpenGLWeaver::on_init_effect_runtime(reshade::api::effect_runtime* runtime)
     gl_device = runtime->get_device();
 }
 
-void OpenGLWeaver::do_weave(bool do_weave)
-{
+void OpenGLWeaver::do_weave(bool do_weave) {
     weaving_enabled = do_weave;
 }
 
