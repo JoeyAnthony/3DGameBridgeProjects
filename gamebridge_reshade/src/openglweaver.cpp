@@ -63,6 +63,8 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
 
     if (!gl_device->create_resource(flipped_copy_rsc_desc, nullptr, reshade::api::resource_usage::copy_dest, &effect_frame_copy_flipped)) {
         gl_device->destroy_resource(effect_frame_copy_flipped);
+        gl_device->destroy_resource(effect_frame_copy);
+        gl_device->destroy_resource_view(effect_frame_copy_srv);
 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
@@ -72,9 +74,8 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
     }
 
     reshade::api::resource_view_desc copy_rtv_desc(reshade::api::resource_view_type::texture_2d, flipped_copy_rsc_desc.texture.format, 0, flipped_copy_rsc_desc.texture.levels, 0, flipped_copy_rsc_desc.texture.depth_or_layers);
-    if (!gl_device->create_resource_view(effect_frame_copy_flipped, reshade::api::resource_usage::render_target, copy_rtv_desc, &effect_frame_copy_rtv)) {
-        gl_device->destroy_resource(effect_frame_copy_flipped);
-        gl_device->destroy_resource_view(effect_frame_copy_rtv);
+    if (!gl_device->create_resource_view(effect_frame_copy_flipped, reshade::api::resource_usage::render_target, copy_rtv_desc, &effect_frame_copy_flipped_rtv)) {
+        destroy_all_resources_and_resource_views();
 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
@@ -205,7 +206,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, rtv_resource, effect_frame_copy);
 
                 // Bind copy buffer as render target
-                cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_rtv);
+                cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_flipped_rtv);
 
                 // Weave to copy buffer
                 weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
@@ -298,5 +299,5 @@ void OpenGLWeaver::destroy_all_resources_and_resource_views() {
     gl_device->destroy_resource(effect_frame_copy);
     gl_device->destroy_resource_view(effect_frame_copy_srv);
     gl_device->destroy_resource(effect_frame_copy_flipped);
-    gl_device->destroy_resource_view(effect_frame_copy_rtv);
+    gl_device->destroy_resource_view(effect_frame_copy_flipped_rtv);
 }
