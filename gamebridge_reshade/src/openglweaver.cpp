@@ -54,21 +54,7 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
-        return false;
-    }
-
-    // Create a sampler descriptor
-    reshade::api::sampler_desc sampler_desc = {};
-    sampler_desc.filter = reshade::api::filter_mode::min_mag_mip_linear; // Linear filtering for min, mag, and mip
-    sampler_desc.address_u = reshade::api::texture_address_mode::clamp; // Clamp wrapping in the U direction
-    sampler_desc.address_v = reshade::api::texture_address_mode::clamp; // Clamp wrapping in the V direction
-    sampler_desc.address_w = reshade::api::texture_address_mode::clamp; // Clamp wrapping in the W direction (if applicable)
-
-    // Create a sampler handle
-    reshade::api::sampler sampler;
-    if (!gl_device->create_sampler(sampler_desc, &sampler)) {
-        reshade::log_message(reshade::log_level::error, "Failed to create sampler for texture filtering");
+        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy's resource view");
         return false;
     }
 
@@ -82,11 +68,20 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_y = 0;
 
         reshade::log_message(reshade::log_level::info, "Failed creating the flipped effect frame copy");
-        return GENERAL_FAIL;
+        return false;
     }
 
     reshade::api::resource_view_desc copy_rtv_desc(reshade::api::resource_view_type::texture_2d, flipped_copy_rsc_desc.texture.format, 0, flipped_copy_rsc_desc.texture.levels, 0, flipped_copy_rsc_desc.texture.depth_or_layers);
-    gl_device->create_resource_view(effect_frame_copy_flipped, reshade::api::resource_usage::render_target, copy_rtv_desc, &effect_frame_copy_rtv);
+    if (!gl_device->create_resource_view(effect_frame_copy_flipped, reshade::api::resource_usage::render_target, copy_rtv_desc, &effect_frame_copy_rtv)) {
+        gl_device->destroy_resource(effect_frame_copy_flipped);
+        gl_device->destroy_resource_view(effect_frame_copy_rtv);
+
+        effect_frame_copy_x = 0;
+        effect_frame_copy_y = 0;
+
+        reshade::log_message(reshade::log_level::info, "Failed creating the flipped effect frame copy's RTV");
+        return false;
+    }
 
     effect_frame_copy_x = copy_rsc_desc.texture.width;
     effect_frame_copy_y = copy_rsc_desc.texture.height;
@@ -190,8 +185,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             check_color_format(desc);
 
             // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
-            gl_device->destroy_resource(effect_frame_copy);
-            gl_device->destroy_resource_view(effect_frame_copy_srv);
+            destroy_all_resources_and_resource_views();
             if (!create_effect_copy_buffer(desc, cmd_list) && !resize_buffer_failed) {
                 reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
@@ -207,13 +201,13 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             resize_buffer_failed = false;
 
             if (weaving_enabled) {
-                // Copy resource flipped, ReShade supplies it upside down to us.
+                // Copy the RTV, ReShade supplies it to us upside down, so we flip it during this copy.
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, rtv_resource, effect_frame_copy);
 
-                // Bind back buffer as render target
+                // Bind copy buffer as render target
                 cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_rtv);
 
-                // Weave to back buffer
+                // Weave to copy buffer
                 weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
 
                 // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
@@ -241,7 +235,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
         }
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
-            gl_device->destroy_resource(effect_frame_copy);
+            destroy_all_resources_and_resource_views();
             reshade::log_message(reshade::log_level::info, "Failed to initialize weaver");
             return GENERAL_FAIL;
         }
@@ -298,4 +292,11 @@ void OpenGLWeaver::check_color_format(reshade::api::resource_desc desc) {
 
 LatencyModes OpenGLWeaver::get_latency_mode() {
     return current_latency_mode;
+}
+
+void OpenGLWeaver::destroy_all_resources_and_resource_views() {
+    gl_device->destroy_resource(effect_frame_copy);
+    gl_device->destroy_resource_view(effect_frame_copy_srv);
+    gl_device->destroy_resource(effect_frame_copy_flipped);
+    gl_device->destroy_resource_view(effect_frame_copy_rtv);
 }

@@ -73,6 +73,9 @@ public:
     /// \param dest The destination buffer to copy data to
     static void flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list *cmd_list, reshade::api::resource source, reshade::api::resource dest);
 
+    /// \brief Destroys all resources and resource views managed by this addon.
+    void destroy_all_resources_and_resource_views();
+
     // Inherited via IGraphicsApi
     void draw_status_overlay(reshade::api::effect_runtime *runtime) override;
     GbResult on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) override;
