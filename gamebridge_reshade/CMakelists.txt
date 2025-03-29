@@ -6,6 +6,8 @@ add_library(${PROJECT_NAME} SHARED
     src/framework.h
     src/pch.h
     src/pch.cpp
+    src/openglweaver.h
+    src/openglweaver.cpp
     src/directx9weaver.h
     src/directx9weaver.cpp
     src/directx10weaver.h
@@ -45,6 +47,7 @@ target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_RESHADE})
 
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
+find_package(srOpenGL REQUIRED)
 
 # Rename dll with extension .addon
 add_custom_command(
@@ -67,8 +70,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 		delayimp
 		simulatedreality
 		srDirectX${BUILD_PLATFORM}::srDirectX
+		srOpenGL${BUILD_PLATFORM}::srOpenGL
 )
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDisplays${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDirectX${BUILD_PLATFORM}.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityOpenGL${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:opencv_world343.dll")

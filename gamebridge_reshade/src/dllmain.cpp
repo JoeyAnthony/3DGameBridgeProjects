@@ -16,6 +16,7 @@
 #include "hotkeymanager.h"
 #include "directx10weaver.h"
 #include "directx9weaver.h"
+#include "openglweaver.h"
 #include "delayLoader.h"
 
 #include <chrono>
@@ -272,6 +273,9 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         // Then, check the active graphics API and pass it a new context.
         if (weaver_implementation == nullptr) {
             switch (runtime->get_device()->get_api()) {
+                case reshade::api::device_api::opengl:
+                    weaver_implementation = new OpenGLWeaver(sr_context);
+                    break;
                 case reshade::api::device_api::d3d9:
                     weaver_implementation = new DirectX9Weaver(sr_context);
                     break;
