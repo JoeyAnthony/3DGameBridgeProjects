@@ -229,11 +229,10 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
     }
 
     // Check if certain hotkeys are being pressed
-    if (config_manager != nullptr) {
+    // if (config_manager != nullptr) {
         // Todo: Update the state of the config based on if the user changed the setting in the UI
         // write_config_value();
-        // Todo: Update the bool that sets whether to do the userlost logic
-    }
+    // }
 
     // Check if user is still within view of the camera
     user_lost_logic_enabled = weaver_implementation->user_presence_3d_toggle_checked;

@@ -42,11 +42,11 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
     ImGui::TextUnformatted(s.c_str());
 
     // Draw a checkbox and check for changes
+    // This block is executed when the checkbox value is toggled
     if (ImGui::Checkbox("User presence based 3D toggle", &user_presence_3d_toggle_checked))
     {
         ConfigManager::ConfigValue val;
         val.key = "disable_3d_when_no_user_present";
-        // This block is executed when the checkbox value is toggled
         if (user_presence_3d_toggle_checked)
         {
             reshade::log_message(reshade::log_level::info, "User based 3D checkbox enabled");
