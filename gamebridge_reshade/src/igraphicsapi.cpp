@@ -42,8 +42,8 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
     ImGui::TextUnformatted(s.c_str());
 
     // Draw a checkbox and check for changes
-    // This block is executed when the checkbox value is toggled
-    if (ImGui::Checkbox("User presence based 3D toggle", &user_presence_3d_toggle_checked))
+    // These blocks are executed when the checkbox value is toggled
+    if (ImGui::Checkbox("User presence based 3D toggle##presence", &user_presence_3d_toggle_checked))
     {
         ConfigManager::ConfigValue val;
         val.key = "disable_3d_when_no_user_present";
@@ -59,5 +59,32 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
         val.bool_value = user_presence_3d_toggle_checked;
         val.value_type = ConfigManager::ConfigValue::Type::Bool;
         ConfigManager::write_config_value(val);
+    }
+
+    if (ImGui::Checkbox("Enable overlay workaround##overlay", &enable_overlay_workaround))
+    {
+        ConfigManager::ConfigValue val;
+        val.key = "enable_overlay_workaround";
+        if (enable_overlay_workaround)
+        {
+            reshade::log_message(reshade::log_level::info, "Weaving overlay workaround enabled");
+        }
+        else
+        {
+            reshade::log_message(reshade::log_level::info, "Weaving overlay workaround disabled");
+        }
+        // Write to config file
+        val.bool_value = enable_overlay_workaround;
+        val.value_type = ConfigManager::ConfigValue::Type::Bool;
+        ConfigManager::write_config_value(val);
+
+        // Set weaver_initialized to false force reconstruction of the weaver.
+        weaver_initialized = false;
+    }
+
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("This bypasses the SR SDK check for toggling 3D based on if the 3D window is obstructed by i.e. overlays.");
+        ImGui::EndTooltip();
     }
 }

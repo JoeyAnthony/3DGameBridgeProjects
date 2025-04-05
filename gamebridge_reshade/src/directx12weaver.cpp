@@ -18,7 +18,6 @@ GbResult DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
         return SUCCESS;
     }
 
-    DirectX12Weaver::user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
 
     // See if we can get a command allocator from reshade
     ID3D12Device* dev = ((ID3D12Device*)d3d12_device->get_native());
@@ -50,7 +49,11 @@ GbResult DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
     ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
     ID3D12Resource* native_back_buffer = (ID3D12Resource*)back_buffer.handle;
     try {
-        weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        if (DirectX12Weaver::enable_overlay_workaround) {
+            weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer);
+        } else {
+            weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        }
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
     }

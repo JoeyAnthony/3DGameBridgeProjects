@@ -19,6 +19,8 @@ void ConfigManager::reload_config() {
                 "disable_3d_when_no_user_present"));
         registered_config_values.push_back(ConfigManager::read_from_config(
                 "disable_3d_when_no_user_present_additional_grace_duration_in_ms"));
+        registered_config_values.push_back(ConfigManager::read_from_config(
+                "enable_overlay_workaround"));
     } catch (std::runtime_error &e) {
         // Couldn't find the config values, let's write the defaults in the .ini
         std::string error_msg = "Unable to find config value in ReShade.ini: Now writing/loading defaults...";
@@ -43,6 +45,11 @@ void ConfigManager::write_missing_config_values() {
     reshade::get_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_additional_grace_duration_in_ms", nullptr, &value_size);
     if (value_size <= 0) {
         reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_additional_grace_duration_in_ms", "0");
+    }
+    value_size = 0;
+    reshade::get_config_value(nullptr, "3DGameBridge", "enable_overlay_workaround", nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, "3DGameBridge", "enable_overlay_workaround", "true");
     }
 }
 
@@ -99,6 +106,7 @@ void ConfigManager::load_default_config() {
     registered_config_values.erase(registered_config_values.begin(), registered_config_values.end());
     registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present", false));
     registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present_additional_grace_duration_in_ms", 0));
+    registered_config_values.push_back(ConfigValue("enable_overlay_workaround", true));
 }
 
 bool ConfigManager::write_config_value(ConfigManager::ConfigValue value) {

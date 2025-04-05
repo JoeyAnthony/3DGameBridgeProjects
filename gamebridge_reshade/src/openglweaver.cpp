@@ -101,7 +101,11 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
     reshade::api::resource_desc desc = gl_device->get_resource_desc(rtv);
 
     try {
-        weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
+        if (OpenGLWeaver::enable_overlay_workaround) {
+            weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height);
+        } else {
+            weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
+        }
         GLuint renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
         weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
         sr_context->initialize();

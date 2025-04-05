@@ -56,7 +56,6 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
         return SUCCESS;
     }
 
-    DirectX11Weaver::user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
     delete weaver;
     weaver = nullptr;
     reshade::api::resource_desc desc = d3d11_device->get_resource_desc(rtv);
@@ -74,7 +73,11 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
     }
 
     try {
-        weaver = new SR::PredictingDX11Weaver(*sr_context, dev, context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
+        if (DirectX11Weaver::enable_overlay_workaround) {
+            weaver = new SR::PredictingDX11Weaver(*sr_context, dev, context, desc.texture.width, desc.texture.height);
+        } else {
+            weaver = new SR::PredictingDX11Weaver(*sr_context, dev, context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
+        }
         weaver->setContext((ID3D11DeviceContext*)cmd_list->get_native());
         weaver->setInputFrameBuffer((ID3D11ShaderResourceView*)rtv.handle); // Resourceview of the buffer
         sr_context->initialize();

@@ -48,7 +48,6 @@ GbResult DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, resh
         return SUCCESS;
     }
 
-    DirectX9Weaver::user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
     delete weaver;
     weaver = nullptr;
     reshade::api::resource_desc desc = d3d9_device->get_resource_desc(rtv);
@@ -60,6 +59,9 @@ GbResult DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, resh
     }
 
     try {
+        if (DirectX9Weaver::enable_overlay_workaround) {
+            reshade::log_message(reshade::log_level::warning, "Overlay workaround is not supported in DirectX 9, please disable any overlays such as the Discord overlay if you have issues enabling 3D.");
+        }
         weaver = new SR::PredictingDX9Weaver(*sr_context, dev, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
         weaver->setInputFrameBuffer((IDirect3DTexture9*)rtv.handle); // Resourceview of the buffer
         sr_context->initialize();

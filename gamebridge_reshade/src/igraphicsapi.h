@@ -51,7 +51,15 @@ public:
 
     /// \brief A boolean used to determine if the logic for toggling the 3D automatically based on user presence observed by the eye tracker
     /// \return Whether the automatic 3D toggle is enabled or disabled
-    bool user_presence_3d_toggle_checked = false;
+    bool user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
+
+    /// \brief A boolean used to determine if the logic that automatically disables weaving when the SR window is obstructed (for instance by an overlay) should be enabled or not.
+    /// \return Whether the window obstruction logic is enabled or not.
+    bool enable_overlay_workaround = ConfigManager::read_from_config("enable_overlay_workaround").bool_value;
+
+    /// \brief A boolean used to determine if the weaver is initialized, this bool is managed by the graphics API internally but can be forced to false to re-initialize the weaver.
+    /// \return Whether the weaver is initialized or not.
+    bool weaver_initialized = false;
 
     /// \brief Concatenates the reshade_version_nr_major/minor/patch into one number
     /// \return A concatenated ReShade version code without periods. Example: 580 (instead of 5.8.0)
