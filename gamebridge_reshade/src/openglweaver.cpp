@@ -106,16 +106,12 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
         weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
-
-        // Set mode to latency in frames by default.
-        set_latency_frametime_adaptive(default_weaver_latency);
-        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
-        reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
     catch (std::runtime_error &e) {
         if (std::strcmp(e.what(), "Failed to load library") == 0) {
             return DLL_NOT_LOADED;
         }
+        return GENERAL_FAIL;
     }
     catch (std::exception &e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -127,26 +123,20 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
     }
 
     weaver_initialized = true;
+
+    // Check what version of SR we're on, if we're on 1.30 or up, switch to latency in frames.
+    std::string latency_log;
+
+    if (VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 29, 999)) {
+        set_latency_in_frames(-1);
+        latency_log = "Current latency mode set to: LATENCY_IN_FRAMES_AUTOMATIC";
+    } else {
+        // Set mode to latency in frames by default.
+        set_latency_frametime_adaptive(weaver_latency_in_us);
+        latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
+    }
+
     return SUCCESS;
-}
-
-void OpenGLWeaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
-    // Log activity status
-    ImGui::TextUnformatted("Status: ACTIVE");
-
-    // Log the latency mode
-    std::string latencyModeDisplay = "Latency mode: ";
-    if (current_latency_mode == LatencyModes::FRAMERATE_ADAPTIVE) {
-        latencyModeDisplay += "IN " + std::to_string(last_latency_frame_time_set) + " MICROSECONDS";
-    }
-    else {
-        latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
-    }
-    ImGui::TextUnformatted(latencyModeDisplay.c_str());
-
-    // Log the buffer type, this can be removed once we've tested a larger amount of games.
-    std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
-    ImGui::TextUnformatted(s.c_str());
 }
 
 GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
@@ -270,7 +260,7 @@ bool OpenGLWeaver::set_latency_frametime_adaptive(uint32_t frametime_in_microsec
     if (weaver_initialized) {
         set_latency_mode(LatencyModes::FRAMERATE_ADAPTIVE);
         weaver->setLatency(frametime_in_microseconds);
-        last_latency_frame_time_set = frametime_in_microseconds;
+        weaver_latency_in_us = frametime_in_microseconds;
         return true;
     }
     return false;
