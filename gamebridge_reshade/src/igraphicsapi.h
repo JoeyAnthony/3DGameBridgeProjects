@@ -63,6 +63,9 @@ public:
     /// \param runtime Represents the reshade effect runtime
     void draw_status_overlay(reshade::api::effect_runtime* runtime);
 
+    /// \brief Checks the current used version of SR, if it is above 1.30, we use latency_in_frames. Otherwise, we use a static latency of 40000 us
+    void determine_default_latency_mode();
+
     /// \brief The main call responsible for weaving the image once ReShade is done drawing effects
     /// \param runtime Represents the reshade effect runtime
     /// \param cmd_list Represents the current command list from ReShade
