@@ -34,6 +34,8 @@ struct Destroy_Resource_Data
 };
 
 class IGraphicsApi {
+private:
+    bool user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
 public:
     /// \brief ReShade version numbers read from the appropriate DLL. useful for when certain options only work in certain ReShade versions
     /// These values are set on DLL_ATTACH
@@ -51,7 +53,7 @@ public:
 
     /// \brief A boolean used to determine if the logic for toggling the 3D automatically based on user presence observed by the eye tracker
     /// \return Whether the automatic 3D toggle is enabled or disabled
-    bool user_presence_3d_toggle_checked = false;
+    bool is_user_presence_3d_toggle_checked();
 
     /// \brief Concatenates the reshade_version_nr_major/minor/patch into one number
     /// \return A concatenated ReShade version code without periods. Example: 580 (instead of 5.8.0)

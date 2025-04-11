@@ -235,7 +235,7 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
     // }
 
     // Check if user is still within view of the camera
-    user_lost_logic_enabled = weaver_implementation->user_presence_3d_toggle_checked;
+    user_lost_logic_enabled = weaver_implementation->is_user_presence_3d_toggle_checked();
     if (user_lost_logic_enabled) {
         if (sense_listener.isUserLost) {
             if (!user_lost_grace_period_active) {

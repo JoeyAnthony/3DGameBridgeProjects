@@ -18,8 +18,6 @@ GbResult DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
         return SUCCESS;
     }
 
-    DirectX12Weaver::user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
-
     // See if we can get a command allocator from reshade
     ID3D12Device* dev = ((ID3D12Device*)d3d12_device->get_native());
     if (!dev) {

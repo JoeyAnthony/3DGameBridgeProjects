@@ -55,7 +55,6 @@ GbResult DirectX10Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
         return SUCCESS;
     }
 
-    DirectX10Weaver::user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
     delete weaver;
     weaver = nullptr;
     reshade::api::resource_desc desc = d3d10_device->get_resource_desc(rtv);

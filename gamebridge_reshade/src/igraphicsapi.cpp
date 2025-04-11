@@ -61,3 +61,7 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
         ConfigManager::write_config_value(val);
     }
 }
+
+bool IGraphicsApi::is_user_presence_3d_toggle_checked() {
+    return user_presence_3d_toggle_checked;
+}
