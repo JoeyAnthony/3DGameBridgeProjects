@@ -7,6 +7,8 @@
 
 #include "igraphicsapi.h"
 
+#include "configManager.h"
+
 /**
  * Takes a major, minor and patch number from ReShade and concatenates them into a single number for easier processing.
  */
@@ -16,4 +18,66 @@ int32_t IGraphicsApi::get_concatinated_reshade_version() {
     result += std::to_string(reshade_version_nr_minor);
     result += std::to_string(reshade_version_nr_patch);
     return std::stoi(result);
+}
+
+void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
+    // Log activity status
+    ImGui::TextUnformatted("Status: ACTIVE");
+
+    // Log the latency mode
+    std::string latencyModeDisplay = "Latency mode: ";
+    if (get_latency_mode() == LatencyModes::FRAMERATE_ADAPTIVE) {
+        latencyModeDisplay += "IN " + std::to_string(weaver_latency_in_us) + " MICROSECONDS";
+    }
+    else if (get_latency_mode() == LatencyModes::LATENCY_IN_FRAMES) {
+        latencyModeDisplay += "IN 1 FRAME";
+    }
+    else {
+        latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAME(S)";
+    }
+    ImGui::TextUnformatted(latencyModeDisplay.c_str());
+
+    // Log the buffer type, this can be removed once we've tested a larger amount of games.
+    std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
+    ImGui::TextUnformatted(s.c_str());
+
+    // Draw a checkbox and check for changes
+    // This block is executed when the checkbox value is toggled
+    if (ImGui::Checkbox("User presence based 3D toggle", &user_presence_3d_toggle_checked))
+    {
+        ConfigManager::ConfigValue val;
+        val.key = "disable_3d_when_no_user_present";
+        if (user_presence_3d_toggle_checked)
+        {
+            reshade::log_message(reshade::log_level::info, "User based 3D checkbox enabled");
+        }
+        else
+        {
+            reshade::log_message(reshade::log_level::info, "User based 3D checkbox disabled");
+        }
+        // Write to config file
+        val.bool_value = user_presence_3d_toggle_checked;
+        val.value_type = ConfigManager::ConfigValue::Type::Bool;
+        ConfigManager::write_config_value(val);
+    }
+}
+
+bool IGraphicsApi::is_user_presence_3d_toggle_checked() {
+    return user_presence_3d_toggle_checked;
+}
+
+void IGraphicsApi::determine_default_latency_mode() {
+    // Check what version of SR we're on, if we're on 1.30 or up, switch to latency in frames.
+    std::string latency_log;
+
+    if (VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 29, 999)) {
+        set_latency_in_frames(-1);
+        latency_log = "Current latency mode set to: LATENCY_IN_FRAMES_AUTOMATIC";
+    } else {
+        // Set mode to latency in frames by default.
+        set_latency_frametime_adaptive(weaver_latency_in_us);
+        latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
+    }
+
+    reshade::log_message(reshade::log_level::info, latency_log.c_str());
 }

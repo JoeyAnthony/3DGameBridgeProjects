@@ -8,13 +8,16 @@
 #pragma once
 
 #include "pch.h"
+#include "VersionComparer.h"
+#include "configManager.h"
+
+#include <sr/version_c.h>
 
 // List of color formats that require color linearization in order restore the correct gamma.
 const std::list<reshade::api::format> srgb_color_formats {
     reshade::api::format::r8g8b8a8_unorm_srgb,
 };
 
-const uint32_t default_weaver_latency = 40000;
 // framerateAdaptive = provide an amount of time in microseconds in between weave() calls.
 // latencyInFrames = provide an amount of buffers or "frames" between the application and presenting to the screen.
 // latencyInFramesAutomatic = gets the amount of buffers or "frames" from the backbuffer using the ReShade api every frame.
@@ -31,6 +34,8 @@ struct Destroy_Resource_Data
 };
 
 class IGraphicsApi {
+private:
+    bool user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
 public:
     /// \brief ReShade version numbers read from the appropriate DLL. useful for when certain options only work in certain ReShade versions
     /// These values are set on DLL_ATTACH
@@ -38,13 +43,28 @@ public:
     int32_t reshade_version_nr_minor = 0;
     int32_t reshade_version_nr_patch = 0;
 
+    /// \brief Weaver eye tracking latency in microseconds. Defaults to 40000us which is tuned for 60Hz screens.
+    /// \return The current weaver latency in us, only used when LatencyMode is set to FRAMERATE_ADAPTIVE
+    uint32_t weaver_latency_in_us = 40000;
+
+    /// \brief ReShade buffer format, used for debugging if we need to use SRGB or RGB buffers for our weaver
+    /// \return The current ReShade buffer format for the active game
+    reshade::api::format current_buffer_format = reshade::api::format::unknown;
+
+    /// \brief A boolean used to determine if the logic for toggling the 3D automatically based on user presence observed by the eye tracker
+    /// \return Whether the automatic 3D toggle is enabled or disabled
+    bool is_user_presence_3d_toggle_checked();
+
     /// \brief Concatenates the reshade_version_nr_major/minor/patch into one number
     /// \return A concatenated ReShade version code without periods. Example: 580 (instead of 5.8.0)
     int32_t get_concatinated_reshade_version();
 
     /// \brief Responsible for drawing debug information in the ImGUI UI
     /// \param runtime Represents the reshade effect runtime
-    virtual void draw_status_overlay(reshade::api::effect_runtime* runtime) = 0;
+    void draw_status_overlay(reshade::api::effect_runtime* runtime);
+
+    /// \brief Checks the current used version of SR, if it is above 1.30, we use latency_in_frames. Otherwise, we use a static latency of 40000 us
+    void determine_default_latency_mode();
 
     /// \brief The main call responsible for weaving the image once ReShade is done drawing effects
     /// \param runtime Represents the reshade effect runtime

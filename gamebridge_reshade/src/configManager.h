@@ -7,28 +7,29 @@
 
 #pragma once
 
-#include "hotkey.h"
-#include "pch.h"
+#include <string>
 
-#include <vector>
-
-class HotKeyManager {
+class ConfigManager {
 public:
-    HotKeyManager();
-    std::map<shortcutType, bool> check_hot_keys(reshade::api::effect_runtime* runtime, SR::SRContext* context);
-    // Todo: Implement a way to edit and create new hotkeys?
-    void edit_hot_key(uint8_t hot_key_id);
+    class ConfigValue {
+    public:
+        std::string key;
+        enum class Type { None, Int, String, Bool } value_type = Type::None;
+        std::string string_value;
+        int int_value;
+        bool bool_value;
 
-private:
-    std::vector<HotKey> registered_hot_keys;
+        ConfigValue(std::string key, int intValue) : key(key), value_type(Type::Int), int_value(intValue) {}
+        ConfigValue(std::string key, std::string stringValue) : key(key), value_type(Type::String), string_value(std::move(stringValue)) {}
+        ConfigValue(std::string key, bool boolValue) : key(key), value_type(Type::Bool), bool_value(boolValue) {}
+        ConfigValue() : value_type(Type::None) {}
+    };
 
-    // Writes hotkeys if they are not present in the ReShade.ini file
-    void load_default_hotkeys();
+    std::vector<ConfigValue> registered_config_values;
 
-    static void write_missing_hotkeys();
+    ConfigManager();
 
-    // Helper function to split off unwanted '\0' characters from vector arrays for easy processing.
-    static void remove_unwanted_nulls(std::vector<char>& vec);
+    static void write_missing_config_values();
 
     // Keys are stored in the config like so:
     // [3DGameBridge]
@@ -41,5 +42,11 @@ private:
     //
     // Method to read a specific key from the ReShade config.
     // Returns an instance of the hotkey class based on the read config values.
-    static HotKey read_from_config(bool default_enabled, const std::string& key, shortcutType shortcut);
+    static ConfigValue read_from_config(const std::string& key);
+
+    static bool write_config_value(ConfigValue value);
+
+    void load_default_config();
+
+    void reload_config();
 };

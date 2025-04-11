@@ -16,14 +16,18 @@
 #include "hotkeymanager.h"
 #include "directx10weaver.h"
 #include "directx9weaver.h"
+#include "systemEventMonitor.h"
 #include "openglweaver.h"
 #include "delayLoader.h"
+#include "configManager.h"
 
 #include <chrono>
 #include <functional>
 #include <thread>
 #include <vector>
 #include <iostream>
+#include <sr/sense/system/systemsense.h>
+
 
 #define CHAR_BUFFER_SIZE 256
 
@@ -32,7 +36,10 @@ using namespace std;
 IGraphicsApi* weaver_implementation = nullptr;
 SR::SRContext* sr_context = nullptr;
 SR::SwitchableLensHint* lens_hint = nullptr;
+SR::SystemSense* system_sense;
+SystemEventMonitor sense_listener;
 HotKeyManager* hotKey_manager = nullptr;
+ConfigManager* config_manager = nullptr;
 
 // Currently we use this string to determine if we should toggle this shader on press of the shortcut. We can expand this to a list later.
 static bool dll_failed_to_load = false;
@@ -41,6 +48,10 @@ static const std::string sr_shader_name = "SR";
 static char char_buffer[CHAR_BUFFER_SIZE];
 static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool sr_initialized = false;
+static bool user_lost_grace_period_active = false;
+static bool user_lost_logic_enabled = false;
+static int user_lost_additional_grace_period_duration_in_ms = 0;
+static chrono::steady_clock::time_point user_lost_timestamp;
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
@@ -144,7 +155,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
             break;
         case shortcutType::TOGGLE_LENS_AND_3D:
-            // Todo: This should look at the current state of the lens toggle and 3D toggle, then, flip those.This toggle having its own state isn't great.
+            // This looks at the current state of the lens and toggles it.
             if (lens_hint != nullptr && lens_hint->isEnabled()) {
                 toggle_map = {{shortcutType::TOGGLE_LENS, false}, {shortcutType::TOGGLE_3D, false} };
             }
@@ -164,7 +175,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
             }
             else {
                 // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
-                weaver_implementation->set_latency_frametime_adaptive(default_weaver_latency);
+                weaver_implementation->set_latency_frametime_adaptive(weaver_implementation->weaver_latency_in_us);
 
                 // Log the current mode:
                 reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
@@ -217,6 +228,31 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         execute_hot_key_function_by_type(hot_key_list, runtime);
     }
 
+    // Check if certain hotkeys are being pressed
+    // if (config_manager != nullptr) {
+        // Todo: Update the state of the config based on if the user changed the setting in the UI
+        // write_config_value();
+    // }
+
+    // Check if user is still within view of the camera
+    user_lost_logic_enabled = weaver_implementation->is_user_presence_3d_toggle_checked();
+    if (user_lost_logic_enabled) {
+        if (sense_listener.isUserLost) {
+            if (!user_lost_grace_period_active) {
+                // Start the grace period timer
+                user_lost_timestamp = chrono::high_resolution_clock::now();
+            }
+            user_lost_grace_period_active = true;
+            // Compare current timeout with grace period from config file
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(chrono::high_resolution_clock::now() - user_lost_timestamp) > std::chrono::milliseconds(user_lost_additional_grace_period_duration_in_ms)) {
+                // Skip the weaving step by returning here
+                return;
+            }
+        } else {
+            user_lost_grace_period_active = false;
+        }
+    }
+
     if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
         deregisterCallbacksOnDllLoadFailure();
     }
@@ -242,6 +278,8 @@ static bool init_sr() {
         }
         try {
             lens_hint = SR::SwitchableLensHint::create(*sr_context);
+            system_sense = SR::SystemSense::create(*sr_context);
+            sense_listener.stream.set(system_sense->openSystemEventStream(&sense_listener));
         }
         catch (std::runtime_error &e) {
             if (std::strcmp(e.what(), "Failed to load library") == 0) {
@@ -263,10 +301,22 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         return;
     }
 
-    // Todo: Move these hard-coded hotkeys to user-definable hotkeys in the .ini file
+    // These hotkeys are reconfigurable from the ReShade.ini file
     // Register some standard hotkeys
     if (hotKey_manager == nullptr) {
         hotKey_manager = new HotKeyManager();
+    }
+    // Read config values from .ini
+    if (config_manager == nullptr) {
+        config_manager = new ConfigManager();
+        for (int i = 0; i < config_manager->registered_config_values.size(); i++) {
+            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present") {
+                user_lost_logic_enabled = config_manager->registered_config_values[i].bool_value;
+            }
+            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present_additional_grace_duration_in_ms") {
+                user_lost_additional_grace_period_duration_in_ms = config_manager->registered_config_values[i].int_value;
+            }
+        }
     }
 
     try {

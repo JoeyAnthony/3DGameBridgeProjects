@@ -23,6 +23,13 @@ add_library(${PROJECT_NAME} SHARED
     src/hotkeymanager.cpp
     src/hotkeymanager.h
     src/delayLoader.h
+	src/systemEventMonitor.cpp
+	src/systemEventMonitor.h
+	src/configManager.h
+	src/configManager.cpp
+	src/versioncomparer.cpp
+	src/versioncomparer.h
+	src/gbConstants.h
 )
 
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -76,4 +83,5 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDirectX${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityOpenGL${BUILD_PLATFORM}.dll")
+ target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedReality${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:opencv_world343.dll")
