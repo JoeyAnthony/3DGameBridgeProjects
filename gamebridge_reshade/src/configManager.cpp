@@ -10,15 +10,16 @@
 #include <vector>
 #include <reshade/include/reshade.hpp>
 
-#include "ConfigManager.h"
+#include "configManager.h"
+#include "gbConstants.h"
 
 void ConfigManager::reload_config() {
     try {
         // Attempt to read config values from ReShade.ini
         registered_config_values.push_back(ConfigManager::read_from_config(
-                "disable_3d_when_no_user_present"));
+                gb_config_disable_3d_when_no_user));
         registered_config_values.push_back(ConfigManager::read_from_config(
-                "disable_3d_when_no_user_present_additional_grace_duration_in_ms"));
+                gb_config_disable_3d_when_no_user_grace_duration));
     } catch (std::runtime_error &e) {
         // Couldn't find the config values, let's write the defaults in the .ini
         std::string error_msg = "Unable to find config value in ReShade.ini: Now writing/loading defaults...";
@@ -35,14 +36,14 @@ ConfigManager::ConfigManager() {
 
 void ConfigManager::write_missing_config_values() {
     size_t value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present", nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_disable_3d_when_no_user.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present", "false");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_disable_3d_when_no_user.c_str(), "false");
     }
     value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_additional_grace_duration_in_ms", nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_disable_3d_when_no_user_grace_duration.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "disable_3d_when_no_user_present_additional_grace_duration_in_ms", "0");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_disable_3d_when_no_user_grace_duration.c_str(), "0");
     }
 }
 
@@ -53,12 +54,12 @@ void remove_unwanted_nulls(std::vector<char>& vec) {
 
 ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &key) {
     size_t value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), key.c_str(), nullptr, &value_size);
     if (value_size > 0) {
         try {
             // Get the value from the config
             std::vector<char> value(value_size);
-            reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), value.data(), &value_size);
+            reshade::get_config_value(nullptr, gb_config_section_name.c_str(), key.c_str(), value.data(), &value_size);
             // Remove unwanted '\0' characters as they confuse the string conversion.
             remove_unwanted_nulls(value);
             // Convert read value to lower case string
@@ -97,21 +98,21 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
 
 void ConfigManager::load_default_config() {
     registered_config_values.erase(registered_config_values.begin(), registered_config_values.end());
-    registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present", false));
-    registered_config_values.push_back(ConfigValue("disable_3d_when_no_user_present_additional_grace_duration_in_ms", 0));
+    registered_config_values.push_back(ConfigValue(gb_config_disable_3d_when_no_user, false));
+    registered_config_values.push_back(ConfigValue(gb_config_disable_3d_when_no_user_grace_duration, 0));
 }
 
 bool ConfigManager::write_config_value(ConfigManager::ConfigValue value) {
     try {
         switch (value.value_type) {
             case ConfigValue::Type::String:
-                reshade::set_config_value(nullptr, "3DGameBridge", value.key.c_str(), value.string_value.c_str());
+                reshade::set_config_value(nullptr, gb_config_section_name.c_str(), value.key.c_str(), value.string_value.c_str());
                 break;
             case ConfigValue::Type::Bool:
-                reshade::set_config_value(nullptr, "3DGameBridge", value.key.c_str(), (value.bool_value) ? "true" : "false");
+                reshade::set_config_value(nullptr, gb_config_section_name.c_str(), value.key.c_str(), (value.bool_value) ? "true" : "false");
                 break;
             case ConfigValue::Type::Int:
-                reshade::set_config_value(nullptr, "3DGameBridge", value.key.c_str(), std::to_string(value.int_value).c_str());
+                reshade::set_config_value(nullptr, gb_config_section_name.c_str(), value.key.c_str(), std::to_string(value.int_value).c_str());
                 break;
             default:
                 break;

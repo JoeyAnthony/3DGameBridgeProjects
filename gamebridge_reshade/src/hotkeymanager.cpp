@@ -6,6 +6,7 @@
  */
 
 #include "hotkeyManager.h"
+#include "gbConstants.h"
 
 void HotKeyManager::remove_unwanted_nulls(std::vector<char>& vec) {
     // Find the first occurrence of '\0'
@@ -24,13 +25,13 @@ void HotKeyManager::remove_unwanted_nulls(std::vector<char>& vec) {
 
 HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& key, shortcutType shortcut) {
     size_t value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), key.c_str(), nullptr, &value_size);
     if (value_size > 0) {
         HotKey created_key;
         try {
             // Get the value from the config
             std::vector<char> value(value_size);
-            reshade::get_config_value(nullptr, "3DGameBridge", key.c_str(), value.data(), &value_size);
+            reshade::get_config_value(nullptr, gb_config_section_name.c_str(), key.c_str(), value.data(), &value_size);
             // Remove unwanted '\0' characters as they confuse the string conversion.
             remove_unwanted_nulls(value);
             // Convert read value to lower case string
@@ -51,7 +52,7 @@ HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& 
                 }
             }
             // Create the hotkey
-            created_key = HotKey(default_enabled, shortcut, found_key, str.find("shift") != std::string::npos, str.find("alt") != std::string::npos, str.find("ctrl") != std::string::npos);
+            created_key = HotKey(default_enabled, shortcut, found_key, str.find(gb_config_shift_mod.c_str()) != std::string::npos, str.find(gb_config_alt_mod.c_str()) != std::string::npos, str.find(gb_config_ctrl_mod.c_str()) != std::string::npos);
         }
         catch (...)
         {
@@ -68,11 +69,11 @@ HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& 
 HotKeyManager::HotKeyManager() {
     // Create some default hotkeys.
     try {
-        registered_hot_keys.push_back(read_from_config(true, "toggle_sr_key", TOGGLE_SR));
-        registered_hot_keys.push_back(read_from_config(true, "toggle_lens_key", TOGGLE_LENS));
-        registered_hot_keys.push_back(read_from_config(false, "toggle_3d_key", TOGGLE_3D));
-        registered_hot_keys.push_back(read_from_config(false, "toggle_lens_and_3d_key", TOGGLE_LENS_AND_3D));
-        registered_hot_keys.push_back(read_from_config(true, "toggle_latency_mode_key", TOGGLE_LATENCY_MODE));
+        registered_hot_keys.push_back(read_from_config(true, gb_config_toggle_sr_key, TOGGLE_SR));
+        registered_hot_keys.push_back(read_from_config(true, gb_config_toggle_lens_key, TOGGLE_LENS));
+        registered_hot_keys.push_back(read_from_config(false, gb_config_toggle_3d_key, TOGGLE_3D));
+        registered_hot_keys.push_back(read_from_config(false, gb_config_toggle_lens_and_3d_key, TOGGLE_LENS_AND_3D));
+        registered_hot_keys.push_back(read_from_config(true, gb_config_toggle_latency_mode_key, TOGGLE_LATENCY_MODE));
     }
     catch (std::runtime_error &e) {
         // Couldn't find the config value, let's write the default in the .ini
@@ -130,29 +131,29 @@ void HotKeyManager::edit_hot_key(uint8_t hot_key_id) {
 
 void HotKeyManager::write_missing_hotkeys() {
     size_t value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_sr_key", nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_sr_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_sr_key", "0x31\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_sr_key.c_str(), "0x31\;ctrl");
     }
     value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_lens_key", nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_lens_key", "0x32\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_key.c_str(), "0x32\;ctrl");
     }
     value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_3d_key", nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_3d_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_3d_key", "0x33\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_3d_key.c_str(), "0x33\;ctrl");
     }
     value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_lens_and_3d_key", nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_and_3d_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_lens_and_3d_key", "0x34\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_and_3d_key.c_str(), "0x34\;ctrl");
     }
     value_size = 0;
-    reshade::get_config_value(nullptr, "3DGameBridge", "toggle_latency_mode_key", nullptr, &value_size);
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_latency_mode_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, "3DGameBridge", "toggle_latency_mode_key", "0x35\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_latency_mode_key.c_str(), "0x35\;ctrl");
     }
 }
 
