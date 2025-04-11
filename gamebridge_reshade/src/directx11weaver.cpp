@@ -97,7 +97,7 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
     weaver_initialized = true;
 
     // Determine the default latency mode for the weaver
-    DirectX11Weaver::determine_default_latency_mode();
+    determine_default_latency_mode();
 
     return SUCCESS;
 }
