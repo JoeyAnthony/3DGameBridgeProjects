@@ -20,9 +20,13 @@ int32_t IGraphicsApi::get_concatinated_reshade_version() {
     return std::stoi(result);
 }
 
-void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
+void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime, const std::string& error_message) {
     // Log activity status
     ImGui::TextUnformatted("Status: ACTIVE");
+
+    if (!error_message.empty()) {
+        ImGui::TextColored(ImColor(240,100,100), "%s", error_message.c_str());
+    }
 
     // Log the latency mode
     std::string latencyModeDisplay = "Latency mode: ";
@@ -91,6 +95,10 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
 
 bool IGraphicsApi::is_user_presence_3d_toggle_checked() {
     return user_presence_3d_toggle_checked;
+}
+
+bool IGraphicsApi::is_overlay_workaround_enabled() {
+    return enable_overlay_workaround;
 }
 
 void IGraphicsApi::determine_default_latency_mode() {

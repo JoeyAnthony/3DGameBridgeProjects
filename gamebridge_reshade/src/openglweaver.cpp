@@ -98,7 +98,8 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
     reshade::api::resource_desc desc = gl_device->get_resource_desc(rtv);
 
     try {
-        if (OpenGLWeaver::enable_overlay_workaround) {
+        if (is_overlay_workaround_enabled()) {
+            // Todo: Somehow using this deprecated weaver causes crashes with SDK 1.30.2. This also happens on other graphics APIs but was not happening when 1.33.0 was installed as SDK.
             weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height);
         } else {
             weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
@@ -125,17 +126,8 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
 
     weaver_initialized = true;
 
-    // Check what version of SR we're on, if we're on 1.30 or up, switch to latency in frames.
-    std::string latency_log;
-
-    if (VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 29, 999)) {
-        set_latency_in_frames(-1);
-        latency_log = "Current latency mode set to: LATENCY_IN_FRAMES_AUTOMATIC";
-    } else {
-        // Set mode to latency in frames by default.
-        set_latency_frametime_adaptive(weaver_latency_in_us);
-        latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
-    }
+    // Determine the default latency mode for the weaver
+    determine_default_latency_mode();
 
     return SUCCESS;
 }
@@ -200,7 +192,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_flipped_rtv);
 
                 // Weave to copy buffer
-                weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
+                weaver->weave(desc.texture.width, desc.texture.height);
 
                 // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, rtv_resource);

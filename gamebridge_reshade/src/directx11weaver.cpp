@@ -73,7 +73,7 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
     }
 
     try {
-        if (DirectX11Weaver::enable_overlay_workaround) {
+        if (is_overlay_workaround_enabled()) {
             weaver = new SR::PredictingDX11Weaver(*sr_context, dev, context, desc.texture.width, desc.texture.height);
         } else {
             weaver = new SR::PredictingDX11Weaver(*sr_context, dev, context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
