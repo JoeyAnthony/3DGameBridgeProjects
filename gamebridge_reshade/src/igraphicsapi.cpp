@@ -88,3 +88,23 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime) {
         ImGui::EndTooltip();
     }
 }
+
+bool IGraphicsApi::is_user_presence_3d_toggle_checked() {
+    return user_presence_3d_toggle_checked;
+}
+
+void IGraphicsApi::determine_default_latency_mode() {
+    // Check what version of SR we're on, if we're on 1.30 or up, switch to latency in frames.
+    std::string latency_log;
+
+    if (VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 29, 999)) {
+        set_latency_in_frames(-1);
+        latency_log = "Current latency mode set to: LATENCY_IN_FRAMES_AUTOMATIC";
+    } else {
+        // Set mode to latency in frames by default.
+        set_latency_frametime_adaptive(weaver_latency_in_us);
+        latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
+    }
+
+    reshade::log_message(reshade::log_level::info, latency_log.c_str());
+}
