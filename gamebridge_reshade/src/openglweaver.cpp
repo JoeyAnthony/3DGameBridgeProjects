@@ -101,6 +101,7 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
         if (is_overlay_workaround_enabled()) {
             // Todo: Somehow using this deprecated weaver causes crashes with SDK 1.30.2. This also happens on other graphics APIs but was not happening when 1.33.0 was installed as SDK.
             weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height);
+            weaver->setWindowHandle((HWND)runtime->get_hwnd());
         } else {
             weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
         }

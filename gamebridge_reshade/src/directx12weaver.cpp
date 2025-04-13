@@ -50,6 +50,7 @@ GbResult DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
     try {
         if (is_overlay_workaround_enabled()) {
             weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer);
+            weaver->setWindowHandle((HWND)runtime->get_hwnd());
         } else {
             weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
         }
