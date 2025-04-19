@@ -20,6 +20,7 @@
 #include "openglweaver.h"
 #include "delayLoader.h"
 #include "configManager.h"
+#include "gbConstants.h"
 
 #include <chrono>
 #include <functional>
@@ -50,6 +51,7 @@ static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
+static bool is_potentially_unstable_opengl_version = false;
 static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
@@ -201,7 +203,11 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
         printStatusInWeaver = false;
     }
     else if (weaver_implementation) {
-        weaver_implementation->draw_status_overlay(runtime);
+        if (is_potentially_unstable_opengl_version) {
+            weaver_implementation->draw_status_overlay(runtime, "3D in OpenGL is bugged in SR version 1.30.x and up. Please downgrade to 1.30.x or wait for a future update.\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n");
+        } else {
+            weaver_implementation->draw_status_overlay(runtime);
+        }
     }
     else {
         // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
@@ -310,10 +316,10 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     if (config_manager == nullptr) {
         config_manager = new ConfigManager();
         for (int i = 0; i < config_manager->registered_config_values.size(); i++) {
-            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present") {
+            if (config_manager->registered_config_values[i].key == gb_config_disable_3d_when_no_user) {
                 user_lost_logic_enabled = config_manager->registered_config_values[i].bool_value;
             }
-            if (config_manager->registered_config_values[i].key == "disable_3d_when_no_user_present_additional_grace_duration_in_ms") {
+            if (config_manager->registered_config_values[i].key == gb_config_disable_3d_when_no_user_grace_duration) {
                 user_lost_additional_grace_period_duration_in_ms = config_manager->registered_config_values[i].int_value;
             }
         }
@@ -325,6 +331,8 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
             switch (runtime->get_device()->get_api()) {
                 case reshade::api::device_api::opengl:
                     weaver_implementation = new OpenGLWeaver(sr_context);
+                    // Check if SR version > 1.30.x. If so, alert user that OpenGL is bugged, so they should downgrade
+                    is_potentially_unstable_opengl_version = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999);
                     break;
                 case reshade::api::device_api::d3d9:
                     weaver_implementation = new DirectX9Weaver(sr_context);

@@ -10,6 +10,7 @@
 #include <string>
 
 const std::string gb_config_section_name = "3DGameBridge";
+const std::string gb_config_enable_overlay_workaround = "enable_overlay_workaround";
 const std::string gb_config_disable_3d_when_no_user = "disable_3d_when_no_user_present";
 const std::string gb_config_disable_3d_when_no_user_grace_duration = "disable_3d_when_no_user_present_additional_grace_duration_in_ms";
 const std::string gb_config_toggle_sr_key = "toggle_sr_key";

@@ -10,6 +10,7 @@
 #include "pch.h"
 #include "VersionComparer.h"
 #include "configManager.h"
+#include "gbConstants.h"
 
 #include <sr/version_c.h>
 
@@ -35,8 +36,15 @@ struct Destroy_Resource_Data
 
 class IGraphicsApi {
 private:
-    bool user_presence_3d_toggle_checked = ConfigManager::read_from_config("disable_3d_when_no_user_present").bool_value;
+    bool user_presence_3d_toggle_checked = false;
+    bool enable_overlay_workaround = true;
 public:
+    /// \brief Constructor (must be called before usage of this class)
+    IGraphicsApi();
+
+    /// \brief Default destructor
+    virtual ~IGraphicsApi() = default;
+
     /// \brief ReShade version numbers read from the appropriate DLL. useful for when certain options only work in certain ReShade versions
     /// These values are set on DLL_ATTACH
     int32_t reshade_version_nr_major = 0;
@@ -55,13 +63,21 @@ public:
     /// \return Whether the automatic 3D toggle is enabled or disabled
     bool is_user_presence_3d_toggle_checked();
 
+    /// \brief A boolean used to determine if the logic that automatically disables weaving when the SR window is obstructed (for instance by an overlay) should be enabled or not.
+    /// \return Whether the window obstruction logic is enabled or not.
+    bool is_overlay_workaround_enabled();
+
+    /// \brief A boolean used to determine if the weaver is initialized, this bool is managed by the graphics API internally but can be forced to false to re-initialize the weaver.
+    /// \return Whether the weaver is initialized or not.
+    bool weaver_initialized = false;
+
     /// \brief Concatenates the reshade_version_nr_major/minor/patch into one number
     /// \return A concatenated ReShade version code without periods. Example: 580 (instead of 5.8.0)
     int32_t get_concatinated_reshade_version();
 
     /// \brief Responsible for drawing debug information in the ImGUI UI
     /// \param runtime Represents the reshade effect runtime
-    void draw_status_overlay(reshade::api::effect_runtime* runtime);
+    void draw_status_overlay(reshade::api::effect_runtime* runtime, const std::string& error_message = "");
 
     /// \brief Checks the current used version of SR, if it is above 1.30, we use latency_in_frames. Otherwise, we use a static latency of 40000 us
     void determine_default_latency_mode();
@@ -86,8 +102,7 @@ public:
     /// \return An enum representing the current latency mode of the weaver, see LatencyModes enum for more info
     virtual LatencyModes get_latency_mode() = 0;
 
-    /// \brief Default destructor
-    virtual ~IGraphicsApi() = default;
+    IGraphicsApi(bool userPresence3DToggleChecked, bool enableOverlayWorkaround);
 
     /// \brief Sets the weaver latency mode to latency in frames.
     /// This does NOT look at the current framerate or frametime, it is best used when you are able to consistently reach your monitor's VSYNC

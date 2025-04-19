@@ -98,21 +98,22 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
     reshade::api::resource_desc desc = gl_device->get_resource_desc(rtv);
 
     try {
-        weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
+        if (is_overlay_workaround_enabled()) {
+            weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height);
+            weaver->setWindowHandle((HWND)runtime->get_hwnd());
+        } else {
+            weaver = new SR::PredictingGLWeaver(*sr_context, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
+        }
         GLuint renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
         weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
-
-        // Set mode to latency in frames by default.
-        set_latency_frametime_adaptive(default_weaver_latency);
-        std::string latency_log = "Current latency mode set to: STATIC " + std::to_string(default_weaver_latency) + " Microseconds";
-        reshade::log_message(reshade::log_level::info, latency_log.c_str());
     }
     catch (std::runtime_error &e) {
         if (std::strcmp(e.what(), "Failed to load library") == 0) {
             return DLL_NOT_LOADED;
         }
+        return GENERAL_FAIL;
     }
     catch (std::exception &e) {
         reshade::log_message(reshade::log_level::info, e.what());
@@ -124,26 +125,11 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
     }
 
     weaver_initialized = true;
+
+    // Determine the default latency mode for the weaver
+    determine_default_latency_mode();
+
     return SUCCESS;
-}
-
-void OpenGLWeaver::draw_status_overlay(reshade::api::effect_runtime *runtime) {
-    // Log activity status
-    ImGui::TextUnformatted("Status: ACTIVE");
-
-    // Log the latency mode
-    std::string latencyModeDisplay = "Latency mode: ";
-    if (current_latency_mode == LatencyModes::FRAMERATE_ADAPTIVE) {
-        latencyModeDisplay += "IN " + std::to_string(last_latency_frame_time_set) + " MICROSECONDS";
-    }
-    else {
-        latencyModeDisplay += "IN " + std::to_string(runtime->get_back_buffer_count()) + " FRAMES";
-    }
-    ImGui::TextUnformatted(latencyModeDisplay.c_str());
-
-    // Log the buffer type, this can be removed once we've tested a larger amount of games.
-    std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
-    ImGui::TextUnformatted(s.c_str());
 }
 
 GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
@@ -206,7 +192,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_flipped_rtv);
 
                 // Weave to copy buffer
-                weaver->weave(desc.texture.width, desc.texture.height, 0, 0);
+                weaver->weave(desc.texture.width, desc.texture.height);
 
                 // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, rtv_resource);
@@ -267,7 +253,7 @@ bool OpenGLWeaver::set_latency_frametime_adaptive(uint32_t frametime_in_microsec
     if (weaver_initialized) {
         set_latency_mode(LatencyModes::FRAMERATE_ADAPTIVE);
         weaver->setLatency(frametime_in_microseconds);
-        last_latency_frame_time_set = frametime_in_microseconds;
+        weaver_latency_in_us = frametime_in_microseconds;
         return true;
     }
     return false;

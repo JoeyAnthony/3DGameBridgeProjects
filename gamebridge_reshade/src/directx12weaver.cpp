@@ -48,7 +48,12 @@ GbResult DirectX12Weaver::init_weaver(reshade::api::effect_runtime* runtime, res
     ID3D12Resource* native_frame_buffer = (ID3D12Resource*)rtv.handle;
     ID3D12Resource* native_back_buffer = (ID3D12Resource*)back_buffer.handle;
     try {
-        weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        if (is_overlay_workaround_enabled()) {
+            weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer);
+            weaver->setWindowHandle((HWND)runtime->get_hwnd());
+        } else {
+            weaver = new SR::PredictingDX12Weaver(*sr_context, dev, command_allocator, command_queue, native_frame_buffer, native_back_buffer, (HWND)runtime->get_hwnd());
+        }
         sr_context->initialize();
         reshade::log_message(reshade::log_level::info, "Initialized weaver");
     }

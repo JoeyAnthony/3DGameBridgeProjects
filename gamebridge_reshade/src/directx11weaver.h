@@ -16,7 +16,6 @@
 class DirectX11Weaver: public IGraphicsApi {
     uint32_t effect_frame_copy_x = 0, effect_frame_copy_y = 0;
 
-    bool weaver_initialized = false;
     bool weaving_enabled = false;
     bool popup_window_visible = false;
     bool resize_buffer_failed = false;
