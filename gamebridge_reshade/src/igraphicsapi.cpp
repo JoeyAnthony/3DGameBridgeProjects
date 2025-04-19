@@ -9,6 +9,11 @@
 
 #include "configManager.h"
 
+IGraphicsApi::IGraphicsApi() {
+    user_presence_3d_toggle_checked = ConfigManager::read_from_config(gb_config_disable_3d_when_no_user).bool_value;
+    enable_overlay_workaround = ConfigManager::read_from_config(gb_config_enable_overlay_workaround).bool_value;
+}
+
 /**
  * Takes a major, minor and patch number from ReShade and concatenates them into a single number for easier processing.
  */

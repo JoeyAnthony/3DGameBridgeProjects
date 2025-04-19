@@ -36,9 +36,15 @@ struct Destroy_Resource_Data
 
 class IGraphicsApi {
 private:
-    bool user_presence_3d_toggle_checked = ConfigManager::read_from_config(gb_config_disable_3d_when_no_user).bool_value;
-    bool enable_overlay_workaround = ConfigManager::read_from_config(gb_config_enable_overlay_workaround).bool_value;
+    bool user_presence_3d_toggle_checked = false;
+    bool enable_overlay_workaround = true;
 public:
+    /// \brief Constructor (must be called before usage of this class)
+    IGraphicsApi();
+
+    /// \brief Default destructor
+    virtual ~IGraphicsApi() = default;
+
     /// \brief ReShade version numbers read from the appropriate DLL. useful for when certain options only work in certain ReShade versions
     /// These values are set on DLL_ATTACH
     int32_t reshade_version_nr_major = 0;
@@ -96,8 +102,7 @@ public:
     /// \return An enum representing the current latency mode of the weaver, see LatencyModes enum for more info
     virtual LatencyModes get_latency_mode() = 0;
 
-    /// \brief Default destructor
-    virtual ~IGraphicsApi() = default;
+    IGraphicsApi(bool userPresence3DToggleChecked, bool enableOverlayWorkaround);
 
     /// \brief Sets the weaver latency mode to latency in frames.
     /// This does NOT look at the current framerate or frametime, it is best used when you are able to consistently reach your monitor's VSYNC
