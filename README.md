@@ -10,7 +10,8 @@ This repository contains projects implementing a Game Bridge API or otherwise re
 This is a ReShade addon that can add SR functionality to a game.
 
 #### Installation instructions
-You can find the installation instructions [here](INSTALL.md).
+Can be installed through [ReShade's installer with addon support](https://reshade.me/) directly.
+You can find the manual installation instructions [here](INSTALL.md).
 
 # Building with cmake
 1. Clone project: `git clone https://github.com/JoeyAnthony/3DGameBridgeProjects.git`
