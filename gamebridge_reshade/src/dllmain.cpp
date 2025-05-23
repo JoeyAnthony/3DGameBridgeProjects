@@ -8,7 +8,6 @@
 #include <windows.h>
 #include <winver.h>
 
-#include "glad/gl.h"
 #pragma comment(lib, "Version.lib")
 
 #include "pch.h"
@@ -30,6 +29,7 @@
 #include <vector>
 #include <iostream>
 #include <sr/sense/system/systemsense.h>
+#include <glad/gl.h>
 
 
 #define CHAR_BUFFER_SIZE 256
@@ -223,26 +223,9 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     }
 }
 
-bool init_glad()
-{
-    if (!gladLoadGL((GLADloadfunc)&wglGetProcAddress)) {
-        fprintf(stderr, "Failed to initialize GLAD\n");
-        return false;
-    }
-    return true;
-}
-
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     if (!sr_initialized) {
         return;
-    }
-
-    if (!glad_initialized && runtime->get_device()->get_api() == reshade::api::device_api::opengl) {
-        void* ptr = (void*)wglGetProcAddress("glBindSampler");
-        if (!ptr) {
-            fprintf(stderr, "wglGetProcAddress(glBindSampler) returned null\n");
-        }
-        glad_initialized = init_glad();
     }
 
     std::map<shortcutType, bool> hot_key_list;
@@ -350,6 +333,10 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         if (weaver_implementation == nullptr) {
             switch (runtime->get_device()->get_api()) {
                 case reshade::api::device_api::opengl:
+                    if (!gladLoaderLoadGL()) {
+                        reshade::log_message(reshade::log_level::error, "Make this crash or smt");
+                    }
+
                     weaver_implementation = new OpenGLWeaver(sr_context);
                     // Check if SR version > 1.30.x. If so, alert user that OpenGL is bugged, so they should downgrade
                     is_potentially_unstable_opengl_version = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999);

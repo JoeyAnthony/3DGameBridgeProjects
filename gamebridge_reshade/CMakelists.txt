@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 project (GameBridgeReshade VERSION 0.1)
 
+# TODO put behind optional param
+set(GLAD_DIR ${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/glad)
+set(GLAD_SOURCE
+	${GLAD_DIR}/src/gl.c
+	${GLAD_DIR}/include/glad/gl.h
+)
+
 add_library(${PROJECT_NAME} SHARED
     src/dllmain.cpp
     src/framework.h
@@ -30,6 +37,8 @@ add_library(${PROJECT_NAME} SHARED
 	src/versioncomparer.cpp
 	src/versioncomparer.h
 	src/gbConstants.h
+	
+	${GLAD_SOURCE}
 )
 
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
@@ -52,20 +61,9 @@ set(TARGET_RESHADE reshade)
 add_subdirectory(third-party/reshade)
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_RESHADE})
 
-#set(GLEW_ROOT "${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/opengl")
-add_library(glad STATIC "${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/opengl/src/gl.c")
-target_include_directories(glad PUBLIC "${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/opengl/include")
-target_include_directories(${PROJECT_NAME} PRIVATE "third-party/opengl/include")
+# Add glad as includes
+target_include_directories(${PROJECT_NAME} PRIVATE ${GLAD_DIR}/include)
 
-## Add the static library directly
-#add_library(GLEW STATIC IMPORTED)
-#set_target_properties(GLEW PROPERTIES
-#		IMPORTED_LOCATION "${GLEW_ROOT}/lib/Release/x64/glew32.lib"  # Use glew32s.lib on Windows
-#		INTERFACE_INCLUDE_DIRECTORIES "${GLEW_ROOT}/include"
-#)
-
-#target_link_libraries(${PROJECT_NAME} PRIVATE GLAD OpenGL::GL)
-find_package(OpenGL REQUIRED)
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 find_package(srOpenGL REQUIRED)
@@ -88,12 +86,10 @@ if(NOT ${ADDON_COPY_DIR} STREQUAL "")
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-		glad
 		delayimp
 		simulatedreality
 		srDirectX${BUILD_PLATFORM}::srDirectX
 		srOpenGL${BUILD_PLATFORM}::srOpenGL
-		OpenGL::GL
 )
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDisplays${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore${BUILD_PLATFORM}.dll")

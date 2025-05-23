@@ -6,17 +6,12 @@
  */
 
 #include "openglweaver.h"
-#include "glad/gl.h"
+#include <glad/gl.h>
 
 OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
     // Set context here.
     sr_context = context;
     weaving_enabled = true;
-
-//    if (!gladLoadGL((GLADloadfunc)wglGetProcAddress)) {
-//        std::cerr << "Failed to initialize GLAD" << std::endl;
-//        return;
-//    }
 }
 
 void OpenGLWeaver::flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
