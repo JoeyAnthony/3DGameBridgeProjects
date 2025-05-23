@@ -6,7 +6,9 @@
  */
 
 #include "openglweaver.h"
+#ifdef ENABLE_GLAD
 #include <glad/gl.h>
+#endif
 
 OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
     // Set context here.
@@ -192,11 +194,37 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 // Bind copy buffer as render target
                 cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_flipped_rtv);
 
-                // Weave to copy buffer
-                weaver->weave(desc.texture.width, desc.texture.height);
+#ifdef ENABLE_GLAD
+                // Todo: The specific bind/unbind code should be surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run.
+                // Store current sampler bindings
+                glActiveTexture(GL_TEXTURE0);
+                GLint prevSamplerBinding0;
+                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding0);
+                glActiveTexture(GL_TEXTURE1);
+                GLint prevSamplerBinding1;
+                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding1);
+                glActiveTexture(GL_TEXTURE2);
+                GLint prevSamplerBinding2;
+                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding2);
 
                 // Unbind GL Sampler
                 glBindSampler(0, 0);
+                glBindSampler(1, 0);
+                glBindSampler(2, 0);
+#endif
+
+                // Weave to copy buffer
+                weaver->weave(desc.texture.width, desc.texture.height);
+
+#ifdef ENABLE_GLAD
+                // Rebind previous sampler
+                glActiveTexture(GL_TEXTURE0);
+                glBindSampler(0, prevSamplerBinding0);
+                glActiveTexture(GL_TEXTURE1);
+                glBindSampler(1, prevSamplerBinding1);
+                glActiveTexture(GL_TEXTURE2);
+                glBindSampler(2, prevSamplerBinding1);
+#endif
 
                 // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, rtv_resource);

@@ -1,12 +1,18 @@
 cmake_minimum_required(VERSION 3.23)
 project (GameBridgeReshade VERSION 0.1)
 
-# TODO put behind optional param
-set(GLAD_DIR ${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/glad)
-set(GLAD_SOURCE
-	${GLAD_DIR}/src/gl.c
-	${GLAD_DIR}/include/glad/gl.h
-)
+# Define LINK_GLAD
+option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged in SR version 1.30.x and up. Either downgrade to 1.30.x or set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
+
+set(GLAD_SOURCE "")
+if(LINK_GLAD)
+	add_compile_definitions(ENABLE_GLAD)
+	set(GLAD_DIR ${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/glad)
+	set(GLAD_SOURCE
+			${GLAD_DIR}/src/gl.c
+			${GLAD_DIR}/include/glad/gl.h
+	)
+endif()
 
 add_library(${PROJECT_NAME} SHARED
     src/dllmain.cpp
@@ -40,6 +46,11 @@ add_library(${PROJECT_NAME} SHARED
 	
 	${GLAD_SOURCE}
 )
+
+# Add glad includes only if LINK_GLAD is enabled
+if(LINK_GLAD)
+	target_include_directories(${PROJECT_NAME} PRIVATE ${GLAD_DIR}/include)
+endif()
 
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
 	set(BUILD_PLATFORM 32)
@@ -97,6 +108,3 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityOpenGL${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedReality${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:opencv_world343.dll")
-
-get_target_property(LINKED_LIBS ${PROJECT_NAME} LINK_LIBRARIES)
-message(STATUS "MyTarget links with: ${LINKED_LIBS}")
