@@ -52,6 +52,20 @@ set(TARGET_RESHADE reshade)
 add_subdirectory(third-party/reshade)
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_RESHADE})
 
+#set(GLEW_ROOT "${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/opengl")
+add_library(glad STATIC "${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/opengl/src/gl.c")
+target_include_directories(glad PUBLIC "${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/opengl/include")
+target_include_directories(${PROJECT_NAME} PRIVATE "third-party/opengl/include")
+
+## Add the static library directly
+#add_library(GLEW STATIC IMPORTED)
+#set_target_properties(GLEW PROPERTIES
+#		IMPORTED_LOCATION "${GLEW_ROOT}/lib/Release/x64/glew32.lib"  # Use glew32s.lib on Windows
+#		INTERFACE_INCLUDE_DIRECTORIES "${GLEW_ROOT}/include"
+#)
+
+#target_link_libraries(${PROJECT_NAME} PRIVATE GLAD OpenGL::GL)
+find_package(OpenGL REQUIRED)
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 find_package(srOpenGL REQUIRED)
@@ -74,10 +88,12 @@ if(NOT ${ADDON_COPY_DIR} STREQUAL "")
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
+		glad
 		delayimp
 		simulatedreality
 		srDirectX${BUILD_PLATFORM}::srDirectX
 		srOpenGL${BUILD_PLATFORM}::srOpenGL
+		OpenGL::GL
 )
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityDisplays${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityCore${BUILD_PLATFORM}.dll")
@@ -85,3 +101,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityOpenGL${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedReality${BUILD_PLATFORM}.dll")
  target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:opencv_world343.dll")
+
+get_target_property(LINKED_LIBS ${PROJECT_NAME} LINK_LIBRARIES)
+message(STATUS "MyTarget links with: ${LINKED_LIBS}")

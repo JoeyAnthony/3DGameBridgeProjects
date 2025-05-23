@@ -7,6 +7,8 @@
 
 #include <windows.h>
 #include <winver.h>
+
+#include "glad/gl.h"
 #pragma comment(lib, "Version.lib")
 
 #include "pch.h"
@@ -52,6 +54,7 @@ static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
 static bool is_potentially_unstable_opengl_version = false;
+static bool glad_initialized = false;
 static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
@@ -220,9 +223,26 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     }
 }
 
+bool init_glad()
+{
+    if (!gladLoadGL((GLADloadfunc)&wglGetProcAddress)) {
+        fprintf(stderr, "Failed to initialize GLAD\n");
+        return false;
+    }
+    return true;
+}
+
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     if (!sr_initialized) {
         return;
+    }
+
+    if (!glad_initialized && runtime->get_device()->get_api() == reshade::api::device_api::opengl) {
+        void* ptr = (void*)wglGetProcAddress("glBindSampler");
+        if (!ptr) {
+            fprintf(stderr, "wglGetProcAddress(glBindSampler) returned null\n");
+        }
+        glad_initialized = init_glad();
     }
 
     std::map<shortcutType, bool> hot_key_list;

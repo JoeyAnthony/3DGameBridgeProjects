@@ -6,11 +6,17 @@
  */
 
 #include "openglweaver.h"
+#include "glad/gl.h"
 
 OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
     // Set context here.
     sr_context = context;
     weaving_enabled = true;
+
+//    if (!gladLoadGL((GLADloadfunc)wglGetProcAddress)) {
+//        std::cerr << "Failed to initialize GLAD" << std::endl;
+//        return;
+//    }
 }
 
 void OpenGLWeaver::flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
@@ -193,6 +199,9 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
 
                 // Weave to copy buffer
                 weaver->weave(desc.texture.width, desc.texture.height);
+
+                // Unbind GL Sampler
+                glBindSampler(0, 0);
 
                 // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
                 flip_buffer(desc.texture.height, desc.texture.width, cmd_list, effect_frame_copy_flipped, rtv_resource);
