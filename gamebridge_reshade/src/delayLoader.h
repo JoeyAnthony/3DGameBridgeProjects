@@ -10,7 +10,7 @@
 #include <Windows.h>
 #include <delayimp.h>
 
-std::array<std::string, 15> sr_dll_names = {"simulatedreality.dll", "simulatedreality32.dll", "Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll", "opengl32.dll"};
+std::array<std::string, 15> sr_dll_names = {"simulatedreality.dll", "simulatedreality32.dll", "Glog.dll", "Opencv_world343.dll", "DimencoWeaving.dll", "SimulatedRealityCore.dll", "SimulatedRealityDisplays.dll", "SimulatedRealityFacetrackers.dll", "SimulatedRealityDirectX.dll", "DimencoWeaving32.dll", "SimulatedRealityCore32.dll", "SimulatedRealityDisplays32.dll", "SimulatedRealityFacetrackers32.dll", "SimulatedRealityDirectX32.dll"};
 
 FARPROC WINAPI delayHook(unsigned dliNotify, PDelayLoadInfo pdli) {
     std::string requested_dll;

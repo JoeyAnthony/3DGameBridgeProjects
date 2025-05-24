@@ -56,7 +56,6 @@ static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
 static bool is_potentially_unstable_opengl_version = false;
-static bool glad_initialized = false;
 static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
@@ -333,7 +332,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                 case reshade::api::device_api::opengl:
 #ifdef ENABLE_GLAD
                     if (!gladLoaderLoadGL()) {
-                        reshade::log_message(reshade::log_level::error, "Make this crash or smt");
+                        reshade::log_message(reshade::log_level::error, "Unable to load GLAD. Weaving may be incorrect between SR versions 1.30.x and 1.33.2");
                     }
 #endif
 

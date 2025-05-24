@@ -72,9 +72,6 @@ set(TARGET_RESHADE reshade)
 add_subdirectory(third-party/reshade)
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_RESHADE})
 
-# Add glad as includes
-target_include_directories(${PROJECT_NAME} PRIVATE ${GLAD_DIR}/include)
-
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)
 find_package(srOpenGL REQUIRED)
