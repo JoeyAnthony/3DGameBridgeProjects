@@ -7,6 +7,7 @@
 
 #include <windows.h>
 #include <winver.h>
+
 #pragma comment(lib, "Version.lib")
 
 #include "pch.h"
@@ -28,6 +29,9 @@
 #include <vector>
 #include <iostream>
 #include <sr/sense/system/systemsense.h>
+#ifdef ENABLE_GLAD
+#include <glad/gl.h>
+#endif
 
 
 #define CHAR_BUFFER_SIZE 256
@@ -203,11 +207,7 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
         printStatusInWeaver = false;
     }
     else if (weaver_implementation) {
-        if (is_potentially_unstable_opengl_version) {
-            weaver_implementation->draw_status_overlay(runtime, "3D in OpenGL is bugged in SR version 1.30.x and up. Please downgrade to 1.30.x or wait for a future update.\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n");
-        } else {
-            weaver_implementation->draw_status_overlay(runtime);
-        }
+        weaver_implementation->draw_status_overlay(runtime);
     }
     else {
         // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
@@ -330,8 +330,15 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
         if (weaver_implementation == nullptr) {
             switch (runtime->get_device()->get_api()) {
                 case reshade::api::device_api::opengl:
+#ifdef ENABLE_GLAD
+                    if (!gladLoaderLoadGL()) {
+                        reshade::log_message(reshade::log_level::error, "Unable to load GLAD. Weaving may be incorrect between SR versions 1.30.x and 1.33.2");
+                    }
+#endif
+
                     weaver_implementation = new OpenGLWeaver(sr_context);
-                    // Check if SR version > 1.30.x. If so, alert user that OpenGL is bugged, so they should downgrade
+                    // Check if SR version > 1.30.x. If so, OpenGL is potentially bugged.
+                    // Todo: Use this version check to enable/disable our OpenGL fix once Leia includes a fix in their official platform.
                     is_potentially_unstable_opengl_version = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999);
                     break;
                 case reshade::api::device_api::d3d9:

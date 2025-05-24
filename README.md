@@ -17,7 +17,8 @@ You can find the manual installation instructions [here](INSTALL.md).
 1. Clone project: `git clone https://github.com/JoeyAnthony/3DGameBridgeProjects.git`
 2. Fetch all submodules with: `git submodule update --init --recursive`
 3. Install the Simulated Reality SDK
-3. Generate the project with Cmake
+4. Generate the project with Cmake 
+5. Optional: Supply `-DLINK_GLAD=ON` and [download GLAD](https://gen.glad.sh/) to `third-party/glad` to build with our OpenGL weaving workaround for SR versions between 1.30.x and 1.33.1. 
 
 ## Related projects:
 
