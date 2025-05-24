@@ -4,7 +4,6 @@ project (GameBridgeReshade VERSION 0.1)
 # Define LINK_GLAD
 option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged in SR version 1.30.x and up. Either downgrade to 1.30.x or set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
 
-set(GLAD_SOURCE "")
 if(LINK_GLAD)
 	add_compile_definitions(ENABLE_GLAD)
 	set(GLAD_DIR ${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/glad)
