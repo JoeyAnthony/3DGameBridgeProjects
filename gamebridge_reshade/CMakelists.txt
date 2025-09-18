@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 project (GameBridgeReshade VERSION 0.1)
 
+set(LEIASR_SDKROOT "$ENV{LEIASR_SDKROOT}" CACHE PATH "Path to LEIASR SDK root")
+set(LEIASR_SDKROOT32 "$ENV{LEIASR_SDKROOT32}" CACHE PATH "Path to LEIASR SDK root")
+
+# Tell CMake to look here for find_package()
+list(APPEND CMAKE_PREFIX_PATH "${LEIASR_SDKROOT}/lib/cmake")
+list(APPEND CMAKE_PREFIX_PATH "${LEIASR_SDKROOT32}/lib/cmake")
+
 # Define LINK_GLAD
 option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged in SR version 1.30.x and up. Either downgrade to 1.30.x or set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
 

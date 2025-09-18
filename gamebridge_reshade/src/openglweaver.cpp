@@ -157,6 +157,14 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
     };
     cmd_list->bind_viewports(0, 1, &viewport);
 
+    // Bind a scissor rect that covers the entire render target
+    const reshade::api::rect scissor_rect = {
+            0, 0,
+            static_cast<int32_t>(desc.texture.width),
+            static_cast<int32_t>(desc.texture.height)
+    };
+    cmd_list->bind_scissor_rects(0, 1, &scissor_rect);
+
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
         if (get_latency_mode() == LatencyModes::LATENCY_IN_FRAMES_AUTOMATIC) {
