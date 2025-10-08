@@ -157,14 +157,6 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
     };
     cmd_list->bind_viewports(0, 1, &viewport);
 
-    // Bind a scissor rect that covers the entire render target
-    const reshade::api::rect scissor_rect = {
-            0, 0,
-            static_cast<int32_t>(desc.texture.width),
-            static_cast<int32_t>(desc.texture.height)
-    };
-    cmd_list->bind_scissor_rects(0, 1, &scissor_rect);
-
     if (weaver_initialized) {
         // Check if we need to set the latency in frames.
         if (get_latency_mode() == LatencyModes::LATENCY_IN_FRAMES_AUTOMATIC) {
@@ -203,7 +195,19 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_flipped_rtv);
 
 #ifdef ENABLE_GLAD
-                // Todo: The specific bind/unbind code should be surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run.
+                // Store and disable scissor & stencil states before weaving
+                GLboolean scissor_enabled = glIsEnabled(GL_SCISSOR_TEST);
+                GLboolean stencil_enabled = glIsEnabled(GL_STENCIL_TEST);
+                GLboolean blend_enabled = glIsEnabled(GL_BLEND);
+
+                if (scissor_enabled)
+                    glDisable(GL_SCISSOR_TEST);
+                if (stencil_enabled)
+                    glDisable(GL_STENCIL_TEST);
+                if (blend_enabled)
+                    glDisable(GL_BLEND);
+
+                // Todo: The specific bind/unbind code below should be surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run. Version is 1.34.0
                 // Store current sampler bindings
                 glActiveTexture(GL_TEXTURE0);
                 GLint prevSamplerBinding0;
@@ -231,7 +235,16 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 glActiveTexture(GL_TEXTURE1);
                 glBindSampler(1, prevSamplerBinding1);
                 glActiveTexture(GL_TEXTURE2);
-                glBindSampler(2, prevSamplerBinding1);
+                glBindSampler(2, prevSamplerBinding2);
+                // Todo: End of previous block
+
+                // Restore tests
+                if (scissor_enabled)
+                    glEnable(GL_SCISSOR_TEST);
+                if (stencil_enabled)
+                    glEnable(GL_STENCIL_TEST);
+                if (blend_enabled)
+                    glEnable(GL_BLEND);
 #endif
 
                 // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.
