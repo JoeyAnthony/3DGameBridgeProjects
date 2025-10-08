@@ -1,18 +1,12 @@
 cmake_minimum_required(VERSION 3.23)
 project (GameBridgeReshade VERSION 0.1)
 
+# Tell CMake to look here for find_package() based on system architecture.
 if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
 	set(BUILD_PLATFORM 32)
-	set(LEIASR_SDKROOT32 "$ENV{LEIASR_SDKROOT32}" CACHE PATH "Path to LEIASR SDK root")
-else ()
-	set(LEIASR_SDKROOT "$ENV{LEIASR_SDKROOT}" CACHE PATH "Path to LEIASR SDK root")
-endif ()
-
-# Tell CMake to look here for find_package()
-if (LEIASR_SDKROOT)
-	list(APPEND CMAKE_PREFIX_PATH "${LEIASR_SDKROOT}/lib/cmake")
-elseif (LEIASR_SDKROOT32)
-	list(APPEND CMAKE_PREFIX_PATH "${LEIASR_SDKROOT32}/lib/cmake")
+	list(APPEND CMAKE_PREFIX_PATH "$ENV{LEIASR_SDKROOT32}/lib/cmake")
+elseif (WIN32)
+	list(APPEND CMAKE_PREFIX_PATH "$ENV{LEIASR_SDKROOT}/lib/cmake")
 endif ()
 
 # Define LINK_GLAD
