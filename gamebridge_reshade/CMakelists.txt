@@ -82,7 +82,7 @@ find_package(srOpenGL REQUIRED)
 # Rename dll with extension .addon
 add_custom_command(
 	TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND}
-	ARGS -E copy_if_different $<TARGET_FILE:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>/${ADDON_FILE_NAME}.addon
+	ARGS -E copy_if_different $<TARGET_FILE:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>/${ADDON_FILE_NAME}.addon${BUILD_PLATFORM}
 )
 
 # Copy dll to reshade directory
