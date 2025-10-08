@@ -10,10 +10,11 @@
 #include <glad/gl.h>
 #endif
 
-OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
+OpenGLWeaver::OpenGLWeaver(SR::SRContext* context, bool is_potentially_unstable_opengl_version) {
     // Set context here.
     sr_context = context;
     weaving_enabled = true;
+    requires_sampler_binding_code_opengl = is_potentially_unstable_opengl_version;
 }
 
 void OpenGLWeaver::flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
@@ -207,36 +208,40 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 if (blend_enabled)
                     glDisable(GL_BLEND);
 
-                // Todo: The specific bind/unbind code below should be surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run. Version is 1.34.0
-                // Store current sampler bindings
-                glActiveTexture(GL_TEXTURE0);
-                GLint prevSamplerBinding0;
-                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding0);
-                glActiveTexture(GL_TEXTURE1);
-                GLint prevSamplerBinding1;
-                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding1);
-                glActiveTexture(GL_TEXTURE2);
-                GLint prevSamplerBinding2;
-                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding2);
 
-                // Unbind GL Sampler
-                glBindSampler(0, 0);
-                glBindSampler(1, 0);
-                glBindSampler(2, 0);
+                // The specific bind/unbind code below should be surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run. Version which has the fix is 1.34.0.
+                GLint prevSamplerBinding0;
+                GLint prevSamplerBinding1;
+                GLint prevSamplerBinding2;
+                if (requires_sampler_binding_code_opengl) {
+                    // Store current sampler bindings
+                    glActiveTexture(GL_TEXTURE0);
+                    glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding1);
+                    glActiveTexture(GL_TEXTURE2);
+                    glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding2);
+
+                    // Unbind GL Sampler
+                    glBindSampler(0, 0);
+                    glBindSampler(1, 0);
+                    glBindSampler(2, 0);
+                }
 #endif
 
                 // Weave to copy buffer
                 weaver->weave(desc.texture.width, desc.texture.height);
 
 #ifdef ENABLE_GLAD
-                // Rebind previous sampler
-                glActiveTexture(GL_TEXTURE0);
-                glBindSampler(0, prevSamplerBinding0);
-                glActiveTexture(GL_TEXTURE1);
-                glBindSampler(1, prevSamplerBinding1);
-                glActiveTexture(GL_TEXTURE2);
-                glBindSampler(2, prevSamplerBinding2);
-                // Todo: End of previous block
+                if (requires_sampler_binding_code_opengl) {
+                    // Rebind previous sampler
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindSampler(0, prevSamplerBinding0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindSampler(1, prevSamplerBinding1);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindSampler(2, prevSamplerBinding2);
+                }
 
                 // Restore tests
                 if (scissor_enabled)

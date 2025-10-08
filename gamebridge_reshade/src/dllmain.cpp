@@ -342,11 +342,11 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                         reshade::log_message(reshade::log_level::error, "Unable to load GLAD. Weaving may be incorrect between SR versions 1.30.x and 1.33.2");
                     }
 #endif
-
-                    weaver_implementation = new OpenGLWeaver(sr_context);
-                    // Check if SR version > 1.30.x. If so, OpenGL is potentially bugged.
-                    // Todo: Use this version check to enable/disable our OpenGL fix once Leia includes a fix in their official platform.
-                    is_potentially_unstable_opengl_version = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999);
+                    // Check if SR version > 1.30.x and < 1.34.x. If so, OpenGL is potentially bugged.
+                    // Use this version check to enable/disable our OpenGL fix once Leia includes a fix in their official platform.
+                    is_potentially_unstable_opengl_version = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999) &&
+                                                             !VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 33, 999);
+                    weaver_implementation = new OpenGLWeaver(sr_context, is_potentially_unstable_opengl_version);
                     break;
                 case reshade::api::device_api::d3d9:
                     weaver_implementation = new DirectX9Weaver(sr_context);

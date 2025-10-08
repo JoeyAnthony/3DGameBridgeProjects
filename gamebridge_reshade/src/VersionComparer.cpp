@@ -11,6 +11,15 @@
 #include <string>
 #include <vector>
 
+/**
+ * Checks if the running version is newer than the specified version.
+ *
+ * @param runningVersionString The current running version string (e.g. "1.2.3").
+ * @param major The major version number to compare against.
+ * @param minor The minor version number to compare against.
+ * @param patch The patch version number to compare against.
+ * @return True if the running version is newer, false otherwise.
+ */
 bool VersionComparer::is_version_newer(const char *runningVersionString, int major, int minor, int patch) {
     // Parse the version string
     std::string version(runningVersionString);
