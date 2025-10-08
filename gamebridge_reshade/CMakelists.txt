@@ -9,6 +9,10 @@ elseif (WIN32)
 	list(APPEND CMAKE_PREFIX_PATH "$ENV{LEIASR_SDKROOT}/lib/cmake")
 endif ()
 
+# set language to c++-17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Define LINK_GLAD
 option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged in SR version 1.30.x and up. Either downgrade to 1.30.x or set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
 
