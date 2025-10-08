@@ -6,6 +6,7 @@
  */
 
 #include <algorithm>
+#include <cctype>
 #include <stdexcept>
 #include <vector>
 #include <reshade/include/reshade.hpp>
@@ -71,7 +72,7 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
             remove_unwanted_nulls(value);
             // Convert read value to lower case string
             std::transform(value.begin(), value.end(), value.begin(),
-                           [](unsigned char c){ return std::tolower(c); });
+                           [](unsigned char c){ return tolower(c); });
             std::string str(value.begin(), value.end());
             // Try parsing as boolean
             if (str == "true") {
