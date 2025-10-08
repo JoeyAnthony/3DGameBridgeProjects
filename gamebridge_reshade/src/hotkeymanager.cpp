@@ -133,27 +133,27 @@ void HotKeyManager::write_missing_hotkeys() {
     size_t value_size = 0;
     reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_sr_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_sr_key.c_str(), "0x31\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_sr_key.c_str(), "0x31\\;ctrl");
     }
     value_size = 0;
     reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_key.c_str(), "0x32\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_key.c_str(), "0x32\\;ctrl");
     }
     value_size = 0;
     reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_3d_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_3d_key.c_str(), "0x33\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_3d_key.c_str(), "0x33\\;ctrl");
     }
     value_size = 0;
     reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_and_3d_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_and_3d_key.c_str(), "0x34\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_lens_and_3d_key.c_str(), "0x34\\;ctrl");
     }
     value_size = 0;
     reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_latency_mode_key.c_str(), nullptr, &value_size);
     if (value_size <= 0) {
-        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_latency_mode_key.c_str(), "0x35\;ctrl");
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_latency_mode_key.c_str(), "0x35\\;ctrl");
     }
 }
 

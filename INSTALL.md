@@ -85,14 +85,14 @@ These bindings look like this:
 
 ``` .ini
 [3DGameBridge]
-toggle_3d_key=0x33;ctrl
-toggle_latency_mode_key=0x35;ctrl
-toggle_lens_and_3d_key=0x34;ctrl
-toggle_lens_key=0x32;ctrl
-toggle_sr_key=0x31;ctrl;shift;alt
+toggle_3d_key=0x33\;ctrl
+toggle_latency_mode_key=0x35\;ctrl
+toggle_lens_and_3d_key=0x34\;ctrl
+toggle_lens_key=0x32\;ctrl
+toggle_sr_key=0x31\;ctrl\;shift\;alt
 ```
 
-Key bindings are structured like this:<br/> `[hex_keycode];[modifier_key];[modifier_key];[modifier_key]`<br/>
+Key bindings are structured like this:<br/> `[hex_keycode]\;[modifier_key]\;[modifier_key]\;[modifier_key]`<br/>
 - The supported keycodes can be found in the "value" column [here](https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes).
 - The supported modifier keys are: `shift`, `ctrl` and `alt`
 
