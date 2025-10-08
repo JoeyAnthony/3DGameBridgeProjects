@@ -10,7 +10,7 @@ elseif (WIN32)
 endif ()
 
 # Define LINK_GLAD
-option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged in SR version 1.30.x and up. Either downgrade to 1.30.x or set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
+option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged between SR version 1.30.x - 1.34.x. Either downgrade to 1.30.x or update to 1.34.x+ and set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
 
 if (LINK_GLAD)
 	add_compile_definitions(ENABLE_GLAD)
