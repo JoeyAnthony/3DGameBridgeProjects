@@ -57,7 +57,7 @@ static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
-static bool is_potentially_unstable_opengl_version = false;
+static bool enable_compatibility_mode = false;
 static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
@@ -343,10 +343,10 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                     }
 #endif
                     // Check if SR version > 1.30.x and < 1.34.x. If so, OpenGL is potentially bugged.
-                    // Use this version check to enable/disable our OpenGL fix once Leia includes a fix in their official platform.
-                    is_potentially_unstable_opengl_version = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999) &&
+                    // Use this version check to enable/disable our OpenGL fix. Leia includes a fix in their official platform in newer versions.
+                    enable_compatibility_mode = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999) &&
                                                              !VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 33, 999);
-                    weaver_implementation = new OpenGLWeaver(sr_context, is_potentially_unstable_opengl_version);
+                    weaver_implementation = new OpenGLWeaver(sr_context, enable_compatibility_mode);
                     break;
                 case reshade::api::device_api::d3d9:
                     weaver_implementation = new DirectX9Weaver(sr_context);

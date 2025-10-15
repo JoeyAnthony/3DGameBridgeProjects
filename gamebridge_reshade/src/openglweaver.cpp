@@ -10,11 +10,11 @@
 #include <glad/gl.h>
 #endif
 
-OpenGLWeaver::OpenGLWeaver(SR::SRContext* context, bool is_potentially_unstable_opengl_version) {
+OpenGLWeaver::OpenGLWeaver(SR::SRContext* context, bool enable_compatibility_mode) {
     // Set context here.
     sr_context = context;
     weaving_enabled = true;
-    requires_sampler_binding_code_opengl = is_potentially_unstable_opengl_version;
+    requires_sampler_binding_code_opengl = enable_compatibility_mode;
 }
 
 void OpenGLWeaver::flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
@@ -209,7 +209,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                     glDisable(GL_BLEND);
 
 
-                // The specific bind/unbind code below should be surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run. Version which has the fix is 1.34.0.
+                // The specific bind/unbind code below is surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run. Version which has the fix is 1.34.0.
                 GLint prevSamplerBinding0;
                 GLint prevSamplerBinding1;
                 GLint prevSamplerBinding2;
