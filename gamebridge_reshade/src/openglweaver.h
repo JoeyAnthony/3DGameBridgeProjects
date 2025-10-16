@@ -49,7 +49,7 @@ class OpenGLWeaver: public IGraphicsApi {
 public:
     /// \brief Explicit constructor
     /// \param context Pointer to an already initialized SRContext
-    /// \param enable_compatibility_mode Value which determines if the version of the SR platform used can cause issues in OpenGL titles.
+    /// \param enable_compatibility_mode This value should be true if the version of the SR platform used can cause issues in OpenGL applications.
     explicit OpenGLWeaver(SR::SRContext* context, bool enable_compatibility_mode);
 
     /// \brief Initialized the SR weaver appropriate for the graphics API
