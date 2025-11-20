@@ -401,7 +401,7 @@ static void on_destroy_effect_runtime(reshade::api::effect_runtime* runtime) {
 // Track device destruction as a stronger signal of process exit or teardown
 static void on_destroy_device(reshade::api::device* device) {
     device_destroyed.store(true, std::memory_order_release);
-    // Todo: We are fairly sure this code block always returns true at this point but we need to double check so we can remove this later.
+    // We are fairly sure this code block always returns true but in the case where there are multiple devices, this check is necessary.
     if (active_effect_runtimes.load(std::memory_order_acquire) == 0) {
         std::call_once(exit_cleanup_once, []() {
             perform_exit_cleanup();
