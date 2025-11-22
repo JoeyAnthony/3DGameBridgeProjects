@@ -28,6 +28,8 @@
 #include <thread>
 #include <vector>
 #include <iostream>
+#include <atomic>
+#include <mutex>
 #include <sr/sense/system/systemsense.h>
 #ifdef ENABLE_GLAD
 #include <glad/gl.h>
@@ -55,13 +57,21 @@ static size_t char_buffer_size = CHAR_BUFFER_SIZE;
 static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
-static bool is_potentially_unstable_opengl_version = false;
+static bool enable_compatibility_mode = false;
 static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
+
+// Runtime & device lifecycle tracking
+static std::atomic<int> active_effect_runtimes{0};
+static std::once_flag exit_cleanup_once;
+static std::atomic<bool> device_destroyed{false};
 
 std::vector<LPCWSTR> reshade_dll_names =  { L"dxgi.dll", L"ReShade.dll", L"ReShade64.dll", L"ReShade32.dll", L"d3d9.dll", L"d3d10.dll", L"d3d11.dll", L"d3d12.dll", L"opengl32.dll" };
 
 void deregisterCallbacksOnDllLoadFailure();
+
+// Forward declare new helpers
+static void perform_exit_cleanup();
 
 // Function to get the version information of a module
 vector<size_t> get_module_version_info(LPCWSTR moduleName) {
@@ -151,13 +161,8 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
                 }
             });
 
-            for (int effect_iterator = 0; effect_iterator < togglable_3D_effects.size(); effect_iterator++) {
-                if (i->second) {
-                    runtime->set_technique_state(togglable_3D_effects[effect_iterator], true);
-                }
-                else {
-                    runtime->set_technique_state(togglable_3D_effects[effect_iterator], false);
-                }
+            for (size_t effect_iterator = 0; effect_iterator < togglable_3D_effects.size(); effect_iterator++) {
+                runtime->set_technique_state(togglable_3D_effects[effect_iterator], i->second);
             }
             break;
         case shortcutType::TOGGLE_LENS_AND_3D:
@@ -276,7 +281,7 @@ static bool init_sr() {
                 return false;
             }
         }
-        catch (SR::ServerNotAvailableException& ex) {
+        catch (SR::ServerNotAvailableException&) {
             // Unable to construct SR Context.
             reshade::log_message(reshade::log_level::error, "Unable to connect to the SR Service, make sure the SR Platform is installed and running.");
             sr_initialized = false;
@@ -302,6 +307,8 @@ static bool init_sr() {
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
+    active_effect_runtimes.fetch_add(1, std::memory_order_relaxed);
+
     // Catch any runtime_error which points to not all required DLLs being present.
     if (!init_sr()) {
         return;
@@ -315,7 +322,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     // Read config values from .ini
     if (config_manager == nullptr) {
         config_manager = new ConfigManager();
-        for (int i = 0; i < config_manager->registered_config_values.size(); i++) {
+        for (size_t i = 0; i < config_manager->registered_config_values.size(); i++) {
             if (config_manager->registered_config_values[i].key == gb_config_disable_3d_when_no_user) {
                 user_lost_logic_enabled = config_manager->registered_config_values[i].bool_value;
             }
@@ -335,11 +342,11 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                         reshade::log_message(reshade::log_level::error, "Unable to load GLAD. Weaving may be incorrect between SR versions 1.30.x and 1.33.2");
                     }
 #endif
-
-                    weaver_implementation = new OpenGLWeaver(sr_context);
-                    // Check if SR version > 1.30.x. If so, OpenGL is potentially bugged.
-                    // Todo: Use this version check to enable/disable our OpenGL fix once Leia includes a fix in their official platform.
-                    is_potentially_unstable_opengl_version = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999);
+                    // Check if SR version > 1.30.x and < 1.34.x. If so, OpenGL is potentially bugged.
+                    // Use this version check to enable/disable our OpenGL fix. Leia includes a fix in their official platform in newer versions.
+                    enable_compatibility_mode = VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 30, 999) &&
+                                                             !VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 33, 999);
+                    weaver_implementation = new OpenGLWeaver(sr_context, enable_compatibility_mode);
                     break;
                 case reshade::api::device_api::d3d9:
                     weaver_implementation = new DirectX9Weaver(sr_context);
@@ -367,7 +374,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     }
 
     // Get ReShade version number
-    for (int i = 0; i < reshade_dll_names.size(); i++) {
+    for (size_t i = 0; i < reshade_dll_names.size(); i++) {
         std::vector<size_t> version_nrs = get_module_version_info(reshade_dll_names[i]);
         if (version_nrs.size() == 3) {
             weaver_implementation->reshade_version_nr_major = version_nrs[0];
@@ -380,6 +387,49 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
     weaver_implementation->on_init_effect_runtime(runtime);
 }
 
+// Called when an effect runtime is destroyed (can happen multiple times)
+static void on_destroy_effect_runtime(reshade::api::effect_runtime* runtime) {
+    int remaining = active_effect_runtimes.fetch_sub(1, std::memory_order_acq_rel) - 1;
+    // Only consider triggering cleanup if device already gone or this was last runtime
+    if (remaining <= 0 && device_destroyed.load(std::memory_order_acquire)) {
+        std::call_once(exit_cleanup_once, []() {
+            perform_exit_cleanup();
+        });
+    }
+}
+
+// Track device destruction as a stronger signal of process exit or teardown
+static void on_destroy_device(reshade::api::device* device) {
+    device_destroyed.store(true, std::memory_order_release);
+    // We are fairly sure this code block always returns true but in the case where there are multiple devices, this check is necessary.
+    if (active_effect_runtimes.load(std::memory_order_acquire) == 0) {
+        std::call_once(exit_cleanup_once, []() {
+            perform_exit_cleanup();
+        });
+    }
+}
+
+static void perform_exit_cleanup() {
+    reshade::log_message(reshade::log_level::info, "Performing exit cleanup.");
+
+    // Stop using weaver_implementation with ReShade now
+    if (weaver_implementation) {
+        // If there is a custom shutdown method, call it (example):
+        // weaver_implementation->shutdown();
+        delete weaver_implementation;
+        weaver_implementation = nullptr;
+    }
+    reshade::log_message(reshade::log_level::info, "Weaver destructed.");
+
+    // Todo: We may not need to delete the sr_context, deleting the weaver object might be enough.
+    if (sr_context) {
+        delete sr_context;
+        sr_context = nullptr;
+    }
+
+    reshade::log_message(reshade::log_level::info, "Exit cleanup complete.");
+}
+
 void deregisterCallbacksOnDllLoadFailure() {
     // Mark the dll_failed_to_load status
     dll_failed_to_load = true;
@@ -387,6 +437,8 @@ void deregisterCallbacksOnDllLoadFailure() {
     // Unregister all events
     reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
     reshade::unregister_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
+    reshade::unregister_event<reshade::addon_event::destroy_effect_runtime>(&on_destroy_effect_runtime);
+    reshade::unregister_event<reshade::addon_event::destroy_device>(&on_destroy_device);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -402,11 +454,16 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             return FALSE;
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
+        reshade::register_event<reshade::addon_event::destroy_effect_runtime>(&on_destroy_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+        reshade::register_event<reshade::addon_event::destroy_device>(&on_destroy_device);
         reshade::register_overlay(nullptr, &draw_status_overlay);
-
         break;
     case DLL_PROCESS_DETACH:
+        // Fallback: ensure cleanup ran (avoid heavy operations here).
+        std::call_once(exit_cleanup_once, []() {
+            perform_exit_cleanup();
+        });
         reshade::unregister_addon(hModule);
         break;
     }

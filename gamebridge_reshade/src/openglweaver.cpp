@@ -10,10 +10,11 @@
 #include <glad/gl.h>
 #endif
 
-OpenGLWeaver::OpenGLWeaver(SR::SRContext* context) {
+OpenGLWeaver::OpenGLWeaver(SR::SRContext* context, bool enable_compatibility_mode) {
     // Set context here.
     sr_context = context;
     weaving_enabled = true;
+    requires_sampler_binding_code_opengl = enable_compatibility_mode;
 }
 
 void OpenGLWeaver::flip_buffer(int buffer_height, int buffer_width, reshade::api::command_list* cmd_list, reshade::api::resource source, reshade::api::resource dest) {
@@ -195,35 +196,60 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
                 cmd_list->bind_render_targets_and_depth_stencil(1, &effect_frame_copy_flipped_rtv);
 
 #ifdef ENABLE_GLAD
-                // Todo: The specific bind/unbind code should be surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run.
-                // Store current sampler bindings
-                glActiveTexture(GL_TEXTURE0);
-                GLint prevSamplerBinding0;
-                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding0);
-                glActiveTexture(GL_TEXTURE1);
-                GLint prevSamplerBinding1;
-                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding1);
-                glActiveTexture(GL_TEXTURE2);
-                GLint prevSamplerBinding2;
-                glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding2);
+                // Store and disable scissor & stencil states before weaving
+                GLboolean scissor_enabled = glIsEnabled(GL_SCISSOR_TEST);
+                GLboolean stencil_enabled = glIsEnabled(GL_STENCIL_TEST);
+                GLboolean blend_enabled = glIsEnabled(GL_BLEND);
 
-                // Unbind GL Sampler
-                glBindSampler(0, 0);
-                glBindSampler(1, 0);
-                glBindSampler(2, 0);
+                if (scissor_enabled)
+                    glDisable(GL_SCISSOR_TEST);
+                if (stencil_enabled)
+                    glDisable(GL_STENCIL_TEST);
+                if (blend_enabled)
+                    glDisable(GL_BLEND);
+
+
+                // The specific bind/unbind code below is surrounded by an if-statement based on the SR version that's active. If below the version that fixes this internally, it should not be run. Version which has the fix is 1.34.0.
+                GLint prevSamplerBinding0;
+                GLint prevSamplerBinding1;
+                GLint prevSamplerBinding2;
+                if (requires_sampler_binding_code_opengl) {
+                    // Store current sampler bindings
+                    glActiveTexture(GL_TEXTURE0);
+                    glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding1);
+                    glActiveTexture(GL_TEXTURE2);
+                    glGetIntegerv(GL_SAMPLER_BINDING, &prevSamplerBinding2);
+
+                    // Unbind GL Sampler
+                    glBindSampler(0, 0);
+                    glBindSampler(1, 0);
+                    glBindSampler(2, 0);
+                }
 #endif
 
                 // Weave to copy buffer
                 weaver->weave(desc.texture.width, desc.texture.height);
 
 #ifdef ENABLE_GLAD
-                // Rebind previous sampler
-                glActiveTexture(GL_TEXTURE0);
-                glBindSampler(0, prevSamplerBinding0);
-                glActiveTexture(GL_TEXTURE1);
-                glBindSampler(1, prevSamplerBinding1);
-                glActiveTexture(GL_TEXTURE2);
-                glBindSampler(2, prevSamplerBinding1);
+                if (requires_sampler_binding_code_opengl) {
+                    // Rebind previous sampler
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindSampler(0, prevSamplerBinding0);
+                    glActiveTexture(GL_TEXTURE1);
+                    glBindSampler(1, prevSamplerBinding1);
+                    glActiveTexture(GL_TEXTURE2);
+                    glBindSampler(2, prevSamplerBinding2);
+                }
+
+                // Restore tests
+                if (scissor_enabled)
+                    glEnable(GL_SCISSOR_TEST);
+                if (stencil_enabled)
+                    glEnable(GL_STENCIL_TEST);
+                if (blend_enabled)
+                    glEnable(GL_BLEND);
 #endif
 
                 // At this point, the buffer is rightside-up but ReShade expects it to be upside-down, so we have to flip it after weaving.

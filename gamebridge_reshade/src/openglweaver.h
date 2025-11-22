@@ -20,6 +20,7 @@ class OpenGLWeaver: public IGraphicsApi {
     bool popup_window_visible = false;
     bool resize_buffer_failed = false;
     bool use_srgb_rtv = false;
+    bool requires_sampler_binding_code_opengl = false;
 
     float view_separation = 0.f;
     float vertical_shift = 0.f;
@@ -48,7 +49,8 @@ class OpenGLWeaver: public IGraphicsApi {
 public:
     /// \brief Explicit constructor
     /// \param context Pointer to an already initialized SRContext
-    explicit OpenGLWeaver(SR::SRContext* context);
+    /// \param enable_compatibility_mode This value should be true if the version of the SR platform used can cause issues in OpenGL applications.
+    explicit OpenGLWeaver(SR::SRContext* context, bool enable_compatibility_mode);
 
     /// \brief Initialized the SR weaver appropriate for the graphics API
     /// \param runtime Represents the reshade effect runtime

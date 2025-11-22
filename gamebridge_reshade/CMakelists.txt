@@ -1,17 +1,25 @@
 cmake_minimum_required(VERSION 3.23)
 project (GameBridgeReshade VERSION 0.1)
 
-# Define LINK_GLAD
-option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged in SR version 1.30.x and up. Either downgrade to 1.30.x or set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
+# Tell CMake to look here for find_package() based on system architecture.
+if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+	set(BUILD_PLATFORM 32)
+	list(APPEND CMAKE_PREFIX_PATH "$ENV{LEIASR_SDKROOT32}/lib/cmake")
+elseif (WIN32)
+	list(APPEND CMAKE_PREFIX_PATH "$ENV{LEIASR_SDKROOT}/lib/cmake")
+endif ()
 
-if(LINK_GLAD)
+# Define LINK_GLAD
+option(LINK_GLAD "Link the glad OpenGL loader. 3D in OpenGL is bugged between SR version 1.30.x - 1.34.x. Either downgrade to 1.30.x or update to 1.34.x+ and set up GLAD in the `third-party/glad` folder and enable this flag." OFF)
+
+if (LINK_GLAD)
 	add_compile_definitions(ENABLE_GLAD)
 	set(GLAD_DIR ${CMAKE_SOURCE_DIR}/gamebridge_reshade/third-party/glad)
 	set(GLAD_SOURCE
 			${GLAD_DIR}/src/gl.c
 			${GLAD_DIR}/include/glad/gl.h
 	)
-endif()
+endif ()
 
 add_library(${PROJECT_NAME} SHARED
     src/dllmain.cpp
@@ -47,13 +55,9 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 # Add glad includes only if LINK_GLAD is enabled
-if(LINK_GLAD)
+if (LINK_GLAD)
 	target_include_directories(${PROJECT_NAME} PRIVATE ${GLAD_DIR}/include)
-endif()
-
-if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-	set(BUILD_PLATFORM 32)
-endif()
+endif ()
 
 # Set output name for the addon
 set(ADDON_FILE_NAME "srReshade")
@@ -78,19 +82,19 @@ find_package(srOpenGL REQUIRED)
 # Rename dll with extension .addon
 add_custom_command(
 	TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND}
-	ARGS -E copy_if_different $<TARGET_FILE:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>/${ADDON_FILE_NAME}.addon
+	ARGS -E copy_if_different $<TARGET_FILE:${PROJECT_NAME}> $<TARGET_FILE_DIR:${PROJECT_NAME}>/${ADDON_FILE_NAME}.addon${BUILD_PLATFORM}
 )
 
 # Copy dll to reshade directory
 set(ADDON_COPY_DIR "" CACHE STRING "Path where the .addon file will be copied to on successful build")
-if(NOT ${ADDON_COPY_DIR} STREQUAL "")
+if (NOT ${ADDON_COPY_DIR} STREQUAL "")
 	add_custom_command(
 		TARGET ${PROJECT_NAME} POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${ADDON_COPY_DIR}
 		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE_DIR:${PROJECT_NAME}>/${ADDON_FILE_NAME}.addon ${ADDON_COPY_DIR}
 	)
 	message("Addon will be copied to ${ADDON_COPY_DIR}")
-endif()
+endif ()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
 		delayimp
