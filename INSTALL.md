@@ -100,8 +100,8 @@ Key bindings are structured like this:<br/> `[hex_keycode]\;[modifier_key]\;[mod
 
 ## Backup links for files (Google Drive):
 
-**Note: Official SR SDK and Platform downloads are currently not distributed publically.<br/>**.
-<br/>For access to the LeiaSR SDK, please request access through Leia's website or extract an SDK installer from your OEM's software package.
+**Note: Official SR SDK and Platform downloads are currently not distributed publically.<br/>**
+For access to the LeiaSR SDK, please request access through Leia's website or extract an SDK installer from your OEM's software package.
 
 Latest tested SR Platform:
 [SR-1.30.2-win64.exe](https://drive.google.com/file/d/1dlrclHWb-pQXrPgig8blpJfiwcff7FjK/view?usp=sharing)  
