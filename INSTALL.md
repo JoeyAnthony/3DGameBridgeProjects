@@ -100,8 +100,9 @@ Key bindings are structured like this:<br/> `[hex_keycode]\;[modifier_key]\;[mod
 
 ## Backup links for files (Google Drive):
 
-**Note: Official SR SDK and Platform downloads are currently not distributed publically.<br/>**
-For access to the LeiaSR SDK, please request access through Leia's website or extract an SDK installer from your OEM's software package.
+**Note: Official SR SDK and Platform downloads can be requested from Leia via their website or email.<br/>**
+For access to the LeiaSR SDK, please request it through [Leia's website](https://support.immersity.ai/sdk/support/contact-support) or by sending an email to developers@leiainc.com requesting access to the SDK. You must sign an agreement with them in order to get access.
+Alternatively, you can extract an SDK installer from your OEM's software package.
 
 Latest tested SR Platform:
 [SR-1.30.2-win64.exe](https://drive.google.com/file/d/1dlrclHWb-pQXrPgig8blpJfiwcff7FjK/view?usp=sharing)  
