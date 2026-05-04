@@ -54,6 +54,7 @@ static const std::string depth_3D_shader_name = "SuperDepth3D";
 static const std::string sr_shader_name = "SR";
 static char char_buffer[CHAR_BUFFER_SIZE];
 static size_t char_buffer_size = CHAR_BUFFER_SIZE;
+static bool effects_are_active = false;
 static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
@@ -191,6 +192,16 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
                 // Log the current mode:
                 reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
             }
+            case shortcutType::TOGGLE_WEAVE_ON_SHADER:
+            // Here we switch between weaving on_render_technique when we see SR.fx and weaving on_finish_effects as usual
+            if (i->second) {
+                weaver_implementation->weave_on_shader = true;
+                reshade::log_message(reshade::log_level::info, "Current weaver timing set to: weave when SuperDepth3D.fx is finished");
+            }
+            else {
+                weaver_implementation->weave_on_shader = false;
+                reshade::log_message(reshade::log_level::info, "Current weaver timing set to: weave when all effects are finished");
+            }
 
         default:
             break;
@@ -225,12 +236,31 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     }
 }
 
+static void on_reshade_begin_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = false;
+}
+
+static void on_render_technique(reshade::api::effect_runtime *runtime, reshade::api::effect_technique technique, reshade::api::command_list *cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
+    effects_are_active = true;
+    if (weaver_implementation->weave_on_shader) {
+        char_buffer_size = CHAR_BUFFER_SIZE;
+        runtime->get_technique_name(technique, char_buffer, &char_buffer_size);
+        string name(char_buffer);
+        if (!name.compare(depth_3D_shader_name)) {
+            weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb);
+        }
+    }
+}
+
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
     if (!sr_initialized) {
         return;
     }
 
     std::map<shortcutType, bool> hot_key_list;
+
+    // Make a local copy of the weaveOnShader so that when it's updated by the hotkey, it will not weave twice on the same frame.
+    bool weaveOnShaderLocal = weaver_implementation->weave_on_shader;
 
     // Check if certain hotkeys are being pressed
     if (hotKey_manager != nullptr) {
@@ -264,8 +294,10 @@ static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, res
         }
     }
 
-    if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
-        deregisterCallbacksOnDllLoadFailure();
+    if (!weaveOnShaderLocal) {
+        if (weaver_implementation->on_reshade_finish_effects(runtime, cmd_list, rtv, rtv_srgb) == DLL_NOT_LOADED) {
+            deregisterCallbacksOnDllLoadFailure();
+        }
     }
 }
 
@@ -436,6 +468,7 @@ void deregisterCallbacksOnDllLoadFailure() {
 
     // Unregister all events
     reshade::unregister_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
+    reshade::unregister_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
     reshade::unregister_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
     reshade::unregister_event<reshade::addon_event::destroy_effect_runtime>(&on_destroy_effect_runtime);
     reshade::unregister_event<reshade::addon_event::destroy_device>(&on_destroy_device);
@@ -454,6 +487,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
             return FALSE;
 
         reshade::register_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
+        reshade::register_event<reshade::addon_event::reshade_begin_effects>(&on_reshade_begin_effects);
+        reshade::register_event<reshade::addon_event::reshade_render_technique>(&on_render_technique);
         reshade::register_event<reshade::addon_event::destroy_effect_runtime>(&on_destroy_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::destroy_device>(&on_destroy_device);

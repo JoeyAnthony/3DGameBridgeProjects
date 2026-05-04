@@ -33,6 +33,6 @@
 #include "sr/types.h"
 
 // Global shortcut definition
-enum shortcutType { TOGGLE_SR, TOGGLE_LENS, TOGGLE_3D, TOGGLE_LENS_AND_3D, TOGGLE_LATENCY_MODE };
+enum shortcutType { TOGGLE_SR, TOGGLE_LENS, TOGGLE_3D, TOGGLE_LENS_AND_3D, TOGGLE_LATENCY_MODE, TOGGLE_WEAVE_ON_SHADER };
 
 #endif //PCH_H

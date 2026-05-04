@@ -71,6 +71,10 @@ public:
     /// \return Whether the weaver is initialized or not.
     bool weaver_initialized = false;
 
+    /// \brief Determines whether the software will weave on `finish_effects` callback or after a specific shader is drawn.
+    /// \return Whether the weaver is initialized or not.
+    bool weave_on_shader = false;
+
     /// \brief Concatenates the reshade_version_nr_major/minor/patch into one number
     /// \return A concatenated ReShade version code without periods. Example: 580 (instead of 5.8.0)
     int32_t get_concatinated_reshade_version();

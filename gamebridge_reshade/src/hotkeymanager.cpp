@@ -74,6 +74,7 @@ HotKeyManager::HotKeyManager() {
         registered_hot_keys.push_back(read_from_config(false, gb_config_toggle_3d_key, TOGGLE_3D));
         registered_hot_keys.push_back(read_from_config(false, gb_config_toggle_lens_and_3d_key, TOGGLE_LENS_AND_3D));
         registered_hot_keys.push_back(read_from_config(true, gb_config_toggle_latency_mode_key, TOGGLE_LATENCY_MODE));
+        registered_hot_keys.push_back(read_from_config(true, gb_config_toggle_weave_on_shader, TOGGLE_WEAVE_ON_SHADER));
     }
     catch (std::runtime_error &e) {
         // Couldn't find the config value, let's write the default in the .ini
@@ -155,6 +156,11 @@ void HotKeyManager::write_missing_hotkeys() {
     if (value_size <= 0) {
         reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_latency_mode_key.c_str(), "0x35\\;ctrl");
     }
+    value_size = 0;
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_weave_on_shader.c_str(), nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_toggle_weave_on_shader.c_str(), "0x36\\;ctrl");
+    }
 }
 
 void HotKeyManager::load_default_hotkeys() {
@@ -164,4 +170,5 @@ void HotKeyManager::load_default_hotkeys() {
     registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_3D, 0x33, false, false, true));
     registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_LENS_AND_3D, 0x34, false, false, true));
     registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_LATENCY_MODE, 0x35, false, false, true));
+    registered_hot_keys.push_back(HotKey(false, shortcutType::TOGGLE_WEAVE_ON_SHADER, 0x36, false, false, true));
 }

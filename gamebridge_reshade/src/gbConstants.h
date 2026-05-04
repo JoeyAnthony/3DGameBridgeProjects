@@ -18,6 +18,7 @@ const std::string gb_config_toggle_lens_key = "toggle_lens_key";
 const std::string gb_config_toggle_3d_key = "toggle_3d_key";
 const std::string gb_config_toggle_lens_and_3d_key = "toggle_lens_and_3d_key";
 const std::string gb_config_toggle_latency_mode_key = "toggle_latency_mode_key";
+const std::string gb_config_toggle_weave_on_shader = "toggle_weave_on_shader_key";
 
 const std::string gb_config_shift_mod = "shift";
 const std::string gb_config_alt_mod = "alt";

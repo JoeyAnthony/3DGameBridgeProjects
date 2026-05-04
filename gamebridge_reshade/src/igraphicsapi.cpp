@@ -46,6 +46,16 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime, co
     }
     ImGui::TextUnformatted(latencyModeDisplay.c_str());
 
+
+    // Log when we are weaving
+    std::string weavingTimingDisplay = "Weaving timing: ";
+    if(weave_on_shader) {
+        weavingTimingDisplay += "after SuperDepth3D shader is drawn";
+    } else {
+        weavingTimingDisplay += "after all ReShade effects are finished";
+    }
+    ImGui::TextUnformatted(weavingTimingDisplay.c_str());
+
     // Log the buffer type, this can be removed once we've tested a larger amount of games.
     std::string s = "Buffer type: " + std::to_string(static_cast<uint32_t>(current_buffer_format));
     ImGui::TextUnformatted(s.c_str());
