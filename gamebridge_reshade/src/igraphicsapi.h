@@ -77,7 +77,7 @@ public:
 
     /// \brief Responsible for drawing debug information in the ImGUI UI
     /// \param runtime Represents the reshade effect runtime
-    void draw_status_overlay(reshade::api::effect_runtime* runtime, const std::string& error_message = "");
+    virtual void draw_status_overlay(reshade::api::effect_runtime* runtime, const std::string& error_message = "");
 
     /// \brief Checks the current used version of SR, if it is above 1.30, we use latency_in_frames. Otherwise, we use a static latency of 40000 us
     void determine_default_latency_mode();

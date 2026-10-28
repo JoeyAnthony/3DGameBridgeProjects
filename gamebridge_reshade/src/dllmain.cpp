@@ -22,6 +22,7 @@
 #include "delayLoader.h"
 #include "configManager.h"
 #include "gbConstants.h"
+#include "displayxrBackend.h"
 
 #include <chrono>
 #include <functional>
@@ -58,6 +59,11 @@ static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
 static bool enable_compatibility_mode = false;
+static bool displayxr_checked = false;
+static bool displayxr_active = false;
+// The device of the game's effect runtime. Other devices in the process (the DisplayXR runtime creates its own)
+// must not trigger the exit cleanup when they are destroyed.
+static reshade::api::device* game_device = nullptr;
 static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
@@ -141,12 +147,12 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
         case shortcutType::TOGGLE_LENS:
             // Here we want to toggle to the lens and toggle weaving
             if (i->second) {
-                lens_hint->enable();
+                if (lens_hint) lens_hint->enable();
                 // Bypass weave() call
                 weaver_implementation->do_weave(true);
             }
             else {
-                lens_hint->disable();
+                if (lens_hint) lens_hint->disable();
                 // Bypass weave() call
                 weaver_implementation->do_weave(false);
             }
@@ -201,7 +207,10 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
 static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     bool printStatusInWeaver = true;
     std::string status_string = "Status: \n";
-    if (dll_failed_to_load) {
+    if (displayxr_active) {
+        weaver_implementation->draw_status_overlay(runtime);
+    }
+    else if (dll_failed_to_load) {
         // Unable to load at least one of the SR DLLs
         status_string += "INACTIVE - UNABLE TO LOAD ALL SR DLLS, MAKE SURE THE SR PLATFORM IS INSTALLED AND RUNNING\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n";
         printStatusInWeaver = false;
@@ -226,7 +235,7 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
 }
 
 static void on_reshade_finish_effects(reshade::api::effect_runtime* runtime, reshade::api::command_list* cmd_list, reshade::api::resource_view rtv, reshade::api::resource_view rtv_srgb) {
-    if (!sr_initialized) {
+    if ((!sr_initialized && !displayxr_active) || DisplayXRBackend::is_output_runtime(runtime)) {
         return;
     }
 
@@ -307,7 +316,31 @@ static bool init_sr() {
 }
 
 static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
+    // ReShade also hooks the swapchain the DisplayXR runtime presents the woven image with. Leave it alone.
+    if (DisplayXRBackend::is_output_runtime(runtime)) {
+        runtime->set_effects_state(false);
+        return;
+    }
     active_effect_runtimes.fetch_add(1, std::memory_order_relaxed);
+    game_device = runtime->get_device();
+
+    // DisplayXR backend, opt-in with backend=displayxr: the DisplayXR runtime weaves, so the SR service is never used.
+    // When DisplayXR cannot be used, the SR path below runs as before.
+    if (!displayxr_checked) {
+        displayxr_checked = true;
+        ConfigManager::write_missing_config_values();
+        if (DisplayXRBackend::is_requested()) {
+            weaver_implementation = DisplayXRBackend::try_create(runtime);
+            displayxr_active = weaver_implementation != nullptr;
+        }
+    }
+    if (displayxr_active) {
+        if (hotKey_manager == nullptr) {
+            hotKey_manager = new HotKeyManager();
+        }
+        weaver_implementation->on_init_effect_runtime(runtime);
+        return;
+    }
 
     // Catch any runtime_error which points to not all required DLLs being present.
     if (!init_sr()) {
@@ -389,6 +422,9 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
 
 // Called when an effect runtime is destroyed (can happen multiple times)
 static void on_destroy_effect_runtime(reshade::api::effect_runtime* runtime) {
+    if (DisplayXRBackend::is_output_runtime(runtime)) {
+        return;
+    }
     int remaining = active_effect_runtimes.fetch_sub(1, std::memory_order_acq_rel) - 1;
     // Only consider triggering cleanup if device already gone or this was last runtime
     if (remaining <= 0 && device_destroyed.load(std::memory_order_acquire)) {
@@ -400,6 +436,9 @@ static void on_destroy_effect_runtime(reshade::api::effect_runtime* runtime) {
 
 // Track device destruction as a stronger signal of process exit or teardown
 static void on_destroy_device(reshade::api::device* device) {
+    if (game_device != nullptr && device != game_device) {
+        return;
+    }
     device_destroyed.store(true, std::memory_order_release);
     // We are fairly sure this code block always returns true but in the case where there are multiple devices, this check is necessary.
     if (active_effect_runtimes.load(std::memory_order_acquire) == 0) {
@@ -419,6 +458,7 @@ static void perform_exit_cleanup() {
         delete weaver_implementation;
         weaver_implementation = nullptr;
     }
+    displayxr_active = false;
     reshade::log_message(reshade::log_level::info, "Weaver destructed.");
 
     // Todo: We may not need to delete the sr_context, deleting the weaver object might be enough.
@@ -430,6 +470,14 @@ static void perform_exit_cleanup() {
     reshade::log_message(reshade::log_level::info, "Exit cleanup complete.");
 }
 
+// The woven DisplayXR image covers the game window, and the ReShade overlay is drawn into the game's own back buffer.
+static bool on_reshade_open_overlay(reshade::api::effect_runtime* runtime, bool open, reshade::api::input_source source) {
+    if (displayxr_active && !DisplayXRBackend::is_output_runtime(runtime)) {
+        static_cast<DisplayXRBackend*>(weaver_implementation)->on_reshade_overlay(open);
+    }
+    return false;
+}
+
 void deregisterCallbacksOnDllLoadFailure() {
     // Mark the dll_failed_to_load status
     dll_failed_to_load = true;
@@ -439,6 +487,7 @@ void deregisterCallbacksOnDllLoadFailure() {
     reshade::unregister_event<reshade::addon_event::init_effect_runtime>(&on_init_effect_runtime);
     reshade::unregister_event<reshade::addon_event::destroy_effect_runtime>(&on_destroy_effect_runtime);
     reshade::unregister_event<reshade::addon_event::destroy_device>(&on_destroy_device);
+    reshade::unregister_event<reshade::addon_event::reshade_open_overlay>(&on_reshade_open_overlay);
 }
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -457,10 +506,12 @@ BOOL APIENTRY DllMain( HMODULE hModule,
         reshade::register_event<reshade::addon_event::destroy_effect_runtime>(&on_destroy_effect_runtime);
         reshade::register_event<reshade::addon_event::reshade_finish_effects>(&on_reshade_finish_effects);
         reshade::register_event<reshade::addon_event::destroy_device>(&on_destroy_device);
+        reshade::register_event<reshade::addon_event::reshade_open_overlay>(&on_reshade_open_overlay);
         reshade::register_overlay(nullptr, &draw_status_overlay);
         break;
     case DLL_PROCESS_DETACH:
         // Fallback: ensure cleanup ran (avoid heavy operations here).
+        DisplayXRBackend::abandon_teardown();
         std::call_once(exit_cleanup_once, []() {
             perform_exit_cleanup();
         });

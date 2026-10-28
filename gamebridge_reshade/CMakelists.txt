@@ -50,6 +50,13 @@ add_library(${PROJECT_NAME} SHARED
 	src/versioncomparer.cpp
 	src/versioncomparer.h
 	src/gbConstants.h
+	src/displayxrBackend.h
+	src/displayxrBackend.cpp
+	src/displayxrGraphics.h
+	src/displayxrGraphicsD3D11.cpp
+	src/displayxrGraphicsD3D12.cpp
+	src/displayxrOverlayWindow.h
+	src/displayxrOverlayWindow.cpp
 	
 	${GLAD_SOURCE}
 )
@@ -74,6 +81,10 @@ target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_DXHEADERS})
 set(TARGET_RESHADE reshade)
 add_subdirectory(third-party/reshade)
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_RESHADE})
+
+set(TARGET_OPENXR openxr_headers)
+add_subdirectory(third-party/openxr)
+target_link_libraries(${PROJECT_NAME} LINK_PUBLIC ${TARGET_OPENXR})
 
 find_package(simulatedreality REQUIRED)
 find_package(srDirectX REQUIRED)

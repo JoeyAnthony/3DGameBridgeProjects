@@ -53,6 +53,11 @@ void ConfigManager::write_missing_config_values() {
     if (value_size <= 0) {
         reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_enable_overlay_workaround.c_str(), "true");
     }
+    value_size = 0;
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_backend.c_str(), nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_backend.c_str(), gb_config_backend_sr.c_str());
+    }
 }
 
 void remove_unwanted_nulls(std::vector<char>& vec) {
@@ -109,6 +114,7 @@ void ConfigManager::load_default_config() {
     registered_config_values.push_back(ConfigValue(gb_config_disable_3d_when_no_user, false));
     registered_config_values.push_back(ConfigValue(gb_config_disable_3d_when_no_user_grace_duration, 0));
     registered_config_values.push_back(ConfigValue(gb_config_enable_overlay_workaround, true));
+    registered_config_values.push_back(ConfigValue(gb_config_backend, gb_config_backend_sr));
 }
 
 bool ConfigManager::write_config_value(ConfigManager::ConfigValue value) {
