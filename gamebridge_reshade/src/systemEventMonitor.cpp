@@ -15,7 +15,7 @@
 void SystemEventMonitor::accept(const SR::SystemEvent& frame) {
     switch (frame.eventType) {
         case SR_eventType::Info:
-            reshade::log_message(reshade::log_level::info, "Info");
+            reshade::log::message(reshade::log::level::info, "Info");
             break;
         case SR_eventType::ContextInvalid:
             contextValid = false;

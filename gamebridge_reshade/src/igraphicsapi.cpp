@@ -58,11 +58,11 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime, co
         val.key = "disable_3d_when_no_user_present";
         if (user_presence_3d_toggle_checked)
         {
-            reshade::log_message(reshade::log_level::info, "User based 3D checkbox enabled");
+            reshade::log::message(reshade::log::level::info, "User based 3D checkbox enabled");
         }
         else
         {
-            reshade::log_message(reshade::log_level::info, "User based 3D checkbox disabled");
+            reshade::log::message(reshade::log::level::info, "User based 3D checkbox disabled");
         }
         // Write to config file
         val.bool_value = user_presence_3d_toggle_checked;
@@ -76,11 +76,11 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime, co
         val.key = "enable_overlay_workaround";
         if (enable_overlay_workaround)
         {
-            reshade::log_message(reshade::log_level::info, "Weaving overlay workaround enabled");
+            reshade::log::message(reshade::log::level::info, "Weaving overlay workaround enabled");
         }
         else
         {
-            reshade::log_message(reshade::log_level::info, "Weaving overlay workaround disabled");
+            reshade::log::message(reshade::log::level::info, "Weaving overlay workaround disabled");
         }
         // Write to config file
         val.bool_value = enable_overlay_workaround;
@@ -119,5 +119,5 @@ void IGraphicsApi::determine_default_latency_mode() {
         latency_log = "Current latency mode set to: STATIC " + std::to_string(weaver_latency_in_us) + " Microseconds";
     }
 
-    reshade::log_message(reshade::log_level::info, latency_log.c_str());
+    reshade::log::message(reshade::log::level::info, latency_log.c_str());
 }

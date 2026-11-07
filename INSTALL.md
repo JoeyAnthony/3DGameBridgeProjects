@@ -58,7 +58,7 @@ This version is **lacking** some of our planned quality of life features. Furthe
 5. *“The addon is loaded in ReShade and the game is SBS, but it doesn’t turn 3D on\!”*
 
    Make sure your SR device is fully connected. That means that the computer must have a USB connection and a display connection to the screen. Additionally, make sure you have at least one effect loaded in the ReShade effects tab. If you have used the ReShade installer, there should be at least one effect called `DO_NOT_ENABLE.addonfx` (don’t enable it).
-6. This version of the addon is only tested for ReShade version 6.2.0. API changes on ReShade’s side may make our addon incompatible with newer versions. This version of the addon has only been tested with SR Platform version 1.30.x- 1.34.7. It is possible that future versions of the platform will be incompatible with this addon.   
+6. This version of the addon requires ReShade version 6.8.0 or newer and is built against ReShade 6.8.0. API changes on ReShade’s side may make our addon incompatible with newer versions. This version of the addon has only been tested with SR Platform version 1.30.x- 1.39.0. It is possible that future versions of the platform will be incompatible with this addon.   
      
    If you run into any dependency related problems, you can consider messaging @dinnerbram or @janthony102 on Discord. We can see if we can help resolve your problem, but we are making no promises, and we are under no obligation to do so. We hope you understand as we are spreading ourselves quite thin already. 
 

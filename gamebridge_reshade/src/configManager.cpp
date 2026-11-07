@@ -26,7 +26,7 @@ void ConfigManager::reload_config() {
     } catch (std::runtime_error &e) {
         // Couldn't find the config values, let's write the defaults in the .ini
         std::string error_msg = "Unable to find config value in ReShade.ini: Now writing/loading defaults...";
-        reshade::log_message(reshade::log_level::warning, error_msg.c_str());
+        reshade::log::message(reshade::log::level::warning, error_msg.c_str());
         write_missing_config_values();
         load_default_config();
     }
@@ -97,7 +97,7 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
             std::string error_msg = "Unable to read value from config file for config value: ";
             error_msg += key;
             error_msg += ". Please read the addon documentation to find out what values are valid.";
-            reshade::log_message(reshade::log_level::error, error_msg.c_str());
+            reshade::log::message(reshade::log::level::error, error_msg.c_str());
         }
         return ConfigValue();
     }
@@ -128,7 +128,7 @@ bool ConfigManager::write_config_value(ConfigManager::ConfigValue value) {
         }
     } catch (std::runtime_error &e) {
         std::string error_msg = "Unable to write config value in ReShade.ini, your config changed will not be saved for this session.";
-        reshade::log_message(reshade::log_level::warning, error_msg.c_str());
+        reshade::log::message(reshade::log::level::warning, error_msg.c_str());
         return false;
     }
 

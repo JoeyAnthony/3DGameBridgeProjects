@@ -18,7 +18,8 @@ You can find the manual installation instructions [here](INSTALL.md).
 2. Fetch all submodules with: `git submodule update --init --recursive`
 3. Install the Simulated Reality SDK
 4. Generate the project with Cmake 
-5. Optional: Supply `-DLINK_GLAD=ON` and [download GLAD](https://gen.glad.sh/) to `third-party/glad` to build with our OpenGL weaving workaround for SR versions between 1.30.x and 1.33.1. 
+5. Optional: Install the [Vulkan SDK](https://vulkan.lunarg.com/) and the Simulated Reality SDK 1.39.0 or newer to build with Vulkan support.
+6. Optional: Supply `-DLINK_GLAD=ON` and [download GLAD](https://gen.glad.sh/) to `third-party/glad` to build with our OpenGL weaving workaround for SR versions between 1.30.x and 1.33.1. 
 
 ## Related projects:
 

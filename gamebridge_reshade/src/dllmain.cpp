@@ -19,6 +19,9 @@
 #include "directx9weaver.h"
 #include "systemEventMonitor.h"
 #include "openglweaver.h"
+#ifdef ENABLE_VULKAN
+#include "vulkanweaver.h"
+#endif
 #include "delayLoader.h"
 #include "configManager.h"
 #include "gbConstants.h"
@@ -58,6 +61,7 @@ static bool sr_initialized = false;
 static bool user_lost_grace_period_active = false;
 static bool user_lost_logic_enabled = false;
 static bool enable_compatibility_mode = false;
+static bool vulkan_requires_newer_sr = false;
 static int user_lost_additional_grace_period_duration_in_ms = 0;
 static chrono::steady_clock::time_point user_lost_timestamp;
 
@@ -81,7 +85,7 @@ vector<size_t> get_module_version_info(LPCWSTR moduleName) {
     DWORD version_info_size_handle;
     DWORD dw_size = GetFileVersionInfoSizeExW(FILE_VER_GET_NEUTRAL , moduleName, &version_info_size_handle);
     if (dw_size == 0) {
-        reshade::log_message(reshade::log_level::warning, "Failed to get version info size.");
+        reshade::log::message(reshade::log::level::warning, "Failed to get version info size.");
         return reshade_version_numbers;
     }
 
@@ -90,7 +94,7 @@ vector<size_t> get_module_version_info(LPCWSTR moduleName) {
 
     // Retrieve the version info
     if (!GetFileVersionInfoExW(FILE_VER_GET_NEUTRAL , moduleName, 0, dw_size, version_info_buffer.get())) {
-        reshade::log_message(reshade::log_level::warning, "Failed to get version info.");
+        reshade::log::message(reshade::log::level::warning, "Failed to get version info.");
         return reshade_version_numbers;
     }
 
@@ -98,7 +102,7 @@ vector<size_t> get_module_version_info(LPCWSTR moduleName) {
     LPVOID file_info;
     UINT file_info_size;
     if (!VerQueryValueW(version_info_buffer.get(), L"\\", &file_info, &file_info_size)) {
-        reshade::log_message(reshade::log_level::warning, "Failed to query version info.");
+        reshade::log::message(reshade::log::level::warning, "Failed to query version info.");
         return reshade_version_numbers;
     }
 
@@ -182,14 +186,14 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
                 weaver_implementation->set_latency_in_frames(-1);
 
                 // Log the current mode:
-                reshade::log_message(reshade::log_level::info, "Current latency mode set to: LATENCY_IN_FRAMES");
+                reshade::log::message(reshade::log::level::info, "Current latency mode set to: LATENCY_IN_FRAMES");
             }
             else {
                 // Set the latency to the SR default of 40000 microseconds (Tuned for 60Hz)
                 weaver_implementation->set_latency_frametime_adaptive(weaver_implementation->weaver_latency_in_us);
 
                 // Log the current mode:
-                reshade::log_message(reshade::log_level::info, "Current latency mode set to: STATIC 40000 Microseconds");
+                reshade::log::message(reshade::log::level::info, "Current latency mode set to: STATIC 40000 Microseconds");
             }
 
         default:
@@ -198,6 +202,7 @@ static void execute_hot_key_function_by_type(std::map<shortcutType, bool> hot_ke
     }
 }
 
+// Todo: Update the download links referenced in this functions, they lead to 404's now.
 static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     bool printStatusInWeaver = true;
     std::string status_string = "Status: \n";
@@ -213,6 +218,11 @@ static void draw_status_overlay(reshade::api::effect_runtime* runtime) {
     }
     else if (weaver_implementation) {
         weaver_implementation->draw_status_overlay(runtime);
+    }
+    else if (vulkan_requires_newer_sr) {
+        // The SR Platform is too old for Vulkan weaving. Fall back to drawing the overlay UI ourselves.
+        status_string += "INACTIVE - VULKAN REQUIRES SR PLATFORM 1.39.0 OR NEWER (CURRENTLY " + std::string(getSRPlatformVersion()) + "), PLEASE UPDATE THE SR PLATFORM\nhttps://github.com/LeiaInc/leiainc.github.io/tree/master/SRSDK\n";
+        printStatusInWeaver = false;
     }
     else {
         // Unable to create weaver implementation. Fall back to drawing the overlay UI ourselves.
@@ -283,7 +293,7 @@ static bool init_sr() {
         }
         catch (SR::ServerNotAvailableException&) {
             // Unable to construct SR Context.
-            reshade::log_message(reshade::log_level::error, "Unable to connect to the SR Service, make sure the SR Platform is installed and running.");
+            reshade::log::message(reshade::log::level::error, "Unable to connect to the SR Service, make sure the SR Platform is installed and running.");
             sr_initialized = false;
             return false;
         }
@@ -339,7 +349,7 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                 case reshade::api::device_api::opengl:
 #ifdef ENABLE_GLAD
                     if (!gladLoaderLoadGL()) {
-                        reshade::log_message(reshade::log_level::error, "Unable to load GLAD. Weaving may be incorrect between SR versions 1.30.x and 1.33.2");
+                        reshade::log::message(reshade::log::level::error, "Unable to load GLAD. Weaving may be incorrect between SR versions 1.30.x and 1.33.2");
                     }
 #endif
                     // Check if SR version > 1.30.x and < 1.34.x. If so, OpenGL is potentially bugged.
@@ -360,8 +370,19 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
                 case reshade::api::device_api::d3d12:
                     weaver_implementation = new DirectX12Weaver(sr_context);
                     break;
+#ifdef ENABLE_VULKAN
+                case reshade::api::device_api::vulkan:
+                    // Vulkan weaving is only available from SR version 1.39.0 onwards, older versions don't ship the SR Vulkan DLL.
+                    if (VersionComparer::is_version_newer(getSRPlatformVersion(), 1, 38, 999)) {
+                        weaver_implementation = new VulkanWeaver(sr_context);
+                    } else {
+                        vulkan_requires_newer_sr = true;
+                        reshade::log::message(reshade::log::level::warning, "Vulkan weaving requires SR version 1.39.0 or newer. Becoming inactive.");
+                    }
+                    break;
+#endif
                 default:
-                    reshade::log_message(reshade::log_level::warning,"Unable to determine graphics API, it may not be supported. Becoming inactive.");
+                    reshade::log::message(reshade::log::level::warning,"Unable to determine graphics API, it may not be supported. Becoming inactive.");
                     break;
             }
         }
@@ -371,6 +392,11 @@ static void on_init_effect_runtime(reshade::api::effect_runtime* runtime) {
             deregisterCallbacksOnDllLoadFailure();
             return;
         }
+    }
+
+    // Without a weaver implementation there is nothing left to initialize.
+    if (weaver_implementation == nullptr) {
+        return;
     }
 
     // Get ReShade version number
@@ -410,7 +436,7 @@ static void on_destroy_device(reshade::api::device* device) {
 }
 
 static void perform_exit_cleanup() {
-    reshade::log_message(reshade::log_level::info, "Performing exit cleanup.");
+    reshade::log::message(reshade::log::level::info, "Performing exit cleanup.");
 
     // Stop using weaver_implementation with ReShade now
     if (weaver_implementation) {
@@ -419,7 +445,7 @@ static void perform_exit_cleanup() {
         delete weaver_implementation;
         weaver_implementation = nullptr;
     }
-    reshade::log_message(reshade::log_level::info, "Weaver destructed.");
+    reshade::log::message(reshade::log::level::info, "Weaver destructed.");
 
     // Todo: We may not need to delete the sr_context, deleting the weaver object might be enough.
     if (sr_context) {
@@ -427,7 +453,7 @@ static void perform_exit_cleanup() {
         sr_context = nullptr;
     }
 
-    reshade::log_message(reshade::log_level::info, "Exit cleanup complete.");
+    reshade::log::message(reshade::log::level::info, "Exit cleanup complete.");
 }
 
 void deregisterCallbacksOnDllLoadFailure() {
