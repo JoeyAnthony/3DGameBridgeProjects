@@ -13,6 +13,8 @@
 #include "gbConstants.h"
 
 #include <sr/version_c.h>
+#include <sr/weaver/WeaverTypes.h>
+#include <delayimp.h>
 
 // List of color formats that require color linearization in order restore the correct gamma.
 const std::list<reshade::api::format> srgb_color_formats {
@@ -27,6 +29,51 @@ enum LatencyModes { FRAMERATE_ADAPTIVE, LATENCY_IN_FRAMES, LATENCY_IN_FRAMES_AUT
 // failure = the method failed in an unexpected and generic way
 // dllNotLoaded = the method failed due to an SR DLL not being present during delayed loading
 enum GbResult { SUCCESS, GENERAL_FAIL, DLL_NOT_LOADED };
+// The anti-crosstalk (ACT) mode the user picked, SR_PLATFORM_DEFAULT leaves the mode configured in the SR Platform untouched.
+// The order matches the options shown in the overlay.
+enum AntiCrosstalkSetting { SR_PLATFORM_DEFAULT, ACT_OFF, ACT_STATIC, ACT_DYNAMIC };
+// supported = the weaver and the running SR Platform both support anti-crosstalk
+// notSupportedByGraphicsApi = the SR weaver for this graphics API has no anti-crosstalk settings
+// requiresNewerSrPlatform = the running SR Platform is too old to have the anti-crosstalk settings
+enum class AntiCrosstalkSupport { NOT_CHECKED, SUPPORTED, NOT_SUPPORTED_BY_GRAPHICS_API, REQUIRES_NEWER_SR_PLATFORM };
+
+/// \brief SEH filter that only catches the exception the delay loader raises when a function is missing from a loaded SR DLL.
+inline int is_missing_sr_function(unsigned long exception_code) {
+    return exception_code == VcppException(ERROR_SEVERITY_ERROR, ERROR_PROC_NOT_FOUND) ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH;
+}
+
+/// \brief Reads the anti-crosstalk mode from an SR weaver.
+/// The SR DLLs are delay loaded, so a function that is missing from an older SR Platform only fails when it is called. We catch that failure here.
+/// \param weaver The SR weaver to read from (e.g. SR::PredictingDX12Weaver*, SR::PredictingGLWeaver*)
+/// \param mode Receives the current anti-crosstalk mode
+/// 
+/// \return SUPPORTED when the running SR Platform has the function, REQUIRES_NEWER_SR_PLATFORM otherwise
+template <typename SrWeaver>
+AntiCrosstalkSupport try_get_sr_act_mode(SrWeaver* weaver, WeaverACTMode& mode) {
+    __try {
+        mode = weaver->getACTMode();
+        return AntiCrosstalkSupport::SUPPORTED;
+    }
+    __except (is_missing_sr_function(GetExceptionCode())) {
+        return AntiCrosstalkSupport::REQUIRES_NEWER_SR_PLATFORM;
+    }
+}
+
+/// \brief Sets the anti-crosstalk mode of an SR weaver, see try_get_sr_act_mode for why this can fail.
+/// \param weaver The SR weaver to change (e.g. SR::PredictingDX12Weaver*, SR::PredictingGLWeaver*)
+/// \param mode The anti-crosstalk mode to set
+/// 
+/// \return true when the mode was set, false when the running SR Platform doesn't have the function
+template <typename SrWeaver>
+bool try_set_sr_act_mode(SrWeaver* weaver, WeaverACTMode mode) {
+    __try {
+        weaver->setACTMode(mode);
+        return true;
+    }
+    __except (is_missing_sr_function(GetExceptionCode())) {
+        return false;
+    }
+}
 
 struct Destroy_Resource_Data
 {
@@ -38,6 +85,32 @@ class IGraphicsApi {
 private:
     bool user_presence_3d_toggle_checked = false;
     bool enable_overlay_workaround = true;
+    int anti_crosstalk_setting = AntiCrosstalkSetting::SR_PLATFORM_DEFAULT;
+    AntiCrosstalkSupport anti_crosstalk_support = AntiCrosstalkSupport::NOT_CHECKED;
+    WeaverACTMode sr_platform_act_mode = WeaverACTMode::Off;
+
+    /// \brief Applies the anti-crosstalk setting picked by the user to the weaver.
+    void apply_anti_crosstalk_setting();
+
+    /// \brief Draws the anti-crosstalk option in the ImGUI UI, or explains why it is unavailable.
+    void draw_anti_crosstalk_option();
+
+protected:
+    /// \brief Reads the anti-crosstalk mode from the SR weaver. Weavers that support anti-crosstalk override this.
+    /// \param mode Receives the current anti-crosstalk mode
+    /// 
+    /// \return Whether anti-crosstalk is supported, see AntiCrosstalkSupport
+    virtual AntiCrosstalkSupport get_weaver_act_mode(WeaverACTMode& mode) { return AntiCrosstalkSupport::NOT_SUPPORTED_BY_GRAPHICS_API; }
+
+    /// \brief Sets the anti-crosstalk mode of the SR weaver. Weavers that support anti-crosstalk override this.
+    /// \param mode The anti-crosstalk mode to set
+    /// 
+    /// \return true when the mode was set
+    virtual bool set_weaver_act_mode(WeaverACTMode mode) { return false; }
+
+    /// \brief Checks if anti-crosstalk is supported and applies the user's setting. Must be called after the SR weaver is created.
+    void init_anti_crosstalk();
+
 public:
     /// \brief Constructor (must be called before usage of this class)
     IGraphicsApi();

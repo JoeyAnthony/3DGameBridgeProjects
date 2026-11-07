@@ -68,4 +68,9 @@ public:
     bool set_latency_in_frames(int32_t number_of_frames) override;
     bool set_latency_frametime_adaptive(uint32_t frametime_in_microseconds) override;
     LatencyModes get_latency_mode() override;
+
+protected:
+    // Inherited via IGraphicsApi
+    AntiCrosstalkSupport get_weaver_act_mode(WeaverACTMode& mode) override;
+    bool set_weaver_act_mode(WeaverACTMode mode) override;
 };

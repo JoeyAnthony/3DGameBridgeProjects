@@ -9,9 +9,22 @@
 
 #include "configManager.h"
 
+// Values of the anti_crosstalk_mode config key, in the same order as the AntiCrosstalkSetting enum.
+static const std::vector<std::string> anti_crosstalk_config_values = { "sr_default", "off", "static", "dynamic" };
+// Display names of WeaverACTMode, in the same order as the enum.
+static const char* act_mode_names[] = { "Off", "Static", "Dynamic" };
+
 IGraphicsApi::IGraphicsApi() {
     user_presence_3d_toggle_checked = ConfigManager::read_from_config(gb_config_disable_3d_when_no_user).bool_value;
     enable_overlay_workaround = ConfigManager::read_from_config(gb_config_enable_overlay_workaround).bool_value;
+
+    // Read the anti-crosstalk setting, unknown values keep the SR Platform default.
+    std::string anti_crosstalk_value = ConfigManager::read_from_config(gb_config_anti_crosstalk_mode).string_value;
+    for (int i = 0; i < anti_crosstalk_config_values.size(); i++) {
+        if (anti_crosstalk_config_values[i] == anti_crosstalk_value) {
+            anti_crosstalk_setting = i;
+        }
+    }
 }
 
 /**
@@ -28,6 +41,7 @@ int32_t IGraphicsApi::get_concatinated_reshade_version() {
 void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime, const std::string& error_message) {
     // Log activity status
     ImGui::TextUnformatted("Status: ACTIVE");
+    ImGui::Text("SR Platform version: %s", getSRPlatformVersion());
 
     if (!error_message.empty()) {
         ImGui::TextColored(ImColor(240,100,100), "%s", error_message.c_str());
@@ -95,6 +109,85 @@ void IGraphicsApi::draw_status_overlay(reshade::api::effect_runtime *runtime, co
         ImGui::BeginTooltip();
         ImGui::Text("This bypasses the SR SDK check for toggling 3D based on if the 3D window is obstructed by i.e. overlays.");
         ImGui::EndTooltip();
+    }
+
+    draw_anti_crosstalk_option();
+}
+
+void IGraphicsApi::draw_anti_crosstalk_option() {
+    if (anti_crosstalk_support == AntiCrosstalkSupport::NOT_CHECKED) {
+        // The weaver isn't initialized yet.
+        return;
+    }
+    if (anti_crosstalk_support == AntiCrosstalkSupport::NOT_SUPPORTED_BY_GRAPHICS_API) {
+        ImGui::TextDisabled("Anti-crosstalk: not available for this graphics API");
+        return;
+    }
+    if (anti_crosstalk_support == AntiCrosstalkSupport::REQUIRES_NEWER_SR_PLATFORM) {
+        ImGui::TextDisabled("Anti-crosstalk: not available, update the SR Platform to use it");
+        return;
+    }
+
+    // Show which mode the SR Platform default resolves to, so the user knows what they get.
+    std::string sr_default_option = "SR Platform default (" + std::string(act_mode_names[static_cast<int>(sr_platform_act_mode)]) + ")";
+    const char* options[] = { sr_default_option.c_str(), "Off", "Static", "Dynamic" };
+
+    if (ImGui::Combo("Anti-crosstalk##act", &anti_crosstalk_setting, options, IM_ARRAYSIZE(options))) {
+        apply_anti_crosstalk_setting();
+
+        // Write to config file
+        ConfigManager::ConfigValue val;
+        val.key = gb_config_anti_crosstalk_mode;
+        val.string_value = anti_crosstalk_config_values[anti_crosstalk_setting];
+        val.value_type = ConfigManager::ConfigValue::Type::String;
+        ConfigManager::write_config_value(val);
+    }
+
+    if (ImGui::IsItemHovered()) {
+        ImGui::BeginTooltip();
+        ImGui::Text("Reduces ghosting (crosstalk), where one eye faintly sees the image meant for the other eye.");
+        ImGui::Text("Static: applies a fixed correction.");
+        ImGui::Text("Dynamic: adapts the correction to your head position.");
+        ImGui::EndTooltip();
+    }
+}
+
+void IGraphicsApi::init_anti_crosstalk() {
+    // Remember the mode the SR Platform picked, this is what SR_PLATFORM_DEFAULT restores to.
+    anti_crosstalk_support = get_weaver_act_mode(sr_platform_act_mode);
+
+    if (anti_crosstalk_support == AntiCrosstalkSupport::SUPPORTED) {
+        apply_anti_crosstalk_setting();
+    }
+    else if (anti_crosstalk_support == AntiCrosstalkSupport::REQUIRES_NEWER_SR_PLATFORM) {
+        reshade::log::message(reshade::log::level::warning, "Anti-crosstalk is not supported by this SR Platform version.");
+    }
+}
+
+void IGraphicsApi::apply_anti_crosstalk_setting() {
+    WeaverACTMode mode;
+    switch (anti_crosstalk_setting) {
+        case AntiCrosstalkSetting::ACT_OFF:
+            mode = WeaverACTMode::Off;
+            break;
+        case AntiCrosstalkSetting::ACT_STATIC:
+            mode = WeaverACTMode::Static;
+            break;
+        case AntiCrosstalkSetting::ACT_DYNAMIC:
+            mode = WeaverACTMode::Dynamic;
+            break;
+        default:
+            mode = sr_platform_act_mode;
+            break;
+    }
+
+    if (set_weaver_act_mode(mode)) {
+        std::string message = "Anti-crosstalk mode set to: " + std::string(act_mode_names[static_cast<int>(mode)]);
+        reshade::log::message(reshade::log::level::info, message.c_str());
+    }
+    else {
+        anti_crosstalk_support = AntiCrosstalkSupport::REQUIRES_NEWER_SR_PLATFORM;
+        reshade::log::message(reshade::log::level::warning, "Unable to set the anti-crosstalk mode, this SR Platform version doesn't support it.");
     }
 }
 
