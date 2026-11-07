@@ -23,6 +23,8 @@ void ConfigManager::reload_config() {
                 gb_config_disable_3d_when_no_user_grace_duration));
         registered_config_values.push_back(ConfigManager::read_from_config(
                 gb_config_enable_overlay_workaround));
+        registered_config_values.push_back(ConfigManager::read_from_config(
+                gb_config_anti_crosstalk_mode));
     } catch (std::runtime_error &e) {
         // Couldn't find the config values, let's write the defaults in the .ini
         std::string error_msg = "Unable to find config value in ReShade.ini: Now writing/loading defaults...";
@@ -53,6 +55,11 @@ void ConfigManager::write_missing_config_values() {
     if (value_size <= 0) {
         reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_enable_overlay_workaround.c_str(), "true");
     }
+    value_size = 0;
+    reshade::get_config_value(nullptr, gb_config_section_name.c_str(), gb_config_anti_crosstalk_mode.c_str(), nullptr, &value_size);
+    if (value_size <= 0) {
+        reshade::set_config_value(nullptr, gb_config_section_name.c_str(), gb_config_anti_crosstalk_mode.c_str(), "sr_default");
+    }
 }
 
 void remove_unwanted_nulls(std::vector<char>& vec) {
@@ -82,11 +89,13 @@ ConfigManager::ConfigValue ConfigManager::read_from_config(const std::string &ke
                 return ConfigValue(key, false);
             }
 
-            // Try parsing as integer
-            size_t idx = 0;
-            int int_value = std::stoi(str, &idx);
-            if (idx == str.length()) { // Entire string was a valid integer
-                return ConfigValue(key, int_value);
+            // Try parsing as integer, text values (e.g. anti_crosstalk_mode=static) are returned as a string
+            if (!str.empty() && (std::isdigit(static_cast<unsigned char>(str[0])) || str[0] == '-')) {
+                size_t idx = 0;
+                int int_value = std::stoi(str, &idx);
+                if (idx == str.length()) { // Entire string was a valid integer
+                    return ConfigValue(key, int_value);
+                }
             }
 
             return ConfigValue(key, str);
@@ -109,6 +118,7 @@ void ConfigManager::load_default_config() {
     registered_config_values.push_back(ConfigValue(gb_config_disable_3d_when_no_user, false));
     registered_config_values.push_back(ConfigValue(gb_config_disable_3d_when_no_user_grace_duration, 0));
     registered_config_values.push_back(ConfigValue(gb_config_enable_overlay_workaround, true));
+    registered_config_values.push_back(ConfigValue(gb_config_anti_crosstalk_mode, std::string("sr_default")));
 }
 
 bool ConfigManager::write_config_value(ConfigManager::ConfigValue value) {

@@ -133,6 +133,9 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
     // Determine the default latency mode for the weaver
     determine_default_latency_mode();
 
+    // Check if anti-crosstalk is supported and apply the user's setting
+    init_anti_crosstalk();
+
     return SUCCESS;
 }
 
@@ -341,4 +344,12 @@ void OpenGLWeaver::destroy_all_resources_and_resource_views() {
     gl_device->destroy_resource_view(effect_frame_copy_srv);
     gl_device->destroy_resource(effect_frame_copy_flipped);
     gl_device->destroy_resource_view(effect_frame_copy_flipped_rtv);
+}
+
+AntiCrosstalkSupport OpenGLWeaver::get_weaver_act_mode(WeaverACTMode& mode) {
+    return try_get_sr_act_mode(weaver, mode);
+}
+
+bool OpenGLWeaver::set_weaver_act_mode(WeaverACTMode mode) {
+    return try_set_sr_act_mode(weaver, mode);
 }

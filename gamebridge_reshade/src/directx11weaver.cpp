@@ -104,6 +104,9 @@ GbResult DirectX11Weaver::init_weaver(reshade::api::effect_runtime *runtime, res
     // Determine the default latency mode for the weaver
     determine_default_latency_mode();
 
+    // Check if anti-crosstalk is supported and apply the user's setting
+    init_anti_crosstalk();
+
     return SUCCESS;
 }
 
@@ -247,4 +250,12 @@ void DirectX11Weaver::check_color_format(reshade::api::resource_desc desc) {
 
 LatencyModes DirectX11Weaver::get_latency_mode() {
     return current_latency_mode;
+}
+
+AntiCrosstalkSupport DirectX11Weaver::get_weaver_act_mode(WeaverACTMode& mode) {
+    return try_get_sr_act_mode(weaver, mode);
+}
+
+bool DirectX11Weaver::set_weaver_act_mode(WeaverACTMode mode) {
+    return try_set_sr_act_mode(weaver, mode);
 }

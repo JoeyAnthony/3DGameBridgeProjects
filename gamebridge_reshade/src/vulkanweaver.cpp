@@ -196,6 +196,9 @@ GbResult VulkanWeaver::init_weaver(reshade::api::effect_runtime* runtime) {
     // Determine the default latency mode for the weaver
     determine_default_latency_mode();
 
+    // The SR Vulkan weaver has no anti-crosstalk settings, this marks the option as unavailable in the overlay
+    init_anti_crosstalk();
+
     return SUCCESS;
 }
 
