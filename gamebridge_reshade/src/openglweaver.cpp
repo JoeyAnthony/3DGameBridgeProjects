@@ -45,7 +45,7 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
+        reshade::log::message(reshade::log::level::info, "Failed creating the effect frame copy");
         return false;
     }
 
@@ -57,7 +57,7 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy's resource view");
+        reshade::log::message(reshade::log::level::info, "Failed creating the effect frame copy's resource view");
         return false;
     }
 
@@ -70,7 +70,7 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating the flipped effect frame copy");
+        reshade::log::message(reshade::log::level::info, "Failed creating the flipped effect frame copy");
         return false;
     }
 
@@ -81,7 +81,7 @@ bool OpenGLWeaver::create_effect_copy_buffer(const reshade::api::resource_desc& 
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating the flipped effect frame copy's RTV");
+        reshade::log::message(reshade::log::level::info, "Failed creating the flipped effect frame copy's RTV");
         return false;
     }
 
@@ -111,7 +111,7 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
         GLuint renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
         weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
         sr_context->initialize();
-        reshade::log_message(reshade::log_level::info, "Initialized weaver");
+        reshade::log::message(reshade::log::level::info, "Initialized weaver");
     }
     catch (std::runtime_error &e) {
         if (std::strcmp(e.what(), "Failed to load library") == 0) {
@@ -120,11 +120,11 @@ GbResult OpenGLWeaver::init_weaver(reshade::api::effect_runtime *runtime, reshad
         return GENERAL_FAIL;
     }
     catch (std::exception &e) {
-        reshade::log_message(reshade::log_level::info, e.what());
+        reshade::log::message(reshade::log::level::info, e.what());
         return GENERAL_FAIL;
     }
     catch (...) {
-        reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
+        reshade::log::message(reshade::log::level::info, "Couldn't initialize weaver");
         return GENERAL_FAIL;
     }
 
@@ -175,7 +175,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             // Todo: Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation succeeds
             destroy_all_resources_and_resource_views();
             if (!create_effect_copy_buffer(desc, cmd_list) && !resize_buffer_failed) {
-                reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
+                reshade::log::message(reshade::log::level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
             }
 
@@ -183,7 +183,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
             // Set newly create buffer as input
             renderedTextureID = effect_frame_copy.handle & 0xFFFFFFFF;
             weaver->setInputFrameBuffer(0, renderedTextureID); // Resourceview of the buffer
-            reshade::log_message(reshade::log_level::info, "Buffer size changed");
+            reshade::log::message(reshade::log::level::info, "Buffer size changed");
         }
         else {
             resize_buffer_failed = false;
@@ -278,7 +278,7 @@ GbResult OpenGLWeaver::on_reshade_finish_effects(reshade::api::effect_runtime* r
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
             destroy_all_resources_and_resource_views();
-            reshade::log_message(reshade::log_level::info, "Failed to initialize weaver");
+            reshade::log::message(reshade::log::level::info, "Failed to initialize weaver");
             return GENERAL_FAIL;
         }
     }

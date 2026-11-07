@@ -40,7 +40,7 @@ bool VersionComparer::is_version_newer(const char *runningVersionString, int maj
     if (versionParts.size() < 3) {
      std::string message = "Invalid SR version format: ";
      message += version;
-     reshade::log_message(reshade::log_level::warning, message.c_str());
+     reshade::log::message(reshade::log::level::warning, message.c_str());
      return false;
     }
 

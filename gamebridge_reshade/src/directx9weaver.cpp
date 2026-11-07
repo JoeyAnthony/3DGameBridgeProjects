@@ -33,7 +33,7 @@ bool DirectX9Weaver::create_effect_copy_buffer(const reshade::api::resource_desc
         effect_frame_copy_x = 0;
         effect_frame_copy_y = 0;
 
-        reshade::log_message(reshade::log_level::info, "Failed creating the effect frame copy");
+        reshade::log::message(reshade::log::level::info, "Failed creating the effect frame copy");
         return false;
     }
 
@@ -54,18 +54,18 @@ GbResult DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, resh
     IDirect3DDevice9* dev = (IDirect3DDevice9*)d3d9_device->get_native();
 
     if (!dev) {
-        reshade::log_message(reshade::log_level::info, "Couldn't get a device");
+        reshade::log::message(reshade::log::level::info, "Couldn't get a device");
         return GENERAL_FAIL;
     }
 
     try {
         if (is_overlay_workaround_enabled()) {
-            reshade::log_message(reshade::log_level::warning, "Overlay workaround is not supported in DirectX 9, please disable any overlays such as the Discord overlay if you have issues enabling 3D.");
+            reshade::log::message(reshade::log::level::warning, "Overlay workaround is not supported in DirectX 9, please disable any overlays such as the Discord overlay if you have issues enabling 3D.");
         }
         weaver = new SR::PredictingDX9Weaver(*sr_context, dev, desc.texture.width, desc.texture.height, (HWND)runtime->get_hwnd());
         weaver->setInputFrameBuffer((IDirect3DTexture9*)rtv.handle); // Resourceview of the buffer
         sr_context->initialize();
-        reshade::log_message(reshade::log_level::info, "Initialized weaver");
+        reshade::log::message(reshade::log::level::info, "Initialized weaver");
     }
     catch (std::runtime_error &e) {
         if (std::strcmp(e.what(), "Failed to load library") == 0) {
@@ -74,11 +74,11 @@ GbResult DirectX9Weaver::init_weaver(reshade::api::effect_runtime* runtime, resh
         return GENERAL_FAIL;
     }
     catch (std::exception &e) {
-        reshade::log_message(reshade::log_level::info, e.what());
+        reshade::log::message(reshade::log::level::info, e.what());
         return GENERAL_FAIL;
     }
     catch (...) {
-        reshade::log_message(reshade::log_level::info, "Couldn't initialize weaver");
+        reshade::log::message(reshade::log::level::info, "Couldn't initialize weaver");
         return GENERAL_FAIL;
     }
 
@@ -123,7 +123,7 @@ GbResult DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime*
             // TODO Might have to get the buffer from the create_effect_copy_buffer function and only swap them when creation suceeds
             d3d9_device->destroy_resource(effect_frame_copy);
             if (!create_effect_copy_buffer(desc) && !resize_buffer_failed) {
-                reshade::log_message(reshade::log_level::warning, "Couldn't create effect copy buffer, trying again next frame");
+                reshade::log::message(reshade::log::level::warning, "Couldn't create effect copy buffer, trying again next frame");
                 resize_buffer_failed = true;
             }
 
@@ -132,7 +132,7 @@ GbResult DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime*
 
             // Set newly create buffer as input
             weaver->setInputFrameBuffer((IDirect3DTexture9*)effect_frame_copy.handle);
-            reshade::log_message(reshade::log_level::info, "Buffer size changed");
+            reshade::log::message(reshade::log::level::info, "Buffer size changed");
         }
         else {
             resize_buffer_failed = false;
@@ -168,7 +168,7 @@ GbResult DirectX9Weaver::on_reshade_finish_effects(reshade::api::effect_runtime*
         else {
             // When buffer creation succeeds and this fails, delete the created buffer
             d3d9_device->destroy_resource(effect_frame_copy);
-            reshade::log_message(reshade::log_level::info, "Failed to initialize weaver");
+            reshade::log::message(reshade::log::level::info, "Failed to initialize weaver");
             return GENERAL_FAIL;
         }
     }

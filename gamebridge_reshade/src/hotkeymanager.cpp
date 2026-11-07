@@ -59,7 +59,7 @@ HotKey HotKeyManager::read_from_config(bool default_enabled, const std::string& 
             std::string error_msg = "Unable to read hotkey from config file for hotkey: ";
             error_msg += key;
             error_msg += ". Please ensure that you use the keycode table: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes";
-            reshade::log_message(reshade::log_level::error, error_msg.c_str());
+            reshade::log::message(reshade::log::level::error, error_msg.c_str());
         }
         return created_key;
     }
@@ -78,7 +78,7 @@ HotKeyManager::HotKeyManager() {
     catch (std::runtime_error &e) {
         // Couldn't find the config value, let's write the default in the .ini
         std::string error_msg = "Unable to find hotkey config in ReShade.ini: Now writing/loading defaults...";
-        reshade::log_message(reshade::log_level::warning, error_msg.c_str());
+        reshade::log::message(reshade::log::level::warning, error_msg.c_str());
         write_missing_hotkeys();
         load_default_hotkeys();
     }

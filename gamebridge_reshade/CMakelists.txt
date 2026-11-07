@@ -54,6 +54,30 @@ add_library(${PROJECT_NAME} SHARED
 	${GLAD_SOURCE}
 )
 
+# Vulkan weaving requires the SR SDK 1.39.0+ (srVulkan) and the Vulkan SDK, it is only available in 64-bit builds.
+# When either is missing, the addon is built without Vulkan support.
+if (NOT BUILD_PLATFORM)
+	find_package(srVulkan QUIET)
+	find_package(Vulkan QUIET)
+endif ()
+
+if (srVulkan_FOUND AND Vulkan_FOUND)
+	message("Building with Vulkan support")
+	target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_VULKAN)
+	target_sources(${PROJECT_NAME} PRIVATE
+		src/vulkanweaver.h
+		src/vulkanweaver.cpp
+	)
+	target_link_libraries(${PROJECT_NAME} PRIVATE
+		srVulkan::srVulkan
+		Vulkan::Vulkan
+	)
+	target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:SimulatedRealityVulkan.dll")
+	target_link_options(${PROJECT_NAME} PRIVATE "/DELAYLOAD:vulkan-1.dll")
+else ()
+	message("Building without Vulkan support, install the SR SDK 1.39.0+ and the Vulkan SDK to enable it")
+endif ()
+
 # Add glad includes only if LINK_GLAD is enabled
 if (LINK_GLAD)
 	target_include_directories(${PROJECT_NAME} PRIVATE ${GLAD_DIR}/include)
